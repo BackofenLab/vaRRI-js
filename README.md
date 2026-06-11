@@ -126,7 +126,7 @@ Three built-in examples can be loaded with the buttons at the top of the panel:
 
 | Button | Description |
 |---|---|
-| **2-molecule example** | A two-strand RNA interaction. Demonstrates strand coloring, region highlighting, and background basepair highlighting. |
+| **2-molecule example** | A two-strand RNA-RNA interaction. Demonstrates strand coloring, region highlighting, and background basepair highlighting. |
 | **1-molecule example** | A single RNA hairpin with Fornac default (loop) coloring. |
 | **Pseudoknot** | A structure containing square-bracket pseudoknot notation `[…]`. |
 

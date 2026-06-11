@@ -1,7 +1,7 @@
 {
   "name": "varri-js",
   "version": "1.0.0",
-  "description": "vaRRI-js RNA interaction visualiser",
+  "description": "vaRRI-js RNA-RNA interaction visualiser",
   "scripts": {
     "test": "jest"
   },
