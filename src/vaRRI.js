@@ -1201,6 +1201,13 @@
     /**
      * Build a self-contained SVG string from the current Fornac visualisation.
      *
+     * The exported SVG exactly mirrors what is shown in the browser: the live
+     * SVG element is cloned, given explicit pixel dimensions matching the
+     * rendered container, a white background rect is prepended (to match the
+     * container's CSS background), and the Fornac stylesheet is embedded as an
+     * inline <style> element.  XMLSerializer is used for serialisation so that
+     * namespace-prefixed attributes (e.g. xlink:href) are preserved correctly.
+     *
      * @param {string} containerId  ID of the container element.
      * @returns {string}  Full SVG markup.
      */
@@ -1209,16 +1216,42 @@
         const svgEl = container && container.querySelector('svg');
         if (!svgEl) throw new Error('No SVG found in container');
 
-        const viewBox = svgEl.getAttribute('viewBox') || '0 0 300 300';
-        const innerSVG = svgEl.innerHTML;
-        const css = getFornacCSS();
+        // Clone the live SVG so we can annotate it without touching the DOM.
+        const clone = svgEl.cloneNode(true);
 
-        return (
-            `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">\n` +
-            `<style type="text/css">\n${css}\n</style>\n` +
-            innerSVG +
-            `\n</svg>`
-        );
+        // Required namespace declarations for a standalone SVG file.
+        clone.setAttribute('xmlns',       'http://www.w3.org/2000/svg');
+        clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+        // Derive pixel dimensions from the rendered element so the exported
+        // file renders at the same size as what the user sees in the browser.
+        const w = svgEl.clientWidth  || container.clientWidth  || 800;
+        const h = svgEl.clientHeight || container.clientHeight || 600;
+        clone.setAttribute('width',  w);
+        clone.setAttribute('height', h);
+
+        // Keep (or synthesise) the viewBox so the internal coordinate space
+        // that Fornac uses maps 1:1 to the exported pixel dimensions.
+        if (!clone.getAttribute('viewBox')) {
+            clone.setAttribute('viewBox', `0 0 ${w} ${h}`);
+        }
+
+        // Embed the Fornac stylesheet so CSS-class-based styles render
+        // correctly outside the browser page.
+        const css = getFornacCSS();
+        const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+        styleEl.textContent = css;
+        clone.insertBefore(styleEl, clone.firstChild);
+
+        // White background rect — matches the container's background: #fff
+        // so the exported image looks identical to the on-screen visualisation.
+        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        bg.setAttribute('width',  '100%');
+        bg.setAttribute('height', '100%');
+        bg.setAttribute('fill',   'white');
+        clone.insertBefore(bg, styleEl.nextSibling);
+
+        return new XMLSerializer().serializeToString(clone);
     }
 
     /**
@@ -1236,7 +1269,10 @@
     /**
      * Trigger a browser download of the current visualisation as a PNG image.
      *
-     * Rasterises the SVG to a canvas and converts it to a PNG data URL.
+     * Rasterises the SVG to a canvas at `scale` × the rendered size and
+     * converts it to a PNG data URL.  A white background is painted on the
+     * canvas before the image is drawn so the result matches the on-screen
+     * appearance.
      *
      * @param {string} containerId  ID of the container element.
      * @param {string} [filename="vaRRI_output.png"]
@@ -1247,29 +1283,38 @@
         const blob = new Blob([svgStr], { type: 'image/svg+xml' });
         const url = URL.createObjectURL(blob);
 
+        // Determine the rendered pixel size from the live container so that
+        // canvas dimensions are correct regardless of the SVG's naturalWidth.
+        const container = document.getElementById(containerId);
+        const svgEl = container && container.querySelector('svg');
+        const w = (svgEl && svgEl.clientWidth)  || (container && container.clientWidth)  || 800;
+        const h = (svgEl && svgEl.clientHeight) || (container && container.clientHeight) || 600;
+
+        function rasterise(imgEl, canvasW, canvasH) {
+            const canvas = document.createElement('canvas');
+            canvas.width  = canvasW;
+            canvas.height = canvasH;
+            const ctx = canvas.getContext('2d');
+            // White background to match the container's CSS background colour.
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvasW, canvasH);
+            ctx.drawImage(imgEl, 0, 0, canvasW, canvasH);
+            return canvas.toDataURL('image/png');
+        }
+
         const img = new Image();
         img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth * scale;
-            canvas.height = img.naturalHeight * scale;
-            const ctx = canvas.getContext('2d');
-            ctx.scale(scale, scale);
-            ctx.drawImage(img, 0, 0);
+            const dataUrl = rasterise(img, w * scale, h * scale);
             URL.revokeObjectURL(url);
-            triggerDownload(canvas.toDataURL('image/png'), filename);
+            triggerDownload(dataUrl, filename);
         };
         img.onerror = () => {
-            // Fallback: inline SVG as data URI
+            // Fallback: load the SVG via a data URI instead of a blob URL.
             URL.revokeObjectURL(url);
             const dataUri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
             const imgFallback = new Image();
             imgFallback.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 600;
-                canvas.height = 600;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(imgFallback, 0, 0, 600, 600);
-                triggerDownload(canvas.toDataURL('image/png'), filename);
+                triggerDownload(rasterise(imgFallback, w * scale, h * scale), filename);
             };
             imgFallback.src = dataUri;
         };
