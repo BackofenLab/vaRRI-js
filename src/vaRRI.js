@@ -20,6 +20,9 @@
     /** Number of invisible gap nodes Fornac inserts between two molecules. */
     const GAP = 3;
 
+    /** Active requestAnimationFrame ID for the background-highlight animation loop (null when idle). */
+    let _animFrameId = null;
+
     // -----------------------------------------------------------------------
     // Utilities  (ported from utils.py)
     // -----------------------------------------------------------------------
@@ -738,7 +741,7 @@
      * @param {number[]} indices  Fornac node IDs to connect.
      * @param {string} style  CSS style string for the polyline.
      */
-    function polyline(indices, style) {
+    function polyline(indices, style, extraAttrs = {}) {
         let posString = '';
         indices.forEach(index => {
             document.querySelectorAll(`g[num="n${index}"]`).forEach(node => {
@@ -753,6 +756,9 @@
         const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
         poly.setAttribute('points', posString);
         poly.setAttribute('style', style);
+        for (const [k, val] of Object.entries(extraAttrs)) {
+            poly.setAttribute(k, val);
+        }
         const plot = document.getElementsByClassName('fornac-plot')[0];
         if (plot) plot.insertBefore(poly, plot.firstChild);
     }
@@ -1023,7 +1029,7 @@
         highlightAreas.push([...area, area[0]]);
 
         for (const region of highlightAreas) {
-            polyline(region, 'fill:red;opacity:0.2;stroke:red;stroke-width:7');
+            polyline(region, 'fill:red;opacity:0.2;stroke:red;stroke-width:7', { 'data-varri-bg': 'true' });
         }
     }
 
@@ -1038,7 +1044,7 @@
         for (const [start, end] of basepairRegion) {
             for (let i = start; i <= end; i++) intermolNodes.push(i);
         }
-        polyline(intermolNodes, 'fill:red;opacity:0.2');
+        polyline(intermolNodes, 'fill:red;opacity:0.2', { 'data-varri-bg': 'true' });
     }
 
     /**
@@ -1100,14 +1106,18 @@
      * @param {Object} v  Validated parameter dictionary (from `validate()`).
      * @param {Object} [options]
      * @param {boolean} [options.animation=false]  Enable Fornac force-layout animation.
-     * @param {number}  [options.animationTimer=100]  Ms to wait when animation is on.
      * @param {boolean} [options.legend=false]  Whether to also render the legend.
      * @param {Object.<number,number>|null} [options.accessData=null]  Accessibility data map.
      */
     function render(containerId, v, options = {}) {
+        // Cancel any background-highlight loop from a previous render.
+        if (_animFrameId !== null) {
+            cancelAnimationFrame(_animFrameId);
+            _animFrameId = null;
+        }
+
         const {
             animation = false,
-            animationTimer = 100,
             accessData = null,
         } = options;
 
@@ -1162,10 +1172,23 @@
             if (accessData) {
                 visualiseAccessibility(accessData, v.sequence1.length);
             }
+
+            // When animation is on, keep the background-highlight polygon in sync
+            // with the force-layout by redrawing it on every animation frame.
+            if (animation && v.molecules === '2' &&
+                    (v.backgroundhighlighting === 'basepairs' || v.backgroundhighlighting === 'region')) {
+                function bgHighlightLoop() {
+                    document.querySelectorAll('[data-varri-bg]').forEach(el => el.remove());
+                    if (v.backgroundhighlighting === 'region') backgroundhighlightingRegion(v);
+                    if (v.backgroundhighlighting === 'basepairs') backgroundhighlightingBasepairs(v);
+                    _animFrameId = requestAnimationFrame(bgHighlightLoop);
+                }
+                _animFrameId = requestAnimationFrame(bgHighlightLoop);
+            }
         }
 
         if (animation) {
-            setTimeout(applyModifications, animationTimer);
+            setTimeout(applyModifications, 200);
         } else {
             // Fornac uses a requestAnimationFrame loop internally; we need to
             // wait for a tick before the SVG nodes exist in the DOM.

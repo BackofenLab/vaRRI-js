@@ -1,5 +1,5 @@
 
-## `varry-js` JavaScript Library API
+## `vaRRI-js` JavaScript Library API
 
 Include `src/vaRRI.js` after the Fornac dependencies.  The library exposes a
 single global object `vaRRI` with the following functions.
@@ -57,8 +57,7 @@ Builds the Fornac visualisation and applies all vaRRI modifications.
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `animation` | `boolean` | `false` | Enable Fornac force-layout animation. |
-| `animationTimer` | `number` | `100` | Milliseconds to wait after animation before applying modifications. |
+| `animation` | `boolean` | `false` | Enable Fornac force-layout animation. When `true` and background highlighting is active, the highlight polygon is redrawn on every animation frame to stay in sync with the force layout. |
 | `accessData` | `Object\|null` | `null` | Accessibility data: `{ nodeId: probability, … }`. |
 
 ```javascript
@@ -176,8 +175,9 @@ Removes duplicate basepair links (keeps only link where `start < end`).
 #### `vaRRI.addStyleToNodes(nodeIds, style)` → `void`
 Appends `style` to the `style` attribute of the specified node circles.
 
-#### `vaRRI.polyline(indices, style)` → `void`
+#### `vaRRI.polyline(indices, style, extraAttrs?)` → `void`
 Draws an SVG polyline connecting the given Fornac node positions.
+An optional `extraAttrs` object (e.g. `{ 'data-varri-bg': 'true' }`) sets additional attributes on the created `<polyline>` element.
 
 #### `vaRRI.addElement(elementType, attr)` → `void`
 Inserts a new SVG element with the given attributes at the top of the Fornac plot group.
