@@ -117,7 +117,7 @@
                 basepairs[open]--;
                 if (basepairs[open] < 0) {
                     throw new Error(
-                        `The number of brackets don't line up. Too many closing ${char} brackets:\n${structure}`
+                        `The number of brackets does not line up. Too many closing ${char} brackets:\n${structure}`
                     );
                 }
             }
@@ -126,7 +126,7 @@
         for (const [bp, count] of Object.entries(basepairs)) {
             if (count > 0) {
                 throw new Error(
-                    `The number of brackets don't line up. Too many opening ${bp} brackets:\n${structure}`
+                    `The number of brackets does not line up. Too many opening ${bp} brackets:\n${structure}`
                 );
             }
         }
@@ -237,7 +237,7 @@
      * @throws {Error}
      */
     function validateOffset(offsetStr) {
-        if (offsetStr === '0') throw new Error('Index 0 is not valid, use either <=-1 or >=1');
+        if (offsetStr === '0') throw new Error('Index 0 is not valid; use a value of -1 or less, or 1 or greater');
         if (/^-?\d+$/.test(offsetStr)) return parseInt(offsetStr, 10);
         throw new Error(`The given index input is not valid: ${offsetStr}`);
     }
@@ -284,9 +284,13 @@
     function formatStructure(structure) {
         const [first, second] = splitAtAmpersand(structure);
 
-        // Fix: Fornac requires at least 3 extra gap nodes
-        const fixedStructure = structure.replace('&', '&...');
-        const bareStructure = fixedStructure.replace('&', '');
+        // Fix: Fornac incorrectly cuts the first 2 nodes of the second sequence
+        // when the separator is exactly `&`.  Inserting 3 gap dots compensates.
+        // Build strings explicitly from the already-split parts to avoid
+        // partial-replacement ambiguity on the `&` character.
+        const fixedStructure = second !== '' ? first + '&...' + second : first;
+        const bareStructure  = second !== '' ? first + '...'  + second : first;
+
         const structureDict = {};
         for (let i = 0; i < bareStructure.length; i++) {
             structureDict[String(i + 1)] = bareStructure[i];
@@ -304,8 +308,10 @@
     function formatSequence(sequence) {
         const [first, second] = splitAtAmpersand(sequence);
 
-        const fixedSequence = sequence.replace('&', '&...');
-        const bareSequence = fixedSequence.replace('&', '');
+        // Same Fornac fix as formatStructure — build from split parts explicitly.
+        const fixedSequence = second !== '' ? first + '&...' + second : first;
+        const bareSequence  = second !== '' ? first + '...'  + second : first;
+
         const sequenceDict = {};
         for (let i = 0; i < bareSequence.length; i++) {
             sequenceDict[String(i + 1)] = bareSequence[i];
