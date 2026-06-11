@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>vaRRI-js — RNA Interaction Visualiser</title>
+
+  <!-- Fornac dependencies -->
+  <link rel="stylesheet" href="fornac/fornac.css" />
+  <script src="fornac/d3.js"></script>
+  <script src="fornac/fornac.js"></script>
+
+  <!-- vaRRI-js library -->
+  <script src="src/vaRRI.js"></script>
+
+  <style>
+    /* ------------------------------------------------------------------ */
+    /* Layout & base                                                        */
+    /* ------------------------------------------------------------------ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+    }
+
+    header {
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    header h1 { font-size: 1.6rem; }
+    header p  { font-size: 0.9rem; opacity: 0.75; }
+
+    main {
+      max-width: 1100px;
+      margin: 1.5rem auto;
+      padding: 0 1rem;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 1.5rem;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Input panel                                                          */
+    /* ------------------------------------------------------------------ */
+    .panel {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      padding: 1.2rem;
+    }
+
+    .panel h2 {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #555;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: .5rem;
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-size: .85rem;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: .25rem;
+    }
+
+    label small {
+      font-weight: 400;
+      color: #888;
+    }
+
+    textarea, input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: .45rem .6rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: "Courier New", monospace;
+      font-size: .85rem;
+      margin-bottom: .75rem;
+      transition: border-color .2s;
+    }
+    textarea:focus, input:focus, select:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+
+    textarea { resize: vertical; }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .5rem;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      margin-bottom: .75rem;
+      font-size: .85rem;
+    }
+    .checkbox-row input { width: auto; margin: 0; }
+
+    /* ------------------------------------------------------------------ */
+    /* Buttons                                                              */
+    /* ------------------------------------------------------------------ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .55rem 1.1rem;
+      border: none;
+      border-radius: 4px;
+      font-size: .9rem;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: #2980b9; color: #fff; }
+    .btn-primary:hover { background: #1f6692; }
+    .btn-success { background: #27ae60; color: #fff; }
+    .btn-success:hover { background: #1e8449; }
+    .btn-info    { background: #8e44ad; color: #fff; }
+    .btn-info:hover { background: #6c3483; }
+    .btn-sm { padding: .35rem .8rem; font-size: .8rem; }
+
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+      margin-top: .5rem;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Example buttons                                                      */
+    /* ------------------------------------------------------------------ */
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+      margin-bottom: 1rem;
+    }
+    .example-btn {
+      background: #ecf0f1;
+      border: 1px solid #bdc3c7;
+      border-radius: 4px;
+      padding: .3rem .7rem;
+      font-size: .78rem;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .example-btn:hover { background: #d5dbdb; }
+
+    /* ------------------------------------------------------------------ */
+    /* Result panel                                                         */
+    /* ------------------------------------------------------------------ */
+    .result-panel {
+      display: flex;
+      flex-direction: column;
+    }
+
+    #rna_ss {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      flex: 1;
+      min-height: 450px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #rna_ss svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .export-bar {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      padding: .8rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+      margin-top: .75rem;
+      flex-wrap: wrap;
+    }
+    .export-bar span { font-size: .85rem; font-weight: 600; color: #555; }
+
+    /* ------------------------------------------------------------------ */
+    /* Messages                                                             */
+    /* ------------------------------------------------------------------ */
+    #msg {
+      border-radius: 6px;
+      padding: .6rem .9rem;
+      font-size: .85rem;
+      margin-top: .6rem;
+      display: none;
+    }
+    #msg.error   { background: #fdecea; color: #c0392b; display: block; }
+    #msg.success { background: #eafaf1; color: #1e8449; display: block; }
+
+    /* ------------------------------------------------------------------ */
+    /* Legend                                                               */
+    /* ------------------------------------------------------------------ */
+    .legend {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      padding: .8rem 1.2rem;
+      margin-top: .75rem;
+      font-size: .82rem;
+      color: #555;
+    }
+    .legend h3 {
+      font-size: .9rem;
+      margin-bottom: .5rem;
+      color: #444;
+    }
+    .legend-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: .4rem .8rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1.5px solid #999;
+      flex-shrink: 0;
+    }
+    .swatch.line {
+      border-radius: 0;
+      height: 3px;
+      width: 22px;
+      border: none;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Responsive                                                           */
+    /* ------------------------------------------------------------------ */
+    @media (max-width: 780px) {
+      main { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>vaRRI-js</h1>
+    <p>RNA–RNA Interaction Visualiser — browser-only JavaScript port</p>
+  </div>
+</header>
+
+<main>
+  <!-- ================================================================== -->
+  <!-- Input panel                                                          -->
+  <!-- ================================================================== -->
+  <aside class="panel">
+    <h2>Input</h2>
+
+    <!-- Quick examples -->
+    <div class="examples">
+      <button class="example-btn" onclick="loadExample('2mol')">2-molecule example</button>
+      <button class="example-btn" onclick="loadExample('1mol')">1-molecule example</button>
+      <button class="example-btn" onclick="loadExample('pseudoknot')">Pseudoknot</button>
+    </div>
+
+    <!-- Structure -->
+    <label for="structure">
+      Structure <small>(dot-bracket; separate two molecules with &amp;)</small>
+    </label>
+    <textarea id="structure" rows="3"
+      placeholder="..(((((....)))))(((....)))..&..(((......))).."></textarea>
+
+    <!-- Sequence -->
+    <label for="sequence">
+      Sequence <small>(IUPAC; separate two molecules with &amp;)</small>
+    </label>
+    <textarea id="sequence" rows="3"
+      placeholder="ACGAUCAGAGAUCAGAGCAUACGACAGCAG&ACGAAAAGAGCAUACGACAGCAG"></textarea>
+
+    <!-- Start indices -->
+    <div class="row-2">
+      <div>
+        <label for="startIndex1">Start index mol. 1</label>
+        <input type="number" id="startIndex1" value="1" />
+      </div>
+      <div>
+        <label for="startIndex2">Start index mol. 2</label>
+        <input type="number" id="startIndex2" value="1" />
+      </div>
+    </div>
+
+    <!-- Label interval -->
+    <label for="labelInterval">Label interval</label>
+    <input type="number" id="labelInterval" value="10" min="1" />
+
+    <!-- Coloring -->
+    <label for="coloring">Coloring</label>
+    <select id="coloring">
+      <option value="strand" selected>strand (seq1=blue, seq2=yellow)</option>
+      <option value="loop">loop (Fornac default)</option>
+    </select>
+
+    <!-- Highlighting -->
+    <label for="highlighting">Highlighting</label>
+    <select id="highlighting">
+      <option value="region" selected>region</option>
+      <option value="basepairs">basepairs</option>
+      <option value="nothing">nothing</option>
+    </select>
+
+    <!-- Background highlighting -->
+    <label for="backgroundhighlighting">Background highlighting</label>
+    <select id="backgroundhighlighting">
+      <option value="basepairs" selected>basepairs</option>
+      <option value="region">region</option>
+      <option value="nothing">nothing</option>
+    </select>
+
+    <!-- G-U basepairs -->
+    <div class="checkbox-row">
+      <input type="checkbox" id="guBasepairs" checked />
+      <label for="guBasepairs" style="margin:0">Show G-U basepairs as dashed lines</label>
+    </div>
+
+    <!-- Subsequence highlights -->
+    <label for="highlightSubseq1">
+      Highlight subseq 1 <small>(e.g. 3-8 or 3-8,15-20)</small>
+    </label>
+    <input type="text" id="highlightSubseq1" placeholder="e.g. 3-8" />
+
+    <label for="highlightSubseq2">
+      Highlight subseq 2 <small>(e.g. 2-5)</small>
+    </label>
+    <input type="text" id="highlightSubseq2" placeholder="e.g. 2-5" />
+
+    <!-- Actions -->
+    <div class="action-row">
+      <button class="btn btn-primary" onclick="runVisualization()">▶ Visualise</button>
+      <button class="btn btn-sm" onclick="clearAll()" style="background:#e0e0e0;color:#333">✕ Clear</button>
+    </div>
+
+    <div id="msg"></div>
+  </aside>
+
+  <!-- ================================================================== -->
+  <!-- Result panel                                                         -->
+  <!-- ================================================================== -->
+  <section class="result-panel">
+    <div id="rna_ss" tabindex="1"></div>
+
+    <!-- Export bar -->
+    <div class="export-bar">
+      <span>Export:</span>
+      <button class="btn btn-success btn-sm" onclick="exportSVG()">⬇ SVG</button>
+      <button class="btn btn-info btn-sm"    onclick="exportPNG()">⬇ PNG</button>
+    </div>
+
+    <!-- Colour legend -->
+    <div class="legend">
+      <h3>Legend</h3>
+      <div class="legend-grid">
+        <div class="legend-item">
+          <div class="swatch" style="background:lightblue;"></div>
+          Sequence 1 (strand)
+        </div>
+        <div class="legend-item">
+          <div class="swatch" style="background:#F4BB44;"></div>
+          Sequence 2 (strand)
+        </div>
+        <div class="legend-item">
+          <div class="swatch" style="background:red;border:none;"></div>
+          Intermolecular highlight
+        </div>
+        <div class="legend-item">
+          <div class="swatch line" style="background:red;opacity:.2;height:12px;border-radius:2px;"></div>
+          Background highlight
+        </div>
+        <div class="legend-item">
+          <div class="swatch" style="background:purple;opacity:.4;"></div>
+          Subsequence highlight
+        </div>
+        <div class="legend-item">
+          <div class="swatch line" style="background:#999;border:none;border-top:2px dashed #555;"></div>
+          G-U basepair (dashed)
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ====================================================================== -->
+<!-- Scripts                                                                  -->
+<!-- ====================================================================== -->
+<script>
+  // -------------------------------------------------------------------------
+  // Example data
+  // -------------------------------------------------------------------------
+  const EXAMPLES = {
+    '2mol': {
+      structure: '..((((...))))...((...((...((..&............))...))...))..',
+      sequence:  'ACGAUCAGAGAUCAGAGCAUACGACAGCAG&ACGAAAAAAAGAGCAUACGACAGCAG',
+      startIndex1: '1', startIndex2: '1',
+      coloring: 'strand', highlighting: 'region',
+      backgroundhighlighting: 'basepairs', guBasepairs: true,
+    },
+    '1mol': {
+      structure: '(((....)))',
+      sequence:  'GGGCAAAACC',
+      startIndex1: '1', startIndex2: '1',
+      coloring: 'loop', highlighting: 'nothing',
+      backgroundhighlighting: 'nothing', guBasepairs: false,
+    },
+    'pseudoknot': {
+      structure: '((.[[..))..]]',
+      sequence:  'ACGUACGUACGUA',
+      startIndex1: '1', startIndex2: '1',
+      coloring: 'loop', highlighting: 'nothing',
+      backgroundhighlighting: 'nothing', guBasepairs: false,
+    },
+  };
+
+  function loadExample(key) {
+    const ex = EXAMPLES[key];
+    if (!ex) return;
+    document.getElementById('structure').value         = ex.structure;
+    document.getElementById('sequence').value          = ex.sequence;
+    document.getElementById('startIndex1').value       = ex.startIndex1;
+    document.getElementById('startIndex2').value       = ex.startIndex2;
+    document.getElementById('coloring').value          = ex.coloring;
+    document.getElementById('highlighting').value      = ex.highlighting;
+    document.getElementById('backgroundhighlighting').value = ex.backgroundhighlighting;
+    document.getElementById('guBasepairs').checked     = ex.guBasepairs;
+    document.getElementById('highlightSubseq1').value  = '';
+    document.getElementById('highlightSubseq2').value  = '';
+    runVisualization();
+  }
+
+  // -------------------------------------------------------------------------
+  // Main visualisation
+  // -------------------------------------------------------------------------
+  let currentContainerId = 'rna_ss';
+
+  function showMsg(text, type) {
+    const el = document.getElementById('msg');
+    el.className = type;
+    el.textContent = text;
+  }
+
+  function clearMsg() {
+    const el = document.getElementById('msg');
+    el.className = '';
+    el.style.display = 'none';
+  }
+
+  function clearAll() {
+    document.getElementById('structure').value = '';
+    document.getElementById('sequence').value  = '';
+    document.getElementById('highlightSubseq1').value = '';
+    document.getElementById('highlightSubseq2').value = '';
+    document.getElementById('rna_ss').innerHTML = '';
+    clearMsg();
+  }
+
+  function runVisualization() {
+    clearMsg();
+
+    const args = {
+      structure:              document.getElementById('structure').value.trim(),
+      sequence:               document.getElementById('sequence').value.trim(),
+      startIndex1:            document.getElementById('startIndex1').value.trim() || '1',
+      startIndex2:            document.getElementById('startIndex2').value.trim() || '1',
+      labelInterval:          document.getElementById('labelInterval').value.trim() || '10',
+      coloring:               document.getElementById('coloring').value,
+      highlighting:           document.getElementById('highlighting').value,
+      backgroundhighlighting: document.getElementById('backgroundhighlighting').value,
+      guBasepairs:            document.getElementById('guBasepairs').checked,
+      highlightSubseq1:       document.getElementById('highlightSubseq1').value.trim() || null,
+      highlightSubseq2:       document.getElementById('highlightSubseq2').value.trim() || null,
+    };
+
+    let v;
+    try {
+      v = vaRRI.validate(args);
+    } catch (err) {
+      showMsg('Validation error: ' + err.message, 'error');
+      return;
+    }
+
+    // Clear previous output
+    const container = document.getElementById(currentContainerId);
+    container.innerHTML = '';
+
+    try {
+      vaRRI.render(currentContainerId, v);
+      showMsg('Visualisation ready. Use the export buttons to save.', 'success');
+    } catch (err) {
+      showMsg('Render error: ' + err.message, 'error');
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Export
+  // -------------------------------------------------------------------------
+  function exportSVG() {
+    try {
+      vaRRI.downloadSVG(currentContainerId, 'vaRRI_output.svg');
+    } catch (err) {
+      showMsg('Export error: ' + err.message, 'error');
+    }
+  }
+
+  function exportPNG() {
+    try {
+      vaRRI.downloadPNG(currentContainerId, 'vaRRI_output.png');
+    } catch (err) {
+      showMsg('Export error: ' + err.message, 'error');
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Auto-load 2-molecule example on page load
+  // -------------------------------------------------------------------------
+  window.addEventListener('load', () => {
+    loadExample('2mol');
+  });
+</script>
+
+</body>
+</html>
