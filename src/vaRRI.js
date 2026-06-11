@@ -1,5 +1,6 @@
 /**
- * vaRRI.js — Browser-only JavaScript port of the vaRRI RNA interaction visualiser.
+ * vaRRI.js — Browser-only JavaScript port of the vaRRI RNA-RNA interaction 
+ * visualiser.
  *
  * This library translates the Python vaRRI source into pure browser JavaScript,
  * removing all command-line dependencies (RNAfold, RNAplfold, Playwright).
