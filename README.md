@@ -3,6 +3,11 @@
 **Browser-only JavaScript port of [vaRRI](https://github.com/BackofenLab/vaRRI)**  
 Visualise RNA–RNA interactions directly in the browser — no server, no command-line tools required.
 
+> **Upstream version:** Based on the vaRRI Python source as of June 2026 (commit history at
+> [BackofenLab/vaRRI](https://github.com/BackofenLab/vaRRI)).  
+> This port does **not** include the RNAfold/RNAplfold structure-prediction steps, which require
+> external command-line tools.
+
 ---
 
 ## Table of Contents
