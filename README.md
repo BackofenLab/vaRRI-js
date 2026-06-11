@@ -80,6 +80,14 @@ xdg-open index.html      # Linux
 start index.html         # Windows
 ```
 
+The repository does not track `node_modules/`. If you want to run tests, create
+it locally after cloning:
+
+```bash
+npm install
+npm test
+```
+
 Or serve with any static HTTP server:
 
 ```bash
