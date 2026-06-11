@@ -303,7 +303,7 @@
       Sequence <small>(IUPAC; separate two molecules with &amp;)</small>
     </label>
     <textarea id="sequence" rows="3"
-      placeholder="ACGAUCAGAGAUCAGAGCAUACGACAGCAG&ACGAAAAGAGCAUACGACAGCAG"></textarea>
+      placeholder="ACGAUCAGAGAUUAGAGCAUACGACAGCAG&ACGAAAAGAGCAUACGACAGUAG"></textarea>
 
     <div class="row-3">
       <!-- Start indices -->
@@ -330,8 +330,8 @@
       <option value="loop">loop (Fornac default)</option>
     </select>
 
-    <!-- Highlighting -->
-    <label for="highlighting">Highlighting</label>
+    <!-- Base Cirle Highlighting -->
+    <label for="highlighting">Nucleotide highlighting</label>
     <select id="highlighting">
       <option value="region" selected>region</option>
       <option value="basepairs">basepairs</option>
@@ -354,12 +354,12 @@
 
     <!-- Subsequence highlights -->
     <label for="highlightSubseq1">
-      Highlight subseq 1 <small>(e.g. 3-8 or 3-8,15-20)</small>
+      Highlight subseq in mol. 1 <small>(e.g. 3-8 or 3-8,15-20)</small>
     </label>
     <input type="text" id="highlightSubseq1" placeholder="e.g. 3-8" />
 
     <label for="highlightSubseq2">
-      Highlight subseq 2 <small>(e.g. 2-5)</small>
+      Highlight subseq in mol. 2 <small>(e.g. 2-5)</small>
     </label>
     <input type="text" id="highlightSubseq2" placeholder="e.g. 2-5" />
 
@@ -433,7 +433,7 @@
   const EXAMPLES = {
     '2mol': {
       structure: '..((((...))))...((...((...((..&............))...))...))..',
-      sequence:  'ACGAUCAGAGAUCAGAGCAUACGACAGCAG&ACGAAAAAAAGAGCAUACGACAGCAG',
+      sequence:  'ACGAUCAGAGAUUAGAGCAUACGACAGCAG&ACGAAAAAAAGAGCAUACGACAGUAG',
       startIndex1: '1', startIndex2: '1',
       coloring: 'strand', highlighting: 'region',
       backgroundhighlighting: 'basepairs', guBasepairs: true,
