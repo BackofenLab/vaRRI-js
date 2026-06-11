@@ -1177,36 +1177,76 @@
     // -----------------------------------------------------------------------
 
     /**
-     * Get the inline fornac CSS text for SVG embedding.
+     * SVG presentation properties to inline when exporting.
      *
-     * Reads the first `<style>` block from the current document that came
-     * from fornac.css, or falls back to an empty string.
-     *
-     * @returns {string}
+     * These cover every visual property used by Fornac and vaRRI: fill/stroke
+     * paint, font, text alignment, and element visibility.  Using this fixed
+     * list avoids dumping hundreds of irrelevant properties from
+     * `getComputedStyle` (e.g. layout-only CSS that SVG viewers ignore).
      */
-    function getFornacCSS() {
-        for (const sheet of document.styleSheets) {
-            try {
-                const rules = sheet.cssRules;
-                if (!rules) continue;
-                let text = '';
-                for (const rule of rules) text += rule.cssText + '\n';
-                // heuristic: fornac.css always defines .fornac-node
-                if (text.includes('fornac-node')) return text;
-            } catch (e) { /* cross-origin sheet */ }
+    const SVG_STYLE_PROPS = [
+        'fill', 'fill-opacity', 'fill-rule',
+        'stroke', 'stroke-width', 'stroke-opacity',
+        'stroke-dasharray', 'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit',
+        'font-family', 'font-size', 'font-weight', 'font-style',
+        'text-anchor', 'dominant-baseline', 'alignment-baseline',
+        'opacity', 'visibility', 'display',
+        'marker-start', 'marker-end', 'marker-mid',
+        'color',
+    ];
+
+    /**
+     * Walk `originalEl` and `cloneEl` in parallel, reading computed styles
+     * from `originalEl` (which has all browser CSS applied) and writing them
+     * as an inline `style` attribute on `cloneEl`.
+     *
+     * This makes every element carry its own fully-resolved presentation
+     * values so the exported SVG is self-contained — no external stylesheet
+     * is required.  In particular:
+     *  - class-based rules (`.fornac-node`, `.fornac-link`, etc.) are baked in
+     *  - relative units (`0.4em` font-size) are resolved to absolute pixels
+     *  - inline `style` overrides from vaRRI (strand colours, highlights) are
+     *    already included in the computed value, so nothing is lost
+     *
+     * @param {Element} originalEl  Live DOM element (inside the visible SVG).
+     * @param {Element} cloneEl     Corresponding cloned element.
+     */
+    function inlineComputedStyles(originalEl, cloneEl) {
+        if (!originalEl || originalEl.nodeType !== Node.ELEMENT_NODE) return;
+
+        // Leave <style> and <defs> subtrees alone — they hold definitions, not
+        // rendered shapes, and rewriting their style attributes would break them.
+        const tag = (originalEl.tagName || '').toLowerCase();
+        if (tag === 'style' || tag === 'defs') return;
+
+        const computed = window.getComputedStyle(originalEl);
+        let inlined = '';
+        for (const prop of SVG_STYLE_PROPS) {
+            const val = computed.getPropertyValue(prop);
+            if (val) inlined += `${prop}:${val};`;
         }
-        return '';
+        if (inlined) cloneEl.setAttribute('style', inlined);
+
+        // Recurse into child elements in lock-step.
+        const origKids  = originalEl.children;
+        const cloneKids = cloneEl.children;
+        for (let i = 0; i < origKids.length; i++) {
+            if (cloneKids[i]) inlineComputedStyles(origKids[i], cloneKids[i]);
+        }
     }
 
     /**
      * Build a self-contained SVG string from the current Fornac visualisation.
      *
-     * The exported SVG exactly mirrors what is shown in the browser: the live
-     * SVG element is cloned, given explicit pixel dimensions matching the
-     * rendered container, a white background rect is prepended (to match the
-     * container's CSS background), and the Fornac stylesheet is embedded as an
-     * inline <style> element.  XMLSerializer is used for serialisation so that
-     * namespace-prefixed attributes (e.g. xlink:href) are preserved correctly.
+     * Strategy:
+     *  1. Clone the live SVG element (preserves all D3 transforms and vaRRI
+     *     DOM modifications).
+     *  2. Walk original + clone in parallel and inline every computed
+     *     presentation property so the file is fully self-contained.
+     *  3. Set explicit pixel width/height on the root so viewers render at
+     *     the same size as the browser display.
+     *  4. Prepend a white background rect to match the container's background.
+     *  5. Serialise with XMLSerializer (namespace-aware).
      *
      * @param {string} containerId  ID of the container element.
      * @returns {string}  Full SVG markup.
@@ -1218,6 +1258,11 @@
 
         // Clone the live SVG so we can annotate it without touching the DOM.
         const clone = svgEl.cloneNode(true);
+
+        // Inline all computed presentation styles before any other annotation
+        // so that class-based CSS rules, relative units, and inherited values
+        // are all baked into the clone as plain inline style attributes.
+        inlineComputedStyles(svgEl, clone);
 
         // Required namespace declarations for a standalone SVG file.
         clone.setAttribute('xmlns',       'http://www.w3.org/2000/svg');
@@ -1236,20 +1281,13 @@
             clone.setAttribute('viewBox', `0 0 ${w} ${h}`);
         }
 
-        // Embed the Fornac stylesheet so CSS-class-based styles render
-        // correctly outside the browser page.
-        const css = getFornacCSS();
-        const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
-        styleEl.textContent = css;
-        clone.insertBefore(styleEl, clone.firstChild);
-
         // White background rect — matches the container's background: #fff
         // so the exported image looks identical to the on-screen visualisation.
         const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         bg.setAttribute('width',  '100%');
         bg.setAttribute('height', '100%');
         bg.setAttribute('fill',   'white');
-        clone.insertBefore(bg, styleEl.nextSibling);
+        clone.insertBefore(bg, clone.firstChild);
 
         return new XMLSerializer().serializeToString(clone);
     }
