@@ -14,6 +14,18 @@
   <script src="src/vaRRI.js"></script>
 
   <style>
+    :root {
+      --brand-blue: #145a96;
+      --brand-blue-dark: #0f4676;
+      --brand-blue-soft: #eaf2f8;
+      --brand-accent: #f4bb44;
+      --surface: #ffffff;
+      --surface-muted: #f3f7fb;
+      --text-primary: #1c2b39;
+      --text-muted: #4f6478;
+      --border-soft: #ccd9e5;
+    }
+
     /* ------------------------------------------------------------------ */
     /* Layout & base                                                        */
     /* ------------------------------------------------------------------ */
@@ -21,20 +33,66 @@
 
     body {
       font-family: "Segoe UI", Tahoma, Geneva, sans-serif;
-      background: #f5f7fa;
-      color: #333;
+      background: linear-gradient(180deg, #f8fbff 0%, #eef3fb 45%, #ffffff 100%);
+      color: var(--text-primary);
     }
 
     header {
-      background: #2c3e50;
-      color: #ecf0f1;
+      background: #344a9a;
+      color: #f7fbff;
       padding: 1rem 2rem;
       display: flex;
       align-items: center;
-      gap: 1rem;
+      justify-content: flex-start;
+      gap: 1.25rem;
+      border-bottom: none;
+    }
+    .header-title {
+      display: flex;
+      flex-direction: column;
+      gap: .2rem;
     }
     header h1 { font-size: 1.6rem; }
-    header p  { font-size: 0.9rem; opacity: 0.75; }
+    header p  { font-size: 0.9rem; opacity: 0.88; color: #d9e8f6; }
+    .group-logo-link {
+      display: inline-block;
+      text-decoration: none;
+    }
+    .group-logo {
+      height: 66px;
+      width: auto;
+      display: block;
+    }
+    .uni-logo-wrap {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+    }
+    .uni-logo-link {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      color: #f7fbff;
+      text-decoration: none;
+      line-height: 1;
+    }
+    .uni-logo-link:visited,
+    .uni-logo-link:hover,
+    .uni-logo-link:focus,
+    .uni-logo-link:active {
+      color: #f7fbff;
+      text-decoration: none;
+    }
+    .uni-logo-text {
+      color: #f7fbff;
+      font-size: .95rem;
+      white-space: nowrap;
+    }
+    .uni-logo {
+      height: 52px;
+      width: auto;
+      display: block;
+    }
 
     main {
       max-width: 1100px;
@@ -49,9 +107,9 @@
     /* Input panel                                                          */
     /* ------------------------------------------------------------------ */
     .panel {
-      background: #fff;
+      background: var(--surface);
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      box-shadow: 0 2px 8px rgba(15, 46, 74, .12);
       padding: 1.2rem;
     }
 
@@ -59,8 +117,8 @@
       font-size: 1rem;
       text-transform: uppercase;
       letter-spacing: .05em;
-      color: #555;
-      border-bottom: 2px solid #e0e0e0;
+      color: var(--brand-blue-dark);
+      border-bottom: 2px solid #dbe6f0;
       padding-bottom: .5rem;
       margin-bottom: 1rem;
     }
@@ -69,19 +127,20 @@
       display: block;
       font-size: .85rem;
       font-weight: 600;
-      color: #444;
+      color: #2c4259;
       margin-bottom: .25rem;
     }
 
     label small {
       font-weight: 400;
-      color: #888;
+      color: var(--text-muted);
     }
 
     textarea, input[type="text"], input[type="number"], select {
       width: 100%;
       padding: .45rem .6rem;
-      border: 1px solid #ccc;
+      border: 1px solid var(--border-soft);
+      background: #fcfdff;
       border-radius: 4px;
       font-family: "Courier New", monospace;
       font-size: .85rem;
@@ -90,7 +149,7 @@
     }
     textarea:focus, input:focus, select:focus {
       outline: none;
-      border-color: #3498db;
+      border-color: var(--brand-blue);
     }
 
     textarea { resize: vertical; }
@@ -131,12 +190,12 @@
       transition: background .15s, transform .1s;
     }
     .btn:active { transform: scale(.97); }
-    .btn-primary { background: #2980b9; color: #fff; }
-    .btn-primary:hover { background: #1f6692; }
-    .btn-success { background: #27ae60; color: #fff; }
-    .btn-success:hover { background: #1e8449; }
-    .btn-info    { background: #8e44ad; color: #fff; }
-    .btn-info:hover { background: #6c3483; }
+    .btn-primary { background: var(--brand-blue); color: #fff; }
+    .btn-primary:hover { background: var(--brand-blue-dark); }
+    .btn-success { background: #2e8b57; color: #fff; }
+    .btn-success:hover { background: #236b43; }
+    .btn-info    { background: #1d7fa4; color: #fff; }
+    .btn-info:hover { background: #16617d; }
     .btn-sm { padding: .35rem .8rem; font-size: .8rem; }
 
     .action-row {
@@ -156,15 +215,15 @@
       margin-bottom: 1rem;
     }
     .example-btn {
-      background: #ecf0f1;
-      border: 1px solid #bdc3c7;
+      background: var(--brand-blue-soft);
+      border: 1px solid #c0d6e8;
       border-radius: 4px;
       padding: .3rem .7rem;
       font-size: .78rem;
       cursor: pointer;
       transition: background .15s;
     }
-    .example-btn:hover { background: #d5dbdb; }
+    .example-btn:hover { background: #d6e7f4; }
 
     /* ------------------------------------------------------------------ */
     /* Result panel                                                         */
@@ -179,9 +238,9 @@
     }
 
     #rna_ss {
-      background: #fff;
+      background: var(--surface);
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      box-shadow: 0 2px 8px rgba(15, 46, 74, .12);
       flex: 1;
       min-height: 450px;
       overflow: hidden;
@@ -194,9 +253,9 @@
     }
 
     .export-bar {
-      background: #fff;
+      background: var(--surface);
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      box-shadow: 0 2px 8px rgba(15, 46, 74, .12);
       padding: .8rem 1.2rem;
       display: flex;
       align-items: center;
@@ -204,7 +263,7 @@
       margin-top: .75rem;
       flex-wrap: wrap;
     }
-    .export-bar span { font-size: .85rem; font-weight: 600; color: #555; }
+    .export-bar span { font-size: .85rem; font-weight: 600; color: var(--brand-blue-dark); }
 
     /* ------------------------------------------------------------------ */
     /* Messages                                                             */
@@ -223,18 +282,18 @@
     /* Legend                                                               */
     /* ------------------------------------------------------------------ */
     .legend {
-      background: #fff;
+      background: var(--surface);
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      box-shadow: 0 2px 8px rgba(15, 46, 74, .12);
       padding: .8rem 1.2rem;
       margin-top: .75rem;
       font-size: .82rem;
-      color: #555;
+      color: var(--text-muted);
     }
     .legend h3 {
       font-size: .9rem;
       margin-bottom: .5rem;
-      color: #444;
+      color: var(--brand-blue-dark);
     }
     .legend-grid {
       display: grid;
@@ -265,15 +324,31 @@
     /* ------------------------------------------------------------------ */
     @media (max-width: 780px) {
       main { grid-template-columns: 1fr; }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .group-logo {
+        height: 57px;
+      }
     }
   </style>
 </head>
 <body>
 
 <header>
-  <div>
+  <a class="group-logo-link" href="https://www.bioinf.uni-freiburg.de" target="_blank" rel="noopener noreferrer" aria-label="Visit the Bioinformatics Group Freiburg website">
+    <img class="group-logo" src="https://www.bioinf.uni-freiburg.de/assets/images/bioinf-fr-logo-blau.png" alt="Bioinformatics Group Freiburg logo" />
+  </a>
+  <div class="header-title">
     <h1>vaRRI-js</h1>
-    <p>RNA–RNA Interaction Visualiser — browser-only JavaScript port</p>
+    <p>RNA–RNA Interaction Visualiser</p>
+  </div>
+  <div class="uni-logo-wrap">
+    <a class="uni-logo-link" href="https://www.bioinf.uni-freiburg.de" target="_blank" rel="noopener noreferrer" aria-label="Open the University Freiburg Bioinformatics website in a new tab">
+      <span class="uni-logo-text">Bioinformatics -</span>
+      <img src="https://www.bioinf.uni-freiburg.de/assets/images/logo-uni-freiburg.png" alt="University Freiburg logo" class="img-fluid uni-logo" />
+    </a>
   </div>
 </header>
 
@@ -285,10 +360,13 @@
     <h2>Input</h2>
 
     <!-- Quick examples -->
+    <label>Example</label>
     <div class="examples">
-      <button class="example-btn" onclick="loadExample('2mol')">2-molecule example</button>
-      <button class="example-btn" onclick="loadExample('1mol')">1-molecule example</button>
-      <button class="example-btn" onclick="loadExample('pseudoknot')">Pseudoknot</button>
+      <button class="example-btn" onclick="loadExample('2mol')">RNA-RNA interaction</button>
+      <!--
+        <button class="example-btn" onclick="loadExample('1mol')">nested</button>
+        <button class="example-btn" onclick="loadExample('pseudoknot')">pseudoknot</button>
+        -->
     </div>
 
     <!-- Structure -->
@@ -330,21 +408,26 @@
       <option value="loop">loop (Fornac default)</option>
     </select>
 
-    <!-- Base Cirle Highlighting -->
-    <label for="highlighting">Nucleotide highlighting</label>
-    <select id="highlighting">
-      <option value="region" selected>region</option>
-      <option value="basepairs">basepairs</option>
-      <option value="nothing">nothing</option>
-    </select>
-
-    <!-- Background highlighting -->
-    <label for="backgroundhighlighting">Background highlighting</label>
-    <select id="backgroundhighlighting">
-      <option value="basepairs" selected>basepairs</option>
-      <option value="region">region</option>
-      <option value="nothing">nothing</option>
-    </select>
+    <div class="row-2">
+      <div>
+        <!-- Base Cirle Highlighting -->
+        <label for="highlighting">Nucleotide highlighting</label>
+        <select id="highlighting">
+          <option value="region" selected>region</option>
+          <option value="basepairs">basepairs</option>
+          <option value="nothing">nothing</option>
+        </select>
+      </div>
+      <div>
+        <!-- Background highlighting -->
+        <label for="backgroundhighlighting">Background highlighting</label>
+        <select id="backgroundhighlighting">
+          <option value="basepairs" selected>basepairs</option>
+          <option value="region">region</option>
+          <option value="nothing">nothing</option>
+        </select>
+      </div>
+    </div>
 
     <!-- G-U basepairs -->
     <div class="checkbox-row">
@@ -371,7 +454,7 @@
     <!-- Actions -->
     <div class="action-row">
       <button class="btn btn-primary" onclick="runVisualization()">▶ Visualise</button>
-      <button class="btn btn-sm" onclick="clearAll()" style="background:#e0e0e0;color:#333">✕ Clear</button>
+      <button class="btn btn-sm" onclick="clearAll()" style="background:#d8e5f1;color:#1c2b39">✕ Clear</button>
     </div>
 
     <div id="msg"></div>
