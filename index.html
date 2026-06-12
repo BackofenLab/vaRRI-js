@@ -350,6 +350,50 @@
     }
 
     /* ------------------------------------------------------------------ */
+    /* Inline field validation — error highlight + hover tooltip           */
+    /* ------------------------------------------------------------------ */
+    .input-wrap {
+      position: relative;
+      display: block;
+    }
+    .input-wrap.has-error > textarea,
+    .input-wrap.has-error > input {
+      border-color: #e74c3c !important;
+      background: #fff5f5 !important;
+    }
+    .field-tooltip {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: calc(100% + 3px);
+      background: #2c2c2c;
+      color: #fff;
+      font-size: .76rem;
+      font-family: "Segoe UI", Tahoma, Geneva, sans-serif;
+      font-weight: 400;
+      padding: .4rem .65rem;
+      border-radius: 4px;
+      white-space: normal;
+      max-width: 300px;
+      width: max-content;
+      z-index: 200;
+      pointer-events: none;
+      line-height: 1.4;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    .field-tooltip::before {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      left: 12px;
+      border: 5px solid transparent;
+      border-bottom-color: #2c2c2c;
+    }
+    .input-wrap.has-error:hover .field-tooltip {
+      display: block;
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Responsive                                                           */
     /* ------------------------------------------------------------------ */
     @media (max-width: 780px) {
@@ -403,25 +447,25 @@
     <label for="structure">
       Structure <small>(dot-bracket; separate two molecules with &amp;)</small>
     </label>
-    <textarea id="structure" rows="3"
-      placeholder="..(((((....)))))(((....)))..&..(((......))).."></textarea>
+    <div class="input-wrap"><textarea id="structure" rows="3"
+      placeholder="..(((((....)))))(((....)))..&..(((......))).."></textarea><span class="field-tooltip"></span></div>
 
     <!-- Sequence -->
     <label for="sequence">
       Sequence <small>(IUPAC; separate two molecules with &amp;)</small>
     </label>
-    <textarea id="sequence" rows="3"
-      placeholder="ACGAUCAGAGAUUAGAGCAUACGACAGCAG&ACGAAAAGAGCAUACGACAGUAG"></textarea>
+    <div class="input-wrap"><textarea id="sequence" rows="3"
+      placeholder="ACGAUCAGAGAUUAGAGCAUACGACAGCAG&ACGAAAAGAGCAUACGACAGUAG"></textarea><span class="field-tooltip"></span></div>
 
     <div class="row-3">
       <!-- Start indices -->
-      <div>
+      <div class="input-wrap">
         <label for="startIndex1">Start index 1</label>
-        <input type="number" id="startIndex1" value="1" />
+        <input type="number" id="startIndex1" value="1" /><span class="field-tooltip"></span>
       </div>
-      <div>
+      <div class="input-wrap">
         <label for="startIndex2">Start index 2</label>
-        <input type="number" id="startIndex2" value="1" />
+        <input type="number" id="startIndex2" value="1" /><span class="field-tooltip"></span>
       </div>
       <!-- Label interval -->
       <div>
@@ -469,12 +513,12 @@
     <label for="highlightSubseq1">
       Highlight subseq in mol. 1 <small>(e.g. 3-8 or 3-8,15-20)</small>
     </label>
-    <input type="text" id="highlightSubseq1" placeholder="e.g. 3-8" />
+    <div class="input-wrap"><input type="text" id="highlightSubseq1" placeholder="e.g. 3-8" /><span class="field-tooltip"></span></div>
 
     <label for="highlightSubseq2">
       Highlight subseq in mol. 2 <small>(e.g. 2-5)</small>
     </label>
-    <input type="text" id="highlightSubseq2" placeholder="e.g. 2-5" />
+    <div class="input-wrap"><input type="text" id="highlightSubseq2" placeholder="e.g. 2-5" /><span class="field-tooltip"></span></div>
 
     <!-- Animation -->
     <div class="checkbox-row">
@@ -623,6 +667,81 @@
     document.getElementById('highlightSubseq2').value = '';
     document.getElementById('rna_ss').innerHTML = '';
     clearMsg();
+    clearAllFieldErrors();
+  }
+
+  // -------------------------------------------------------------------------
+  // Per-field validation helpers
+  // -------------------------------------------------------------------------
+  function setFieldError(fieldId, msg) {
+    const el = document.getElementById(fieldId);
+    if (!el) return;
+    const wrap = el.closest('.input-wrap');
+    if (!wrap) return;
+    wrap.classList.add('has-error');
+    const tooltip = wrap.querySelector('.field-tooltip');
+    if (tooltip) tooltip.textContent = msg;
+  }
+
+  function clearFieldError(fieldId) {
+    const el = document.getElementById(fieldId);
+    if (!el) return;
+    const wrap = el.closest('.input-wrap');
+    if (!wrap) return;
+    wrap.classList.remove('has-error');
+    const tooltip = wrap.querySelector('.field-tooltip');
+    if (tooltip) tooltip.textContent = '';
+  }
+
+  function clearAllFieldErrors() {
+    document.querySelectorAll('.input-wrap.has-error').forEach(wrap => {
+      wrap.classList.remove('has-error');
+      const t = wrap.querySelector('.field-tooltip');
+      if (t) t.textContent = '';
+    });
+  }
+
+  function validateFields(args) {
+    clearAllFieldErrors();
+    let valid = true;
+
+    // Sequence
+    if (!args.sequence) {
+      setFieldError('sequence', 'No sequence given.');
+      valid = false;
+    } else {
+      try { vaRRI.validateSequenceInput(args.sequence); }
+      catch (e) { setFieldError('sequence', e.message); valid = false; }
+    }
+
+    // Structure
+    if (!args.structure) {
+      setFieldError('structure', 'No structure given.');
+      valid = false;
+    } else if (args.sequence) {
+      try { vaRRI.validateStructureInput(args.structure, args.sequence); }
+      catch (e) { setFieldError('structure', e.message); valid = false; }
+    }
+
+    // Start index 1
+    try { vaRRI.validateOffset(String(args.startIndex1 || '1')); }
+    catch (e) { setFieldError('startIndex1', e.message); valid = false; }
+
+    // Start index 2
+    try { vaRRI.validateOffset(String(args.startIndex2 || '1')); }
+    catch (e) { setFieldError('startIndex2', e.message); valid = false; }
+
+    // Subsequence highlights
+    if (args.highlightSubseq1) {
+      try { vaRRI.parseSubsequences(args.highlightSubseq1); }
+      catch (e) { setFieldError('highlightSubseq1', e.message); valid = false; }
+    }
+    if (args.highlightSubseq2) {
+      try { vaRRI.parseSubsequences(args.highlightSubseq2); }
+      catch (e) { setFieldError('highlightSubseq2', e.message); valid = false; }
+    }
+
+    return valid;
   }
 
   function runVisualization() {
@@ -641,6 +760,8 @@
       highlightSubseq1:       document.getElementById('highlightSubseq1').value.trim() || null,
       highlightSubseq2:       document.getElementById('highlightSubseq2').value.trim() || null,
     };
+
+    if (!validateFields(args)) return;
 
     let v;
     try {
@@ -693,6 +814,12 @@
   // Auto-load 2-molecule example on page load
   // -------------------------------------------------------------------------
   window.addEventListener('load', () => {
+    // Clear per-field error as the user edits each input
+    ['structure', 'sequence', 'startIndex1', 'startIndex2',
+     'highlightSubseq1', 'highlightSubseq2'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', () => clearFieldError(id));
+    });
     loadExample('2mol');
   });
 </script>
