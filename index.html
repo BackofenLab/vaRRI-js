@@ -320,6 +320,36 @@
     }
 
     /* ------------------------------------------------------------------ */
+    /* Footer                                                              */
+    /* ------------------------------------------------------------------ */
+    .site-footer {
+      max-width: 1100px;
+      margin: 0 auto 1.5rem;
+      padding: .9rem 1rem 0;
+    }
+    .footer-content {
+      background: #f6f9ff;
+      border: 1px solid #d7e2f2;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(15, 46, 74, .08);
+      padding: .9rem 1.1rem;
+      font-size: .82rem;
+      line-height: 1.45;
+      color: #30455f;
+    }
+    .footer-content p + p {
+      margin-top: .45rem;
+    }
+    .footer-content a {
+      color: #1c4f8e;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .footer-content a:hover {
+      color: #133d70;
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Responsive                                                           */
     /* ------------------------------------------------------------------ */
     @media (max-width: 780px) {
@@ -505,6 +535,22 @@
     </div>
   </section>
 </main>
+
+<footer class="site-footer" aria-label="Service information">
+  <div class="footer-content">
+    <p>
+      Disclaimer: This service is provided "as is" without any warranties or guarantees.
+    </p>
+    <p>
+      For comments or feedback, please contact 
+      <a href="https://www.bioinf.uni-freiburg.de/" target="_blank" rel="noopener noreferrer">Freiburg Bioinformatics Group of the University of Freiburg</a>.
+    </p>
+    <p>
+      The source code for this service is freely available on
+      <a href="https://github.com/BackofenLab/vaRRI-js" target="_blank" rel="noopener noreferrer">GitHub</a>.
+    </p>
+  </div>
+</footer>
 
 <!-- ====================================================================== -->
 <!-- Scripts                                                                  -->
