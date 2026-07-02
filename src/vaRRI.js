@@ -979,9 +979,12 @@
      * @param {Object} v  Validated parameter dictionary.
      */
     function visualiseBasepairStrength(v) {
-        // Apply basepair colour to all basepair links
+        // Apply basepair colour to all basepair links using inline style so it
+        // overrides the Fornac CSS rule `line.fornac-link[link_type="basepair"]
+        // { stroke: red; }`, which takes precedence over SVG presentation
+        // attributes.
         document.querySelectorAll('[link_type="basepair"]').forEach(link => {
-            link.setAttribute('stroke', COLORS.basepair);
+            link.style.stroke = COLORS.basepair;
         });
 
         // Build a 1-based sequence map including gap dots
@@ -998,7 +1001,7 @@
             const l1 = seqDict[link.getAttribute('start')];
             const l2 = seqDict[link.getAttribute('end')];
             if ((l1 === 'G' && l2 === 'U') || (l1 === 'U' && l2 === 'G')) {
-                link.setAttribute('stroke-dasharray', '1,1');
+                link.style.strokeDasharray = '1,1';
             }
         });
     }
