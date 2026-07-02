@@ -476,8 +476,8 @@
         v.labelInterval = parseInt(String(args.labelInterval || '10'), 10) || 10;
 
         // Subsequence highlights (parse "start-end" strings)
-        v.highlightSubseq1 = parseSubsequences(args.highlightSubseq1);
-        v.highlightSubseq2 = parseSubsequences(args.highlightSubseq2);
+        v.highlightSubseq1 = parseSubsequences(args.highlightSubseq1, v.offset1, v.sequence1.length);
+        v.highlightSubseq2 = parseSubsequences(args.highlightSubseq2, v.offset2, v.sequence2.length);
 
         return v;
     }
@@ -486,17 +486,40 @@
      * Parse a comma-separated list of `"start-end"` range strings.
      *
      * @param {string|null|undefined} input
+     * @param {number} [startIndex]
+     * @param {number} [sequenceLength]
      * @returns {Array<[number,number]>|null}
      */
-    function parseSubsequences(input) {
+    function parseSubsequences(input, startIndex, sequenceLength) {
         if (!input || input.trim() === '') return null;
+        let validIndices = null;
+        if (Number.isInteger(startIndex) && Number.isInteger(sequenceLength) && sequenceLength >= 0) {
+            validIndices = new Set(
+                getSequenceIndices('s', startIndex, sequenceLength).map(([, index]) => index)
+            );
+        }
         const ranges = input.split(',').map(s => s.trim()).filter(Boolean);
         return ranges.map(r => {
-            const parts = r.split('-').map(x => parseInt(x, 10));
-            if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) {
+            const match = r.match(/^(-?\d+)-(-?\d+)$/);
+            if (!match) {
                 throw new Error(`Invalid subsequence range: "${r}". Expected "start-end".`);
             }
-            return parts;
+            const start = parseInt(match[1], 10);
+            const end = parseInt(match[2], 10);
+
+            if (start === 0 || end === 0) {
+                throw new Error(`Invalid subsequence range: "${r}". Index 0 is not valid.`);
+            }
+            if (start > end) {
+                throw new Error(`Invalid subsequence range: "${r}". Start index must be <= end index.`);
+            }
+            if (validIndices && (!validIndices.has(start) || !validIndices.has(end))) {
+                throw new Error(
+                    `Invalid subsequence range: "${r}". Range endpoints must be valid sequence indices.`
+                );
+            }
+
+            return [start, end];
         });
     }
 

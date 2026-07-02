@@ -117,8 +117,10 @@ gap nodes and RNA-style numbering (no zero).
 #### `vaRRI.getSequenceIndices(seqId, offset, length)` → `Array<[string, number]>`
 Produces `(seqId, index)` tuples starting at `offset`, skipping 0.
 
-#### `vaRRI.parseSubsequences(input)` → `Array<[number, number]>|null`
-Parses a comma-separated list of `"start-end"` strings into numeric pairs.
+#### `vaRRI.parseSubsequences(input, startIndex?, sequenceLength?)` → `Array<[number, number]>|null`
+Parses a comma-separated list of `"start-end"` strings (including negative indices) into numeric pairs.
+When `startIndex` and `sequenceLength` are provided, range endpoints are validated against
+the sequence's valid RNA-style indices (no index `0`).
 
 ---
 

@@ -894,20 +894,24 @@
     }
 
     // Start index 1
-    try { vaRRI.validateOffset(String(args.startIndex1 || '1')); }
+    let offset1;
+    try { offset1 = vaRRI.validateOffset(String(args.startIndex1 || '1')); }
     catch (e) { setFieldError('startIndex1', e.message); valid = false; }
 
     // Start index 2
-    try { vaRRI.validateOffset(String(args.startIndex2 || '1')); }
+    let offset2;
+    try { offset2 = vaRRI.validateOffset(String(args.startIndex2 || '1')); }
     catch (e) { setFieldError('startIndex2', e.message); valid = false; }
+
+    const [seq1, seq2] = vaRRI.splitAtAmpersand(args.sequence || '');
 
     // Subsequence highlights
     if (args.highlightSubseq1) {
-      try { vaRRI.parseSubsequences(args.highlightSubseq1); }
+      try { vaRRI.parseSubsequences(args.highlightSubseq1, offset1, seq1.length); }
       catch (e) { setFieldError('highlightSubseq1', e.message); valid = false; }
     }
     if (args.highlightSubseq2) {
-      try { vaRRI.parseSubsequences(args.highlightSubseq2); }
+      try { vaRRI.parseSubsequences(args.highlightSubseq2, offset2, seq2.length); }
       catch (e) { setFieldError('highlightSubseq2', e.message); valid = false; }
     }
 

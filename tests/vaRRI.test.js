@@ -370,6 +370,20 @@ describe('parseSubsequences', () => {
         expect(vaRRI.parseSubsequences('3-8,15-20')).toEqual([[3, 8], [15, 20]]);
     });
 
+    test('parses negative index ranges', () => {
+        expect(vaRRI.parseSubsequences('-3--1')).toEqual([[-3, -1]]);
+    });
+
+    test('validates range endpoints against sequence indices when context is provided', () => {
+        // offset=-2, length=4 => valid indices: -2, -1, 1, 2
+        expect(vaRRI.parseSubsequences('-2-2', -2, 4)).toEqual([[-2, 2]]);
+        expect(() => vaRRI.parseSubsequences('-2-3', -2, 4)).toThrow(/valid sequence indices/);
+    });
+
+    test('rejects index 0 in a range', () => {
+        expect(() => vaRRI.parseSubsequences('0-2')).toThrow(/Index 0 is not valid/);
+    });
+
     test('throws on malformed range (not two parts)', () => {
         expect(() => vaRRI.parseSubsequences('3-8-9')).toThrow(/Invalid subsequence range/);
     });
@@ -550,6 +564,15 @@ describe('validate', () => {
     test('parses highlightSubseq ranges', () => {
         const v = vaRRI.validate({ ...base2mol, highlightSubseq1: '2-4' });
         expect(v.highlightSubseq1).toEqual([[2, 4]]);
+    });
+
+    test('parses negative highlightSubseq ranges with negative sequence start index', () => {
+        const v = vaRRI.validate({ ...base2mol, startIndex1: '-2', highlightSubseq1: '-2-2' });
+        expect(v.highlightSubseq1).toEqual([[-2, 2]]);
+    });
+
+    test('throws when highlightSubseq range endpoints are outside valid sequence indices', () => {
+        expect(() => vaRRI.validate({ ...base2mol, startIndex1: '-2', highlightSubseq1: '-2-3' })).toThrow(/valid sequence indices/);
     });
 
     test('throws on empty sequence', () => {
