@@ -767,6 +767,26 @@
     }
 
     /**
+     * Resolve where new overlay elements should be inserted.
+     *
+     * If a vaRRI rotation layer exists, insert into that layer so newly added
+     * overlays follow the current rotation.
+     *
+     * @returns {SVGElement|null}
+     */
+    function getPlotInsertRoot() {
+        const plot = document.getElementsByClassName('fornac-plot')[0];
+        if (!plot) return null;
+
+        const rotationLayer = Array.from(plot.children).find(child =>
+            child.tagName && child.tagName.toLowerCase() === 'g' &&
+            child.getAttribute('data-varri-rotation-layer') === 'true'
+        );
+
+        return rotationLayer || plot;
+    }
+
+    /**
      * Create and insert an SVG element at the beginning of the Fornac plot.
      *
      * @param {string} elementType  SVG tag name (e.g. `"circle"`, `"polyline"`).
@@ -777,8 +797,8 @@
         for (const [key, value] of Object.entries(attr)) {
             el.setAttribute(key, value);
         }
-        const plot = document.getElementsByClassName('fornac-plot')[0];
-        if (plot) plot.insertBefore(el, plot.firstChild);
+        const insertRoot = getPlotInsertRoot();
+        if (insertRoot) insertRoot.insertBefore(el, insertRoot.firstChild);
     }
 
     /**
@@ -805,8 +825,8 @@
         for (const [k, val] of Object.entries(extraAttrs)) {
             poly.setAttribute(k, val);
         }
-        const plot = document.getElementsByClassName('fornac-plot')[0];
-        if (plot) plot.insertBefore(poly, plot.firstChild);
+        const insertRoot = getPlotInsertRoot();
+        if (insertRoot) insertRoot.insertBefore(poly, insertRoot.firstChild);
     }
 
     /**
@@ -1258,6 +1278,151 @@
     }
 
     // -----------------------------------------------------------------------
+    // Rotation helpers
+    // -----------------------------------------------------------------------
+
+    /**
+     * Normalise a rotation angle to the range [-180, 180].
+     *
+     * @param {number} degrees
+     * @returns {number}
+     */
+    function normaliseRotationDegrees(degrees) {
+        if (!Number.isFinite(degrees)) {
+            throw new Error('Rotation degrees must be a finite number');
+        }
+        let value = degrees % 360;
+        if (value > 180) value -= 360;
+        if (value < -180) value += 360;
+        return value;
+    }
+
+    /**
+     * Resolve the element that should host the rotation layer.
+     *
+     * If Fornac's plot group exists, rotate inside that group so that
+     * pan/zoom transforms stay in screen-space and dragging keeps expected
+     * directions after rotation.
+     *
+     * @param {SVGSVGElement} svgEl
+     * @returns {SVGElement}
+     */
+    function getRotationHost(svgEl) {
+        const fornacPlot = svgEl.querySelector('.fornac-plot');
+        return fornacPlot || svgEl;
+    }
+
+    /**
+     * Ensure a host element has a dedicated layer that can be rotated.
+     *
+     * @param {SVGElement} hostEl
+     * @returns {SVGGElement}
+     */
+    function ensureRotationLayer(hostEl) {
+        let layer = Array.from(hostEl.children).find(child =>
+            child.tagName && child.tagName.toLowerCase() === 'g' &&
+            child.getAttribute('data-varri-rotation-layer') === 'true'
+        );
+
+        if (!layer) {
+            layer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            layer.setAttribute('data-varri-rotation-layer', 'true');
+            hostEl.appendChild(layer);
+        }
+
+        const nodesToMove = Array.from(hostEl.childNodes).filter(node => {
+            if (node === layer) return false;
+            if (hostEl.tagName && hostEl.tagName.toLowerCase() === 'svg' &&
+                    node.nodeType === Node.ELEMENT_NODE && node.tagName &&
+                    node.tagName.toLowerCase() === 'defs') {
+                return false;
+            }
+            return true;
+        });
+        nodesToMove.forEach(node => layer.appendChild(node));
+
+        return layer;
+    }
+
+    /**
+     * Compute the centre of an SVG element's bounding box.
+     *
+     * @param {SVGGraphicsElement} el
+     * @returns {{x:number, y:number}|null}
+     */
+    function getBBoxCenter(el) {
+        try {
+            const bbox = el.getBBox();
+            if (!Number.isFinite(bbox.x) || !Number.isFinite(bbox.y) ||
+                    !Number.isFinite(bbox.width) || !Number.isFinite(bbox.height)) {
+                return null;
+            }
+            return {
+                x: bbox.x + (bbox.width / 2),
+                y: bbox.y + (bbox.height / 2),
+            };
+        } catch (err) {
+            return null;
+        }
+    }
+
+    /**
+     * Rotate the current visualisation around its bounding-box centre while
+     * keeping text labels horizontally aligned.
+     *
+     * @param {string} containerId  ID of the container element.
+     * @param {number} degrees  Rotation amount.
+     * @param {Object} [options]
+     * @param {'delta'|'absolute'} [options.mode='delta']
+     * @returns {number}  Applied absolute angle in degrees (normalised).
+     */
+    function rotateVisualization(containerId, degrees, options = {}) {
+        const container = document.getElementById(containerId);
+        const svgEl = container && container.querySelector('svg');
+        if (!svgEl) throw new Error('No SVG found in container');
+
+        const amount = Number(degrees);
+        if (!Number.isFinite(amount)) {
+            throw new Error('Rotation degrees must be a finite number');
+        }
+
+        const mode = options.mode === 'absolute' ? 'absolute' : 'delta';
+        const current = Number(svgEl.getAttribute('data-varri-rotation') || 0);
+        const target = normaliseRotationDegrees(mode === 'absolute' ? amount : current + amount);
+
+        const hostEl = getRotationHost(svgEl);
+        const layer = ensureRotationLayer(hostEl);
+        const center = getBBoxCenter(layer);
+        if (!center) return current;
+
+        layer.setAttribute('transform', `rotate(${target} ${center.x} ${center.y})`);
+        svgEl.setAttribute('data-varri-rotation', String(target));
+
+        layer.querySelectorAll('text').forEach(textEl => {
+            if (!textEl.hasAttribute('data-varri-base-transform')) {
+                textEl.setAttribute('data-varri-base-transform', textEl.getAttribute('transform') || '');
+            }
+            const baseTransform = textEl.getAttribute('data-varri-base-transform') || '';
+            if (target === 0) {
+                if (baseTransform) {
+                    textEl.setAttribute('transform', baseTransform);
+                } else {
+                    textEl.removeAttribute('transform');
+                }
+                return;
+            }
+
+            const textCenter = getBBoxCenter(textEl) || center;
+            const transformParts = [];
+            if (baseTransform) transformParts.push(baseTransform);
+            transformParts.push(`rotate(${-target} ${textCenter.x} ${textCenter.y})`);
+            textEl.setAttribute('transform', transformParts.join(' '));
+        });
+
+        return target;
+    }
+
+    // -----------------------------------------------------------------------
     // SVG / PNG export
     // -----------------------------------------------------------------------
 
@@ -1468,6 +1633,8 @@
         // Core
         validate,
         render,
+        rotateVisualization,
+        normaliseRotationDegrees,
 
         // Colors
         setColors,
