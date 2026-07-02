@@ -7,7 +7,23 @@
  * here because they require a real browser context.
  */
 
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
 const vaRRI = require('../src/vaRRI.js');
+const vaRRISource = fs.readFileSync(path.join(__dirname, '../src/vaRRI.js'), 'utf8');
+
+describe('browser global export', () => {
+    test('attaches vaRRI to window even when module.exports is present', () => {
+        const sandbox = { window: {}, module: { exports: {} }, console };
+        vm.createContext(sandbox);
+        vm.runInContext(vaRRISource, sandbox);
+
+        expect(sandbox.window.vaRRI).toBeDefined();
+        expect(typeof sandbox.window.vaRRI.getColors).toBe('function');
+        expect(sandbox.module.exports).toBe(sandbox.window.vaRRI);
+    });
+});
 
 // ---------------------------------------------------------------------------
 // splitAtAmpersand
