@@ -777,6 +777,7 @@
   let currentContainerId = 'rna_ss';
   let committedRotationDeg = 0;
   let autoVisualizationTimeoutId = null;
+  let latestVisualizationRunId = 0;
 
   function showMsg(text, type) {
     const el = document.getElementById('msg');
@@ -795,7 +796,9 @@
     document.getElementById('sequence').value  = '';
     document.getElementById('highlightSubseq1').value = '';
     document.getElementById('highlightSubseq2').value = '';
-    document.getElementById('rna_ss').innerHTML = '';
+    const container = document.getElementById('rna_ss');
+    container.innerHTML = '';
+    container.style.visibility = '';
     resetRotationControl();
     clearMsg();
     clearAllFieldErrors();
@@ -910,7 +913,7 @@
     return valid;
   }
 
-  function runVisualization() {
+  async function runVisualization() {
     clearMsg();
     applyColors();
 
@@ -939,21 +942,22 @@
     }
 
     // Clear previous output
+    const runId = ++latestVisualizationRunId;
     const container = document.getElementById(currentContainerId);
     container.innerHTML = '';
+    container.style.visibility = 'hidden';
     resetRotationControl();
 
     const animation = document.getElementById('animation').checked;
 
     try {
-      vaRRI.render(currentContainerId, v, { animation });
-      showMsg(
-        animation
-          ? 'Visualisation rendering… modifications will be applied shortly.'
-          : 'Visualisation ready. Use the export buttons to save.',
-        'success'
-      );
+      const renderState = await vaRRI.render(currentContainerId, v, { animation });
+      if (runId !== latestVisualizationRunId || renderState?.cancelled) return;
+      container.style.visibility = '';
+      showMsg('Visualisation ready. Use the export buttons to save.', 'success');
     } catch (err) {
+      if (runId !== latestVisualizationRunId) return;
+      container.style.visibility = '';
       showMsg('Render error: ' + err.message, 'error');
     }
   }
@@ -976,20 +980,49 @@
   }
 
   function attachAutoVisualizationListeners() {
+    const committedFieldIds = [
+      'structure',
+      'sequence',
+      'startIndex1',
+      'startIndex2',
+      'labelInterval',
+      'highlightSubseq1',
+      'highlightSubseq2',
+    ];
     const listenerConfig = {
-      structure: { eventName: 'input', delay: 150 },
-      sequence: { eventName: 'input', delay: 150 },
-      startIndex1: { eventName: 'input', delay: 150 },
-      startIndex2: { eventName: 'input', delay: 150 },
-      labelInterval: { eventName: 'input', delay: 150 },
       coloring: { eventName: 'change' },
       highlighting: { eventName: 'change' },
       backgroundhighlighting: { eventName: 'change' },
       guBasepairs: { eventName: 'change' },
-      highlightSubseq1: { eventName: 'input', delay: 150 },
-      highlightSubseq2: { eventName: 'input', delay: 150 },
       animation: { eventName: 'change' },
     };
+
+    committedFieldIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      el.addEventListener('input', () => {
+        clearFieldError(id);
+      });
+
+      el.addEventListener('change', () => {
+        if (el.__skipNextAutoVisualizationChange) {
+          el.__skipNextAutoVisualizationChange = false;
+          return;
+        }
+        clearFieldError(id);
+        queueVisualization();
+      });
+
+      if (el.tagName === 'TEXTAREA') return;
+
+      el.addEventListener('keydown', event => {
+        if (event.key !== 'Enter') return;
+        el.__skipNextAutoVisualizationChange = true;
+        clearFieldError(id);
+        queueVisualization();
+      });
+    });
 
     Object.entries(listenerConfig).forEach(([id, config]) => {
       const el = document.getElementById(id);
@@ -997,7 +1030,7 @@
 
       el.addEventListener(config.eventName, () => {
         clearFieldError(id);
-        queueVisualization(config.delay ?? 0);
+        queueVisualization();
       });
     });
   }

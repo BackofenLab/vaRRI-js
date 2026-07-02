@@ -702,19 +702,27 @@ function createIndexHtmlSandbox() {
         };
     }
 
-    function makeElement(id, { value = '', checked = false } = {}) {
+    function makeElement(id, { value = '', checked = false, tagName = 'INPUT', type = 'text' } = {}) {
         const wrap = fieldsWithWrap.has(id) ? makeWrap() : null;
         return {
             id,
             value,
             checked,
+            tagName,
+            type,
             innerHTML: '',
             className: '',
             textContent: '',
             style: {},
             listeners: {},
             addEventListener(eventName, handler) {
-                this.listeners[eventName] = handler;
+                if (!this.listeners[eventName]) {
+                    this.listeners[eventName] = [];
+                }
+                this.listeners[eventName].push(handler);
+            },
+            trigger(eventName, event = {}) {
+                (this.listeners[eventName] || []).forEach(handler => handler(event));
             },
             closest(selector) {
                 return selector === '.input-wrap' ? wrap : null;
@@ -724,27 +732,27 @@ function createIndexHtmlSandbox() {
     }
 
     const elements = {
-        structure: makeElement('structure'),
-        sequence: makeElement('sequence'),
-        startIndex1: makeElement('startIndex1', { value: '1' }),
-        startIndex2: makeElement('startIndex2', { value: '1' }),
-        labelInterval: makeElement('labelInterval', { value: '10' }),
-        coloring: makeElement('coloring', { value: 'strand' }),
-        highlighting: makeElement('highlighting', { value: 'region' }),
-        backgroundhighlighting: makeElement('backgroundhighlighting', { value: 'basepairs' }),
-        guBasepairs: makeElement('guBasepairs', { checked: true }),
+        structure: makeElement('structure', { tagName: 'TEXTAREA' }),
+        sequence: makeElement('sequence', { tagName: 'TEXTAREA' }),
+        startIndex1: makeElement('startIndex1', { value: '1', type: 'number' }),
+        startIndex2: makeElement('startIndex2', { value: '1', type: 'number' }),
+        labelInterval: makeElement('labelInterval', { value: '10', type: 'number' }),
+        coloring: makeElement('coloring', { value: 'strand', tagName: 'SELECT' }),
+        highlighting: makeElement('highlighting', { value: 'region', tagName: 'SELECT' }),
+        backgroundhighlighting: makeElement('backgroundhighlighting', { value: 'basepairs', tagName: 'SELECT' }),
+        guBasepairs: makeElement('guBasepairs', { checked: true, type: 'checkbox' }),
         highlightSubseq1: makeElement('highlightSubseq1'),
         highlightSubseq2: makeElement('highlightSubseq2'),
-        animation: makeElement('animation'),
-        'color-seq1': makeElement('color-seq1', { value: '#000000' }),
-        'color-seq2': makeElement('color-seq2', { value: '#000000' }),
-        'color-intermol': makeElement('color-intermol', { value: '#000000' }),
-        'color-bg': makeElement('color-bg', { value: '#000000' }),
-        'color-subseq': makeElement('color-subseq', { value: '#000000' }),
-        'color-basepair': makeElement('color-basepair', { value: '#000000' }),
-        'rotation-slider': makeElement('rotation-slider', { value: '0' }),
-        rna_ss: makeElement('rna_ss'),
-        msg: makeElement('msg'),
+        animation: makeElement('animation', { type: 'checkbox' }),
+        'color-seq1': makeElement('color-seq1', { value: '#000000', type: 'color' }),
+        'color-seq2': makeElement('color-seq2', { value: '#000000', type: 'color' }),
+        'color-intermol': makeElement('color-intermol', { value: '#000000', type: 'color' }),
+        'color-bg': makeElement('color-bg', { value: '#000000', type: 'color' }),
+        'color-subseq': makeElement('color-subseq', { value: '#000000', type: 'color' }),
+        'color-basepair': makeElement('color-basepair', { value: '#000000', type: 'color' }),
+        'rotation-slider': makeElement('rotation-slider', { value: '0', type: 'range' }),
+        rna_ss: makeElement('rna_ss', { tagName: 'DIV' }),
+        msg: makeElement('msg', { tagName: 'DIV' }),
     };
 
     const loadHandlers = [];
@@ -766,7 +774,7 @@ function createIndexHtmlSandbox() {
         validateOffset: jest.fn(v => Number(v)),
         parseSubsequences: jest.fn(() => null),
         validate: jest.fn(args => args),
-        render: jest.fn(),
+        render: jest.fn(() => Promise.resolve({ cancelled: false })),
         rotateVisualization: jest.fn(),
         normaliseRotationDegrees: jest.fn(v => v),
         downloadSVG: jest.fn(),
@@ -831,44 +839,33 @@ describe('index.html auto visualization UI', () => {
         expect(indexHTMLSource).not.toContain('onclick="runVisualization()"');
     });
 
-    test('revalidates and rerenders on every editable field change', () => {
-        const { elements, loadHandlers, runPendingTimers, scheduledDelays, vaRRIStub } = createIndexHtmlSandbox();
-        const listenerConfig = {
-            structure: { eventName: 'input', delay: 150 },
-            sequence: { eventName: 'input', delay: 150 },
-            startIndex1: { eventName: 'input', delay: 150 },
-            startIndex2: { eventName: 'input', delay: 150 },
-            labelInterval: { eventName: 'input', delay: 150 },
-            coloring: { eventName: 'change' },
-            highlighting: { eventName: 'change' },
-            backgroundhighlighting: { eventName: 'change' },
-            guBasepairs: { eventName: 'change' },
-            highlightSubseq1: { eventName: 'input', delay: 150 },
-            highlightSubseq2: { eventName: 'input', delay: 150 },
-            animation: { eventName: 'change' },
-        };
+    test('registers commit-based listeners for typed fields and change listeners for toggles', () => {
+        const { elements, loadHandlers } = createIndexHtmlSandbox();
+        const committedFields = ['structure', 'sequence', 'startIndex1', 'startIndex2', 'labelInterval', 'highlightSubseq1', 'highlightSubseq2'];
+        const enterCommittedFields = ['startIndex1', 'startIndex2', 'labelInterval', 'highlightSubseq1', 'highlightSubseq2'];
+        const immediateFields = ['coloring', 'highlighting', 'backgroundhighlighting', 'guBasepairs', 'animation'];
 
         expect(loadHandlers).toHaveLength(1);
         loadHandlers[0]();
 
-        Object.entries(listenerConfig).forEach(([id, config]) => {
-            expect(elements[id].listeners[config.eventName]).toEqual(expect.any(Function));
+        committedFields.forEach(id => {
+            expect(elements[id].listeners.input).toHaveLength(1);
+            expect(elements[id].listeners.change).toHaveLength(1);
         });
 
-        vaRRIStub.validate.mockClear();
-        vaRRIStub.render.mockClear();
-
-        Object.entries(listenerConfig).forEach(([id, config]) => {
-            elements[id].listeners[config.eventName]();
-            runPendingTimers();
+        enterCommittedFields.forEach(id => {
+            expect(elements[id].listeners.keydown).toHaveLength(1);
         });
 
-        expect(vaRRIStub.validate).toHaveBeenCalledTimes(Object.keys(listenerConfig).length);
-        expect(vaRRIStub.render).toHaveBeenCalledTimes(Object.keys(listenerConfig).length);
-        expect(scheduledDelays).toEqual([150, 150, 150, 150, 150, 150, 150]);
+        expect(elements.structure.listeners.keydown).toBeUndefined();
+        expect(elements.sequence.listeners.keydown).toBeUndefined();
+
+        immediateFields.forEach(id => {
+            expect(elements[id].listeners.change).toHaveLength(1);
+        });
     });
 
-    test('debounces repeated typed input before rerendering', () => {
+    test('does not rerender while typing into committed fields', () => {
         const { elements, loadHandlers, runPendingTimers, vaRRIStub } = createIndexHtmlSandbox();
 
         expect(loadHandlers).toHaveLength(1);
@@ -876,11 +873,55 @@ describe('index.html auto visualization UI', () => {
         vaRRIStub.validate.mockClear();
         vaRRIStub.render.mockClear();
 
-        elements.structure.listeners.input();
-        elements.structure.listeners.input();
+        elements.structure.trigger('input');
+        elements.startIndex1.trigger('input');
         runPendingTimers();
+
+        expect(vaRRIStub.validate).not.toHaveBeenCalled();
+        expect(vaRRIStub.render).not.toHaveBeenCalled();
+    });
+
+    test('rerenders on committed edits and keeps the container hidden until rendering finishes', async () => {
+        const { elements, loadHandlers, vaRRIStub } = createIndexHtmlSandbox();
+        const renderResult = {};
+        let resolveRender;
+
+        vaRRIStub.render.mockImplementation(() => new Promise(resolve => {
+            resolveRender = resolve;
+        }));
+
+        expect(loadHandlers).toHaveLength(1);
+        loadHandlers[0]();
+        vaRRIStub.validate.mockClear();
+        vaRRIStub.render.mockClear();
+
+        elements.startIndex1.trigger('keydown', { key: 'Enter' });
 
         expect(vaRRIStub.validate).toHaveBeenCalledTimes(1);
         expect(vaRRIStub.render).toHaveBeenCalledTimes(1);
+        expect(elements.rna_ss.style.visibility).toBe('hidden');
+
+        resolveRender(renderResult);
+        await Promise.resolve();
+        await Promise.resolve();
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(elements.rna_ss.style.visibility).toBe('');
+        expect(elements.msg.textContent).toBe('Visualisation ready. Use the export buttons to save.');
+
+        elements.startIndex1.trigger('change');
+
+        expect(vaRRIStub.validate).toHaveBeenCalledTimes(1);
+        expect(vaRRIStub.render).toHaveBeenCalledTimes(1);
+
+        elements.structure.trigger('change');
+
+        expect(vaRRIStub.validate).toHaveBeenCalledTimes(2);
+        expect(vaRRIStub.render).toHaveBeenCalledTimes(2);
+
+        elements.coloring.trigger('change');
+
+        expect(vaRRIStub.validate).toHaveBeenCalledTimes(3);
+        expect(vaRRIStub.render).toHaveBeenCalledTimes(3);
     });
 });

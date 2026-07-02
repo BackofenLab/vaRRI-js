@@ -23,6 +23,12 @@
     /** Active requestAnimationFrame ID for the background-highlight animation loop (null when idle). */
     let _animFrameId = null;
 
+    /** Active timeout ID for delayed post-processing after a render (null when idle). */
+    let _renderTimeoutId = null;
+
+    /** Resolver for the render promise that is currently waiting for post-processing. */
+    let _pendingRenderResolve = null;
+
     /**
      * Default colours used by vaRRI rendering functions.
      *
@@ -1199,6 +1205,15 @@
             _animFrameId = null;
         }
 
+        if (_renderTimeoutId !== null) {
+            clearTimeout(_renderTimeoutId);
+            _renderTimeoutId = null;
+            if (_pendingRenderResolve) {
+                _pendingRenderResolve({ cancelled: true });
+                _pendingRenderResolve = null;
+            }
+        }
+
         const {
             animation = false,
             accessData = null,
@@ -1268,13 +1283,20 @@
             }
         }
 
-        if (animation) {
-            setTimeout(applyModifications, 200);
-        } else {
-            // Fornac uses a requestAnimationFrame loop internally; we need to
-            // wait for a tick before the SVG nodes exist in the DOM.
-            setTimeout(applyModifications, 200);
-        }
+        return new Promise((resolve, reject) => {
+            _pendingRenderResolve = resolve;
+            _renderTimeoutId = setTimeout(() => {
+                _renderTimeoutId = null;
+                _pendingRenderResolve = null;
+
+                try {
+                    applyModifications();
+                    resolve({ cancelled: false });
+                } catch (err) {
+                    reject(err);
+                }
+            }, 200);
+        });
     }
 
     // -----------------------------------------------------------------------
