@@ -588,8 +588,8 @@ describe('getColors', () => {
 
 describe('setColors', () => {
     // Capture defaults so each test can restore them.
-    const defaults = {};
-    beforeAll(() => Object.assign(defaults, vaRRI.getColors()));
+    let defaults;
+    beforeAll(() => { defaults = vaRRI.getColors(); });
     afterEach(() => vaRRI.setColors(defaults));
 
     test('overrides a single colour key', () => {
