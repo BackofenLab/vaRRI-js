@@ -1278,13 +1278,28 @@
     }
 
     /**
-     * Ensure the SVG has a dedicated layer that can be rotated as a whole.
+     * Resolve the element that should host the rotation layer.
+     *
+     * If Fornac's plot group exists, rotate inside that group so that
+     * pan/zoom transforms stay in screen-space and dragging keeps expected
+     * directions after rotation.
      *
      * @param {SVGSVGElement} svgEl
+     * @returns {SVGElement}
+     */
+    function getRotationHost(svgEl) {
+        const fornacPlot = svgEl.querySelector('.fornac-plot');
+        return fornacPlot || svgEl;
+    }
+
+    /**
+     * Ensure a host element has a dedicated layer that can be rotated.
+     *
+     * @param {SVGElement} hostEl
      * @returns {SVGGElement}
      */
-    function ensureRotationLayer(svgEl) {
-        let layer = Array.from(svgEl.children).find(child =>
+    function ensureRotationLayer(hostEl) {
+        let layer = Array.from(hostEl.children).find(child =>
             child.tagName && child.tagName.toLowerCase() === 'g' &&
             child.getAttribute('data-varri-rotation-layer') === 'true'
         );
@@ -1292,12 +1307,13 @@
         if (!layer) {
             layer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             layer.setAttribute('data-varri-rotation-layer', 'true');
-            svgEl.appendChild(layer);
+            hostEl.appendChild(layer);
         }
 
-        const nodesToMove = Array.from(svgEl.childNodes).filter(node => {
+        const nodesToMove = Array.from(hostEl.childNodes).filter(node => {
             if (node === layer) return false;
-            if (node.nodeType === Node.ELEMENT_NODE && node.tagName &&
+            if (hostEl.tagName && hostEl.tagName.toLowerCase() === 'svg' &&
+                    node.nodeType === Node.ELEMENT_NODE && node.tagName &&
                     node.tagName.toLowerCase() === 'defs') {
                 return false;
             }
@@ -1354,7 +1370,8 @@
         const current = Number(svgEl.getAttribute('data-varri-rotation') || 0);
         const target = normaliseRotationDegrees(mode === 'absolute' ? amount : current + amount);
 
-        const layer = ensureRotationLayer(svgEl);
+        const hostEl = getRotationHost(svgEl);
+        const layer = ensureRotationLayer(hostEl);
         const center = getBBoxCenter(layer);
         if (!center) return current;
 
