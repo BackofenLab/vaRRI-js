@@ -23,6 +23,50 @@
     /** Active requestAnimationFrame ID for the background-highlight animation loop (null when idle). */
     let _animFrameId = null;
 
+    /**
+     * Default colours used by vaRRI rendering functions.
+     *
+     * Change these at runtime with {@link setColors}; the new values take
+     * effect on the next call to any rendering function.
+     */
+    const COLORS = {
+        /** Fill colour for nucleotide circles of sequence 1 in strand-colouring mode. */
+        sequence1: 'lightblue',
+        /** Fill colour for nucleotide circles of sequence 2 in strand-colouring mode. */
+        sequence2: '#F4BB44',
+        /** Stroke colour used for intermolecular nucleotide and index-label highlighting. */
+        intermolecularHighlight: 'red',
+        /** Fill/stroke colour used for background (region / basepair-stack) highlighting. */
+        backgroundHighlight: 'red',
+        /** Stroke colour used for subsequence-highlighting polylines and circles. */
+        subsequenceHighlight: 'purple',
+    };
+
+    /**
+     * Override one or more default rendering colours.
+     *
+     * Only the keys present in `overrides` are changed; all others retain
+     * their current values.  The new colours take effect on the next call to
+     * any rendering function.
+     *
+     * Valid keys: `sequence1`, `sequence2`, `intermolecularHighlight`,
+     * `backgroundHighlight`, `subsequenceHighlight`.
+     *
+     * @param {Partial<typeof COLORS>} overrides  Key → CSS-colour-string map.
+     */
+    function setColors(overrides) {
+        Object.assign(COLORS, overrides);
+    }
+
+    /**
+     * Return a shallow copy of the current colour settings.
+     *
+     * @returns {typeof COLORS}
+     */
+    function getColors() {
+        return { ...COLORS };
+    }
+
     // -----------------------------------------------------------------------
     // Utilities  (ported from utils.py)
     // -----------------------------------------------------------------------
@@ -475,8 +519,8 @@
     /**
      * Generate a color list for two sequences.
      *
-     * Each nucleotide in `seq1` maps to `"lightblue"`;
-     * each nucleotide in `seq2` maps to `"#F4BB44"`.
+     * Each nucleotide in `seq1` maps to {@link COLORS.sequence1};
+     * each nucleotide in `seq2` maps to {@link COLORS.sequence2}.
      *
      * @param {string} seq1
      * @param {string} seq2
@@ -484,8 +528,8 @@
      */
     function sequenceColoring(seq1, seq2) {
         return [
-            ...Array.from(seq1, () => 'lightblue'),
-            ...Array.from(seq2, () => '#F4BB44'),
+            ...Array.from(seq1, () => COLORS.sequence1),
+            ...Array.from(seq2, () => COLORS.sequence2),
         ];
     }
 
@@ -571,13 +615,13 @@
     }
 
     /**
-     * Apply a red stroke style to the label at the given index.
+     * Apply the intermolecular-highlight stroke style to the label at the given index.
      *
      * @param {number} targetIndex
      */
     function colorLabelRed(targetIndex) {
         document.querySelectorAll(`[label_num="${targetIndex}"]`).forEach(label => {
-            label.setAttribute('style', 'stroke: red;stroke-width: 0.8;');
+            label.setAttribute('style', `stroke: ${COLORS.intermolecularHighlight};stroke-width: 0.8;`);
         });
     }
 
@@ -783,7 +827,7 @@
     }
 
     /**
-     * Highlight nodes in the intermolecular basepair region with a red stroke.
+     * Highlight nodes in the intermolecular basepair region with a stroke.
      *
      * @param {Object} v  Validated parameter dictionary.
      */
@@ -793,11 +837,11 @@
         for (const [start, end] of basepairRegion) {
             for (let i = start; i <= end; i++) intermolNodes.push(i);
         }
-        addStyleToNodes(intermolNodes, 'stroke: red;');
+        addStyleToNodes(intermolNodes, `stroke: ${COLORS.intermolecularHighlight};`);
     }
 
     /**
-     * Highlight individual intermolecular basepair nodes with a red stroke.
+     * Highlight individual intermolecular basepair nodes with a stroke.
      *
      * @param {Object} v  Validated parameter dictionary.
      */
@@ -812,7 +856,7 @@
             nodes.forEach(nodeNum => {
                 const node = document.querySelector(`circle[node_num="${nodeNum}"]`);
                 if (node) {
-                    node.setAttribute('style', (node.getAttribute('style') || '') + 'stroke: red;');
+                    node.setAttribute('style', (node.getAttribute('style') || '') + `stroke: ${COLORS.intermolecularHighlight};`);
                 }
             });
         });
@@ -904,7 +948,7 @@
             if (start === end) {
                 const webId = indexDict[start];
                 const [x, y] = getPositionOfNode(webId);
-                addElement('circle', { cx: String(x), cy: String(y), r: '7px', style: 'fill:purple;opacity:0.3;' });
+                addElement('circle', { cx: String(x), cy: String(y), r: '7px', style: `fill:${COLORS.subsequenceHighlight};opacity:0.3;` });
                 continue;
             }
 
@@ -920,7 +964,7 @@
             for (let i = startNode; i <= endNode; i++) indices.push(i);
 
             polyline(indices,
-                'stroke:purple;stroke-width:10;opacity:0.3;fill:None;' +
+                `stroke:${COLORS.subsequenceHighlight};stroke-width:10;opacity:0.3;fill:None;` +
                 'stroke-linejoin:miter;stroke-miterlimit:0.1;'
             );
         }
@@ -1029,7 +1073,7 @@
         highlightAreas.push([...area, area[0]]);
 
         for (const region of highlightAreas) {
-            polyline(region, 'fill:red;opacity:0.2;stroke:red;stroke-width:7', { 'data-varri-bg': 'true' });
+            polyline(region, `fill:${COLORS.backgroundHighlight};opacity:0.2;stroke:${COLORS.backgroundHighlight};stroke-width:7`, { 'data-varri-bg': 'true' });
         }
     }
 
@@ -1044,7 +1088,7 @@
         for (const [start, end] of basepairRegion) {
             for (let i = start; i <= end; i++) intermolNodes.push(i);
         }
-        polyline(intermolNodes, 'fill:red;opacity:0.2', { 'data-varri-bg': 'true' });
+        polyline(intermolNodes, `fill:${COLORS.backgroundHighlight};opacity:0.2`, { 'data-varri-bg': 'true' });
     }
 
     /**
@@ -1407,6 +1451,10 @@
         // Core
         validate,
         render,
+
+        // Colors
+        setColors,
+        getColors,
 
         // Export
         downloadSVG,
