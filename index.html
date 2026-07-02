@@ -997,7 +997,7 @@
 
       el.addEventListener(config.eventName, () => {
         clearFieldError(id);
-        queueVisualization(config.delay || 0);
+        queueVisualization(config.delay ?? 0);
       });
     });
   }

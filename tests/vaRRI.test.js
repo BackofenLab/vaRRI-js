@@ -13,7 +13,9 @@ const vm = require('vm');
 const vaRRI = require('../src/vaRRI.js');
 const vaRRISource = fs.readFileSync(path.join(__dirname, '../src/vaRRI.js'), 'utf8');
 const indexHTMLSource = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
-const indexInlineScriptMatch = indexHTMLSource.match(/<script>\s*([\s\S]*?)\s*<\/script>\s*<\/body>/);
+const indexInlineScriptMatch = indexHTMLSource.match(
+    /<!-- ====================================================================== -->\s*<!-- Scripts[\s\S]*?-->\s*<script>\s*([\s\S]*?)\s*<\/script>\s*<\/body>/
+);
 
 if (!indexInlineScriptMatch) {
     throw new Error('Could not locate the inline script block in index.html');
@@ -869,6 +871,7 @@ describe('index.html auto visualization UI', () => {
     test('debounces repeated typed input before rerendering', () => {
         const { elements, loadHandlers, runPendingTimers, vaRRIStub } = createIndexHtmlSandbox();
 
+        expect(loadHandlers).toHaveLength(1);
         loadHandlers[0]();
         vaRRIStub.validate.mockClear();
         vaRRIStub.render.mockClear();
