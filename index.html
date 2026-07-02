@@ -590,11 +590,6 @@
       <input type="checkbox" id="animation" />
       <label for="animation" style="margin:0">Enable Fornac force-layout animation</label>
     </div>
-    <!-- Actions -->
-    <div class="action-row">
-      <button class="btn btn-primary" onclick="runVisualization()">▶ Visualise</button>
-    </div>
-
     <div id="msg"></div>
   </aside>
 
@@ -962,6 +957,33 @@
     }
   }
 
+  function attachAutoVisualizationListeners() {
+    const listenerConfig = {
+      structure: 'input',
+      sequence: 'input',
+      startIndex1: 'input',
+      startIndex2: 'input',
+      labelInterval: 'input',
+      coloring: 'change',
+      highlighting: 'change',
+      backgroundhighlighting: 'change',
+      guBasepairs: 'change',
+      highlightSubseq1: 'input',
+      highlightSubseq2: 'input',
+      animation: 'change',
+    };
+
+    Object.entries(listenerConfig).forEach(([id, eventName]) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      el.addEventListener(eventName, () => {
+        clearFieldError(id);
+        runVisualization();
+      });
+    });
+  }
+
   // -------------------------------------------------------------------------
   // Export
   // -------------------------------------------------------------------------
@@ -989,12 +1011,7 @@
     // Initialise colour pickers from the vaRRI.js defaults
     initColorPickers();
 
-    // Clear per-field error as the user edits each input
-    ['structure', 'sequence', 'startIndex1', 'startIndex2',
-     'highlightSubseq1', 'highlightSubseq2'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('input', () => clearFieldError(id));
-    });
+    attachAutoVisualizationListeners();
 
     const rotationSlider = document.getElementById('rotation-slider');
     if (rotationSlider) {

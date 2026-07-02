@@ -12,6 +12,8 @@ const path = require('path');
 const vm = require('vm');
 const vaRRI = require('../src/vaRRI.js');
 const vaRRISource = fs.readFileSync(path.join(__dirname, '../src/vaRRI.js'), 'utf8');
+const indexHTMLSource = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+const indexInlineScript = indexHTMLSource.match(/<script>\s*([\s\S]*?)\s*<\/script>\s*<\/body>/)[1];
 
 describe('browser global export', () => {
     test('attaches vaRRI to window even when module.exports is present', () => {
@@ -668,5 +670,173 @@ describe('normaliseRotationDegrees', () => {
 
     test('throws on non-finite values', () => {
         expect(() => vaRRI.normaliseRotationDegrees(NaN)).toThrow(/finite number/);
+    });
+});
+
+function createIndexHtmlSandbox() {
+    const fieldsWithWrap = new Set([
+        'structure',
+        'sequence',
+        'startIndex1',
+        'startIndex2',
+        'highlightSubseq1',
+        'highlightSubseq2',
+    ]);
+
+    function makeWrap() {
+        const tooltip = { textContent: '' };
+        return {
+            classList: {
+                add: jest.fn(),
+                remove: jest.fn(),
+            },
+            querySelector: jest.fn(() => tooltip),
+        };
+    }
+
+    function makeElement(id, { value = '', checked = false } = {}) {
+        const wrap = fieldsWithWrap.has(id) ? makeWrap() : null;
+        return {
+            id,
+            value,
+            checked,
+            innerHTML: '',
+            className: '',
+            textContent: '',
+            style: {},
+            listeners: {},
+            addEventListener(eventName, handler) {
+                this.listeners[eventName] = handler;
+            },
+            closest(selector) {
+                return selector === '.input-wrap' ? wrap : null;
+            },
+            querySelector: jest.fn(() => null),
+        };
+    }
+
+    const elements = {
+        structure: makeElement('structure'),
+        sequence: makeElement('sequence'),
+        startIndex1: makeElement('startIndex1', { value: '1' }),
+        startIndex2: makeElement('startIndex2', { value: '1' }),
+        labelInterval: makeElement('labelInterval', { value: '10' }),
+        coloring: makeElement('coloring', { value: 'strand' }),
+        highlighting: makeElement('highlighting', { value: 'region' }),
+        backgroundhighlighting: makeElement('backgroundhighlighting', { value: 'basepairs' }),
+        guBasepairs: makeElement('guBasepairs', { checked: true }),
+        highlightSubseq1: makeElement('highlightSubseq1'),
+        highlightSubseq2: makeElement('highlightSubseq2'),
+        animation: makeElement('animation'),
+        'color-seq1': makeElement('color-seq1', { value: '#000000' }),
+        'color-seq2': makeElement('color-seq2', { value: '#000000' }),
+        'color-intermol': makeElement('color-intermol', { value: '#000000' }),
+        'color-bg': makeElement('color-bg', { value: '#000000' }),
+        'color-subseq': makeElement('color-subseq', { value: '#000000' }),
+        'color-basepair': makeElement('color-basepair', { value: '#000000' }),
+        'rotation-slider': makeElement('rotation-slider', { value: '0' }),
+        rna_ss: makeElement('rna_ss'),
+        msg: makeElement('msg'),
+    };
+
+    const loadHandlers = [];
+    const vaRRIStub = {
+        getColors: jest.fn(() => ({
+            sequence1: '#000000',
+            sequence2: '#000000',
+            intermolecularHighlight: '#000000',
+            backgroundHighlight: '#000000',
+            subsequenceHighlight: '#000000',
+            basepair: '#000000',
+        })),
+        setColors: jest.fn(),
+        validateSequenceInput: jest.fn(v => v),
+        validateStructureInput: jest.fn(v => v),
+        validateOffset: jest.fn(v => Number(v)),
+        parseSubsequences: jest.fn(() => null),
+        validate: jest.fn(args => args),
+        render: jest.fn(),
+        rotateVisualization: jest.fn(),
+        normaliseRotationDegrees: jest.fn(v => v),
+        downloadSVG: jest.fn(),
+        downloadPNG: jest.fn(),
+    };
+
+    const sandbox = {
+        console,
+        document: {
+            getElementById: jest.fn(id => elements[id] || null),
+            querySelectorAll: jest.fn(() => []),
+            createElement: jest.fn(tag => {
+                if (tag !== 'canvas') {
+                    throw new Error(`Unexpected element creation: ${tag}`);
+                }
+
+                return {
+                    width: 0,
+                    height: 0,
+                    getContext: () => ({
+                        fillStyle: '',
+                        fillRect: () => {},
+                        getImageData: () => ({ data: [0, 0, 0, 255] }),
+                    }),
+                };
+            }),
+        },
+        window: {
+            addEventListener: jest.fn((eventName, handler) => {
+                if (eventName === 'load') {
+                    loadHandlers.push(handler);
+                }
+            }),
+        },
+        vaRRI: vaRRIStub,
+    };
+
+    vm.createContext(sandbox);
+    vm.runInContext(indexInlineScript, sandbox);
+
+    return { elements, loadHandlers, vaRRIStub };
+}
+
+describe('index.html auto visualisation UI', () => {
+    test('removes the manual visualisation button', () => {
+        expect(indexHTMLSource).not.toContain('▶ Visualise');
+        expect(indexHTMLSource).not.toContain('onclick="runVisualization()"');
+    });
+
+    test('revalidates and rerenders on every editable field change', () => {
+        const { elements, loadHandlers, vaRRIStub } = createIndexHtmlSandbox();
+        const listenerConfig = {
+            structure: 'input',
+            sequence: 'input',
+            startIndex1: 'input',
+            startIndex2: 'input',
+            labelInterval: 'input',
+            coloring: 'change',
+            highlighting: 'change',
+            backgroundhighlighting: 'change',
+            guBasepairs: 'change',
+            highlightSubseq1: 'input',
+            highlightSubseq2: 'input',
+            animation: 'change',
+        };
+
+        expect(loadHandlers).toHaveLength(1);
+        loadHandlers[0]();
+
+        Object.entries(listenerConfig).forEach(([id, eventName]) => {
+            expect(elements[id].listeners[eventName]).toEqual(expect.any(Function));
+        });
+
+        vaRRIStub.validate.mockClear();
+        vaRRIStub.render.mockClear();
+
+        Object.entries(listenerConfig).forEach(([id, eventName]) => {
+            elements[id].listeners[eventName]();
+        });
+
+        expect(vaRRIStub.validate).toHaveBeenCalledTimes(Object.keys(listenerConfig).length);
+        expect(vaRRIStub.render).toHaveBeenCalledTimes(Object.keys(listenerConfig).length);
     });
 });
