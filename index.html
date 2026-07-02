@@ -778,6 +778,7 @@
   let committedRotationDeg = 0;
   let autoVisualizationTimeoutId = null;
   let latestVisualizationRunId = 0;
+  const skipNextCommittedFieldChange = new WeakMap();
 
   function showMsg(text, type) {
     const el = document.getElementById('msg');
@@ -1006,8 +1007,8 @@
       });
 
       el.addEventListener('change', () => {
-        if (el.__skipNextAutoVisualizationChange) {
-          el.__skipNextAutoVisualizationChange = false;
+        if (skipNextCommittedFieldChange.get(el)) {
+          skipNextCommittedFieldChange.delete(el);
           return;
         }
         clearFieldError(id);
@@ -1018,7 +1019,7 @@
 
       el.addEventListener('keydown', event => {
         if (event.key !== 'Enter') return;
-        el.__skipNextAutoVisualizationChange = true;
+        skipNextCommittedFieldChange.set(el, true);
         clearFieldError(id);
         queueVisualization();
       });
