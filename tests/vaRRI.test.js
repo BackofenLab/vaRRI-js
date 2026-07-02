@@ -562,13 +562,14 @@ describe('validate', () => {
 // ---------------------------------------------------------------------------
 
 describe('getColors', () => {
-    test('returns an object with all five colour keys', () => {
+    test('returns an object with all six colour keys', () => {
         const colors = vaRRI.getColors();
         expect(colors).toHaveProperty('sequence1');
         expect(colors).toHaveProperty('sequence2');
         expect(colors).toHaveProperty('intermolecularHighlight');
         expect(colors).toHaveProperty('backgroundHighlight');
         expect(colors).toHaveProperty('subsequenceHighlight');
+        expect(colors).toHaveProperty('basepair');
     });
 
     test('returns default sequence1 as lightblue', () => {
@@ -577,6 +578,10 @@ describe('getColors', () => {
 
     test('returns default sequence2 as #F4BB44', () => {
         expect(vaRRI.getColors().sequence2).toBe('#F4BB44');
+    });
+
+    test('returns default basepair as red', () => {
+        expect(vaRRI.getColors().basepair).toBe('red');
     });
 
     test('returns a copy (mutations do not affect the internal state)', () => {
@@ -604,6 +609,7 @@ describe('setColors', () => {
         expect(colors.intermolecularHighlight).toBe('red');
         expect(colors.backgroundHighlight).toBe('red');
         expect(colors.subsequenceHighlight).toBe('purple');
+        expect(colors.basepair).toBe('red');
     });
 
     test('overrides multiple colour keys at once', () => {
@@ -611,6 +617,11 @@ describe('setColors', () => {
         const colors = vaRRI.getColors();
         expect(colors.sequence1).toBe('#aabbcc');
         expect(colors.sequence2).toBe('#ddeeff');
+    });
+
+    test('overrides basepair colour key', () => {
+        vaRRI.setColors({ basepair: '#123456' });
+        expect(vaRRI.getColors().basepair).toBe('#123456');
     });
 
     test('sequenceColoring reflects updated colours after setColors', () => {

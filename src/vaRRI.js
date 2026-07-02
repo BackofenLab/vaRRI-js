@@ -40,6 +40,8 @@
         backgroundHighlight: 'red',
         /** Stroke colour used for subsequence-highlighting polylines and circles. */
         subsequenceHighlight: 'purple',
+        /** Stroke colour used for basepair links. */
+        basepair: 'red',
     };
 
     /**
@@ -50,7 +52,7 @@
      * any rendering function.
      *
      * Valid keys: `sequence1`, `sequence2`, `intermolecularHighlight`,
-     * `backgroundHighlight`, `subsequenceHighlight`.
+     * `backgroundHighlight`, `subsequenceHighlight`, `basepair`.
      *
      * @param {Partial<typeof COLORS>} overrides  Key → CSS-colour-string map.
      */
@@ -971,11 +973,17 @@
     }
 
     /**
-     * Visualise G-U basepairs with a dashed line style.
+     * Visualise basepairs: apply the basepair colour to all basepair links,
+     * and additionally mark G-U basepairs with a dashed line style.
      *
      * @param {Object} v  Validated parameter dictionary.
      */
     function visualiseBasepairStrength(v) {
+        // Apply basepair colour to all basepair links
+        document.querySelectorAll('[link_type="basepair"]').forEach(link => {
+            link.setAttribute('stroke', COLORS.basepair);
+        });
+
         // Build a 1-based sequence map including gap dots
         const seq1 = v.sequence1;
         const seq2 = v.sequence2;

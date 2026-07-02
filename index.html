@@ -618,8 +618,9 @@
           Subsequence highlight
         </div>
         <div class="legend-item">
-          <div class="swatch line" style="background:#999;border:none;border-top:2px dashed #555;"></div>
-          G-U basepair (dashed)
+          <input type="color" id="color-basepair" class="legend-color-rect" value="#ff0000"
+                 title="Base pair colour" onchange="applyColors(); runVisualization();" />
+          Base pair
         </div>
       </div>
     </div>
@@ -699,6 +700,7 @@
       intermolecularHighlight: document.getElementById('color-intermol').value,
       backgroundHighlight:    document.getElementById('color-bg').value,
       subsequenceHighlight:   document.getElementById('color-subseq').value,
+      basepair:               document.getElementById('color-basepair').value,
     });
   }
 
