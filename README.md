@@ -123,7 +123,7 @@ npm test
 | **G-U basepairs as dashed lines** | When checked, G-U basepairs are drawn with a dashed stroke. |
 | **Highlight subseq 1/2** | Comma-separated `start-end` ranges (using the same index space as Start index). Example: `3-8` or `3-8,15-20`. |
 
-4. Click **▶ Visualise** to render.
+4. Changing selects and checkboxes rerenders immediately. Typed fields rerender when you commit the edit by leaving the field, and single-line inputs also rerender when you press Enter.
 
 ### Example Inputs
 

@@ -12,6 +12,16 @@ const path = require('path');
 const vm = require('vm');
 const vaRRI = require('../src/vaRRI.js');
 const vaRRISource = fs.readFileSync(path.join(__dirname, '../src/vaRRI.js'), 'utf8');
+const indexHTMLSource = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+const indexInlineScriptMatch = indexHTMLSource.match(
+    /<!-- ====================================================================== -->\s*<!-- Scripts[\s\S]*?-->\s*<script>\s*([\s\S]*?)\s*<\/script>\s*<\/body>/
+);
+
+if (!indexInlineScriptMatch) {
+    throw new Error('Could not locate the inline script block in index.html');
+}
+
+const indexInlineScript = indexInlineScriptMatch[1];
 
 describe('browser global export', () => {
     test('attaches vaRRI to window even when module.exports is present', () => {
@@ -691,5 +701,250 @@ describe('normaliseRotationDegrees', () => {
 
     test('throws on non-finite values', () => {
         expect(() => vaRRI.normaliseRotationDegrees(NaN)).toThrow(/finite number/);
+    });
+});
+
+function createIndexHtmlSandbox() {
+    const fieldsWithWrap = new Set([
+        'structure',
+        'sequence',
+        'startIndex1',
+        'startIndex2',
+        'highlightSubseq1',
+        'highlightSubseq2',
+    ]);
+
+    function makeWrap() {
+        const tooltip = { textContent: '' };
+        return {
+            classList: {
+                add: jest.fn(),
+                remove: jest.fn(),
+            },
+            querySelector: jest.fn(() => tooltip),
+        };
+    }
+
+    function makeElement(id, { value = '', checked = false, tagName = 'INPUT', type = 'text' } = {}) {
+        const wrap = fieldsWithWrap.has(id) ? makeWrap() : null;
+        return {
+            id,
+            value,
+            checked,
+            tagName,
+            type,
+            innerHTML: '',
+            className: '',
+            textContent: '',
+            style: {},
+            listeners: {},
+            addEventListener(eventName, handler) {
+                if (!this.listeners[eventName]) {
+                    this.listeners[eventName] = [];
+                }
+                this.listeners[eventName].push(handler);
+            },
+            trigger(eventName, event = {}) {
+                (this.listeners[eventName] || []).forEach(handler => handler(event));
+            },
+            closest(selector) {
+                return selector === '.input-wrap' ? wrap : null;
+            },
+            querySelector: jest.fn(() => null),
+        };
+    }
+
+    const elements = {
+        structure: makeElement('structure', { tagName: 'TEXTAREA' }),
+        sequence: makeElement('sequence', { tagName: 'TEXTAREA' }),
+        startIndex1: makeElement('startIndex1', { value: '1', type: 'number' }),
+        startIndex2: makeElement('startIndex2', { value: '1', type: 'number' }),
+        labelInterval: makeElement('labelInterval', { value: '10', type: 'number' }),
+        coloring: makeElement('coloring', { value: 'strand', tagName: 'SELECT' }),
+        highlighting: makeElement('highlighting', { value: 'region', tagName: 'SELECT' }),
+        backgroundhighlighting: makeElement('backgroundhighlighting', { value: 'basepairs', tagName: 'SELECT' }),
+        guBasepairs: makeElement('guBasepairs', { checked: true, type: 'checkbox' }),
+        highlightSubseq1: makeElement('highlightSubseq1'),
+        highlightSubseq2: makeElement('highlightSubseq2'),
+        animation: makeElement('animation', { type: 'checkbox' }),
+        'color-seq1': makeElement('color-seq1', { value: '#000000', type: 'color' }),
+        'color-seq2': makeElement('color-seq2', { value: '#000000', type: 'color' }),
+        'color-intermol': makeElement('color-intermol', { value: '#000000', type: 'color' }),
+        'color-bg': makeElement('color-bg', { value: '#000000', type: 'color' }),
+        'color-subseq': makeElement('color-subseq', { value: '#000000', type: 'color' }),
+        'color-basepair': makeElement('color-basepair', { value: '#000000', type: 'color' }),
+        'rotation-slider': makeElement('rotation-slider', { value: '0', type: 'range' }),
+        rna_ss: makeElement('rna_ss', { tagName: 'DIV' }),
+        msg: makeElement('msg', { tagName: 'DIV' }),
+    };
+
+    const loadHandlers = [];
+    let nextTimerId = 1;
+    const timers = new Map();
+    const scheduledDelays = [];
+    const vaRRIStub = {
+        getColors: jest.fn(() => ({
+            sequence1: '#000000',
+            sequence2: '#000000',
+            intermolecularHighlight: '#000000',
+            backgroundHighlight: '#000000',
+            subsequenceHighlight: '#000000',
+            basepair: '#000000',
+        })),
+        setColors: jest.fn(),
+        validateSequenceInput: jest.fn(v => v),
+        validateStructureInput: jest.fn(v => v),
+        validateOffset: jest.fn(v => Number(v)),
+        parseSubsequences: jest.fn(() => null),
+        validate: jest.fn(args => args),
+        render: jest.fn(() => Promise.resolve({ cancelled: false })),
+        rotateVisualization: jest.fn(),
+        normaliseRotationDegrees: jest.fn(v => v),
+        downloadSVG: jest.fn(),
+        downloadPNG: jest.fn(),
+    };
+
+    const sandbox = {
+        console,
+        document: {
+            getElementById: jest.fn(id => elements[id] || null),
+            querySelectorAll: jest.fn(() => []),
+            createElement: jest.fn(tag => {
+                if (tag !== 'canvas') {
+                    throw new Error(`Unexpected element creation: ${tag}`);
+                }
+
+                return {
+                    width: 0,
+                    height: 0,
+                    getContext: () => ({
+                        fillStyle: '',
+                        fillRect: () => {},
+                        getImageData: () => ({ data: [0, 0, 0, 255] }),
+                    }),
+                };
+            }),
+        },
+        window: {
+            addEventListener: jest.fn((eventName, handler) => {
+                if (eventName === 'load') {
+                    loadHandlers.push(handler);
+                }
+            }),
+        },
+        setTimeout: jest.fn((handler, delay) => {
+            const id = nextTimerId++;
+            scheduledDelays.push(delay);
+            timers.set(id, handler);
+            return id;
+        }),
+        clearTimeout: jest.fn((id) => {
+            timers.delete(id);
+        }),
+        vaRRI: vaRRIStub,
+    };
+
+    vm.createContext(sandbox);
+    vm.runInContext(indexInlineScript, sandbox);
+
+    function runPendingTimers() {
+        const pending = Array.from(timers.entries());
+        timers.clear();
+        pending.forEach(([, handler]) => handler());
+    }
+
+    return { elements, loadHandlers, runPendingTimers, scheduledDelays, vaRRIStub };
+}
+
+describe('index.html auto visualization UI', () => {
+    test('removes the manual visualization button', () => {
+        expect(indexHTMLSource).not.toContain('▶ Visualise');
+        expect(indexHTMLSource).not.toContain('onclick="runVisualization()"');
+    });
+
+    test('registers commit-based listeners for typed fields and change listeners for toggles', () => {
+        const { elements, loadHandlers } = createIndexHtmlSandbox();
+        const committedFields = ['structure', 'sequence', 'startIndex1', 'startIndex2', 'labelInterval', 'highlightSubseq1', 'highlightSubseq2'];
+        const enterCommittedFields = ['startIndex1', 'startIndex2', 'labelInterval', 'highlightSubseq1', 'highlightSubseq2'];
+        const immediateFields = ['coloring', 'highlighting', 'backgroundhighlighting', 'guBasepairs', 'animation'];
+
+        expect(loadHandlers).toHaveLength(1);
+        loadHandlers[0]();
+
+        committedFields.forEach(id => {
+            expect(elements[id].listeners.input).toHaveLength(1);
+            expect(elements[id].listeners.change).toHaveLength(1);
+        });
+
+        enterCommittedFields.forEach(id => {
+            expect(elements[id].listeners.keydown).toHaveLength(1);
+        });
+
+        expect(elements.structure.listeners.keydown).toBeUndefined();
+        expect(elements.sequence.listeners.keydown).toBeUndefined();
+
+        immediateFields.forEach(id => {
+            expect(elements[id].listeners.change).toHaveLength(1);
+        });
+    });
+
+    test('does not rerender while typing into committed fields', () => {
+        const { elements, loadHandlers, runPendingTimers, vaRRIStub } = createIndexHtmlSandbox();
+
+        expect(loadHandlers).toHaveLength(1);
+        loadHandlers[0]();
+        vaRRIStub.validate.mockClear();
+        vaRRIStub.render.mockClear();
+
+        elements.structure.trigger('input');
+        elements.startIndex1.trigger('input');
+        runPendingTimers();
+
+        expect(vaRRIStub.validate).not.toHaveBeenCalled();
+        expect(vaRRIStub.render).not.toHaveBeenCalled();
+    });
+
+    test('rerenders on committed edits and keeps the container hidden until rendering finishes', async () => {
+        const { elements, loadHandlers, vaRRIStub } = createIndexHtmlSandbox();
+        const renderResult = {};
+        let resolveRender;
+
+        vaRRIStub.render.mockImplementation(() => new Promise(resolve => {
+            resolveRender = resolve;
+        }));
+
+        expect(loadHandlers).toHaveLength(1);
+        loadHandlers[0]();
+        vaRRIStub.validate.mockClear();
+        vaRRIStub.render.mockClear();
+
+        elements.startIndex1.trigger('keydown', { key: 'Enter' });
+
+        expect(vaRRIStub.validate).toHaveBeenCalledTimes(1);
+        expect(vaRRIStub.render).toHaveBeenCalledTimes(1);
+        expect(elements.rna_ss.style.visibility).toBe('hidden');
+
+        resolveRender(renderResult);
+        await Promise.resolve();
+        await Promise.resolve();
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(elements.rna_ss.style.visibility).toBe('');
+        expect(elements.msg.textContent).toBe('Visualisation ready. Use the export buttons to save.');
+
+        elements.startIndex1.trigger('change');
+
+        expect(vaRRIStub.validate).toHaveBeenCalledTimes(1);
+        expect(vaRRIStub.render).toHaveBeenCalledTimes(1);
+
+        elements.structure.trigger('change');
+
+        expect(vaRRIStub.validate).toHaveBeenCalledTimes(2);
+        expect(vaRRIStub.render).toHaveBeenCalledTimes(2);
+
+        elements.coloring.trigger('change');
+
+        expect(vaRRIStub.validate).toHaveBeenCalledTimes(3);
+        expect(vaRRIStub.render).toHaveBeenCalledTimes(3);
     });
 });

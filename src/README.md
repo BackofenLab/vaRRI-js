@@ -41,9 +41,9 @@ const v = vaRRI.validate({
 
 ---
 
-#### `vaRRI.render(containerId, v, options)` → `void`
+#### `vaRRI.render(containerId, v, options)` → `Promise<{ cancelled: boolean }>`
 
-Builds the Fornac visualisation and applies all vaRRI modifications.
+Builds the Fornac visualisation and applies all vaRRI modifications. The returned promise resolves after the delayed post-processing step finishes. If a newer render supersedes a pending one, the older promise resolves with `{ cancelled: true }`.
 
 **Parameters:**
 
@@ -65,7 +65,7 @@ const container = document.getElementById('rna_ss');
 container.innerHTML = '';
 
 const v = vaRRI.validate({ structure: '((...))', sequence: 'GGGCCC' });
-vaRRI.render('rna_ss', v);
+await vaRRI.render('rna_ss', v);
 ```
 
 ---
