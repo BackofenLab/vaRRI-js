@@ -1525,10 +1525,9 @@
     };
 
     // Export
+    global.vaRRI = vaRRI;
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = vaRRI;
-    } else {
-        global.vaRRI = vaRRI;
     }
 
 }(typeof window !== 'undefined' ? window : this));
