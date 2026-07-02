@@ -14,7 +14,12 @@ const vaRRI = require('../src/vaRRI.js');
 const vaRRISource = fs.readFileSync(path.join(__dirname, '../src/vaRRI.js'), 'utf8');
 const indexHTMLSource = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
 const indexInlineScriptMatch = indexHTMLSource.match(/<script>\s*([\s\S]*?)\s*<\/script>\s*<\/body>/);
-const indexInlineScript = indexInlineScriptMatch ? indexInlineScriptMatch[1] : '';
+
+if (!indexInlineScriptMatch) {
+    throw new Error('Could not locate the inline script block in index.html');
+}
+
+const indexInlineScript = indexInlineScriptMatch[1];
 
 describe('browser global export', () => {
     test('attaches vaRRI to window even when module.exports is present', () => {
@@ -743,6 +748,7 @@ function createIndexHtmlSandbox() {
     const loadHandlers = [];
     let nextTimerId = 1;
     const timers = new Map();
+    const scheduledDelays = [];
     const vaRRIStub = {
         getColors: jest.fn(() => ({
             sequence1: '#000000',
@@ -793,8 +799,9 @@ function createIndexHtmlSandbox() {
                 }
             }),
         },
-        setTimeout: jest.fn((handler) => {
+        setTimeout: jest.fn((handler, delay) => {
             const id = nextTimerId++;
+            scheduledDelays.push(delay);
             timers.set(id, handler);
             return id;
         }),
@@ -813,7 +820,7 @@ function createIndexHtmlSandbox() {
         pending.forEach(([, handler]) => handler());
     }
 
-    return { elements, loadHandlers, runPendingTimers, vaRRIStub };
+    return { elements, loadHandlers, runPendingTimers, scheduledDelays, vaRRIStub };
 }
 
 describe('index.html auto visualization UI', () => {
@@ -823,9 +830,7 @@ describe('index.html auto visualization UI', () => {
     });
 
     test('revalidates and rerenders on every editable field change', () => {
-        expect(indexInlineScript).not.toBe('');
-
-        const { elements, loadHandlers, runPendingTimers, vaRRIStub } = createIndexHtmlSandbox();
+        const { elements, loadHandlers, runPendingTimers, scheduledDelays, vaRRIStub } = createIndexHtmlSandbox();
         const listenerConfig = {
             structure: { eventName: 'input', delay: 150 },
             sequence: { eventName: 'input', delay: 150 },
@@ -858,6 +863,7 @@ describe('index.html auto visualization UI', () => {
 
         expect(vaRRIStub.validate).toHaveBeenCalledTimes(Object.keys(listenerConfig).length);
         expect(vaRRIStub.render).toHaveBeenCalledTimes(Object.keys(listenerConfig).length);
+        expect(scheduledDelays).toEqual([150, 150, 150, 150, 150, 150, 150]);
     });
 
     test('debounces repeated typed input before rerendering', () => {

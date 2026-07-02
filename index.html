@@ -964,7 +964,7 @@
       autoVisualizationTimeoutId = null;
     }
 
-    if (delay <= 0) {
+    if (delay < 1) {
       runVisualization();
       return;
     }
