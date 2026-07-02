@@ -767,6 +767,26 @@
     }
 
     /**
+     * Resolve where new overlay elements should be inserted.
+     *
+     * If a vaRRI rotation layer exists, insert into that layer so newly added
+     * overlays follow the current rotation.
+     *
+     * @returns {SVGElement|null}
+     */
+    function getPlotInsertRoot() {
+        const plot = document.getElementsByClassName('fornac-plot')[0];
+        if (!plot) return null;
+
+        const rotationLayer = Array.from(plot.children).find(child =>
+            child.tagName && child.tagName.toLowerCase() === 'g' &&
+            child.getAttribute('data-varri-rotation-layer') === 'true'
+        );
+
+        return rotationLayer || plot;
+    }
+
+    /**
      * Create and insert an SVG element at the beginning of the Fornac plot.
      *
      * @param {string} elementType  SVG tag name (e.g. `"circle"`, `"polyline"`).
@@ -777,8 +797,8 @@
         for (const [key, value] of Object.entries(attr)) {
             el.setAttribute(key, value);
         }
-        const plot = document.getElementsByClassName('fornac-plot')[0];
-        if (plot) plot.insertBefore(el, plot.firstChild);
+        const insertRoot = getPlotInsertRoot();
+        if (insertRoot) insertRoot.insertBefore(el, insertRoot.firstChild);
     }
 
     /**
@@ -805,8 +825,8 @@
         for (const [k, val] of Object.entries(extraAttrs)) {
             poly.setAttribute(k, val);
         }
-        const plot = document.getElementsByClassName('fornac-plot')[0];
-        if (plot) plot.insertBefore(poly, plot.firstChild);
+        const insertRoot = getPlotInsertRoot();
+        if (insertRoot) insertRoot.insertBefore(poly, insertRoot.firstChild);
     }
 
     /**
