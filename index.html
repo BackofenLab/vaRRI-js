@@ -590,37 +590,50 @@
 
     <!-- Colour legend -->
     <div class="legend">
-      <h3>Legend</h3>
+      <h3>Colour Scheme</h3>
       <div class="legend-grid">
         <div class="legend-item">
-          <input type="color" id="color-seq1" class="legend-color"
-                 title="Sequence 1 strand colour" onchange="applyColors(); runVisualization();" />
-          Sequence 1 (strand)
+            <input type="color" id="color-seq1" class="legend-color"
+                            title="Select sequence 1 strand colour"
+                            onchange="applyColors(); runVisualization();" />
+              <label for="color-seq1"
+                onmouseenter="this.title = document.getElementById('color-seq1')?.getAttribute('title') || '';"
+                onclick="document.getElementById('color-seq1').click();">Sequence 1 (strand)</label>
         </div>
         <div class="legend-item">
           <input type="color" id="color-seq2" class="legend-color"
-                 title="Sequence 2 strand colour" onchange="applyColors(); runVisualization();" />
-          Sequence 2 (strand)
-        </div>
-        <div class="legend-item">
-          <input type="color" id="color-intermol" class="legend-color"
-                 title="Intermolecular highlight colour" onchange="applyColors(); runVisualization();" />
-          Intermolecular highlight
-        </div>
-        <div class="legend-item">
-          <input type="color" id="color-bg" class="legend-color-rect"
-                 title="Background highlight colour" onchange="applyColors(); runVisualization();" />
-          Background highlight
-        </div>
-        <div class="legend-item">
-          <input type="color" id="color-subseq" class="legend-color"
-                 title="Subsequence highlight colour" onchange="applyColors(); runVisualization();" />
-          Subsequence highlight
+                 title="Select sequence 2 strand colour" onchange="applyColors(); runVisualization();" />
+           <label for="color-seq2"
+             onmouseenter="this.title = document.getElementById('color-seq2')?.getAttribute('title') || '';"
+             onclick="document.getElementById('color-seq2').click();">Sequence 2 (strand)</label>
         </div>
         <div class="legend-item">
           <input type="color" id="color-basepair" class="legend-color-rect"
-                 title="Base pair colour" onchange="applyColors(); runVisualization();" />
-          Base pair
+                 title="Select base pair colour" onchange="applyColors(); runVisualization();" />
+           <label for="color-basepair"
+             onmouseenter="this.title = document.getElementById('color-basepair')?.getAttribute('title') || '';"
+             onclick="document.getElementById('color-basepair').click();">Base pair</label>
+        </div>
+        <div class="legend-item">
+          <input type="color" id="color-subseq" class="legend-color"
+                 title="Select subsequence highlight colour" onchange="applyColors(); runVisualization();" />
+           <label for="color-subseq"
+             onmouseenter="this.title = document.getElementById('color-subseq')?.getAttribute('title') || '';"
+             onclick="document.getElementById('color-subseq').click();">Subsequence highlight</label>
+        </div>
+        <div class="legend-item">
+          <input type="color" id="color-intermol" class="legend-color"
+                 title="Select nucleotide highlight colour" onchange="applyColors(); runVisualization();" />
+           <label for="color-intermol"
+             onmouseenter="this.title = document.getElementById('color-intermol')?.getAttribute('title') || '';"
+             onclick="document.getElementById('color-intermol').click();">Nucleotide highlight</label>
+        </div>
+        <div class="legend-item">
+          <input type="color" id="color-bg" class="legend-color-rect"
+                 title="Select background highlight colour" onchange="applyColors(); runVisualization();" />
+           <label for="color-bg"
+             onmouseenter="this.title = document.getElementById('color-bg')?.getAttribute('title') || '';"
+             onclick="document.getElementById('color-bg').click();">Background highlight</label>
         </div>
       </div>
     </div>
