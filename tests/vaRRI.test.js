@@ -556,3 +556,83 @@ describe('validate', () => {
         expect(() => vaRRI.validate({ ...base2mol, highlighting: 'bright' })).toThrow();
     });
 });
+
+// ---------------------------------------------------------------------------
+// setColors / getColors
+// ---------------------------------------------------------------------------
+
+describe('getColors', () => {
+    test('returns an object with all six colour keys', () => {
+        const colors = vaRRI.getColors();
+        expect(colors).toHaveProperty('sequence1');
+        expect(colors).toHaveProperty('sequence2');
+        expect(colors).toHaveProperty('intermolecularHighlight');
+        expect(colors).toHaveProperty('backgroundHighlight');
+        expect(colors).toHaveProperty('subsequenceHighlight');
+        expect(colors).toHaveProperty('basepair');
+    });
+
+    test('returns default sequence1 as lightblue', () => {
+        expect(vaRRI.getColors().sequence1).toBe('lightblue');
+    });
+
+    test('returns default sequence2 as #F4BB44', () => {
+        expect(vaRRI.getColors().sequence2).toBe('#F4BB44');
+    });
+
+    test('returns default basepair as red', () => {
+        expect(vaRRI.getColors().basepair).toBe('red');
+    });
+
+    test('returns a copy (mutations do not affect the internal state)', () => {
+        const colors = vaRRI.getColors();
+        colors.sequence1 = 'black';
+        expect(vaRRI.getColors().sequence1).toBe('lightblue');
+    });
+});
+
+describe('setColors', () => {
+    // Capture defaults so each test can restore them.
+    let defaults;
+    beforeAll(() => { defaults = vaRRI.getColors(); });
+    afterEach(() => vaRRI.setColors(defaults));
+
+    test('overrides a single colour key', () => {
+        vaRRI.setColors({ sequence1: 'blue' });
+        expect(vaRRI.getColors().sequence1).toBe('blue');
+    });
+
+    test('leaves other keys unchanged when only one key is overridden', () => {
+        vaRRI.setColors({ sequence1: 'blue' });
+        const colors = vaRRI.getColors();
+        expect(colors.sequence2).toBe('#F4BB44');
+        expect(colors.intermolecularHighlight).toBe('red');
+        expect(colors.backgroundHighlight).toBe('red');
+        expect(colors.subsequenceHighlight).toBe('purple');
+        expect(colors.basepair).toBe('red');
+    });
+
+    test('overrides multiple colour keys at once', () => {
+        vaRRI.setColors({ sequence1: '#aabbcc', sequence2: '#ddeeff' });
+        const colors = vaRRI.getColors();
+        expect(colors.sequence1).toBe('#aabbcc');
+        expect(colors.sequence2).toBe('#ddeeff');
+    });
+
+    test('overrides basepair colour key', () => {
+        vaRRI.setColors({ basepair: '#123456' });
+        expect(vaRRI.getColors().basepair).toBe('#123456');
+    });
+
+    test('sequenceColoring reflects updated colours after setColors', () => {
+        vaRRI.setColors({ sequence1: '#111111', sequence2: '#222222' });
+        const result = vaRRI.sequenceColoring('AC', 'GU');
+        expect(result).toEqual(['#111111', '#111111', '#222222', '#222222']);
+    });
+
+    test('restores colours after reset', () => {
+        vaRRI.setColors({ sequence1: 'blue' });
+        vaRRI.setColors(defaults);
+        expect(vaRRI.getColors().sequence1).toBe('lightblue');
+    });
+});

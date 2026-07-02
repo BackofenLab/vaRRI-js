@@ -319,6 +319,47 @@
       border: none;
     }
 
+    /* Colour-picker swatches in the legend */
+    input[type="color"].legend-color {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1.5px solid #999;
+      padding: 1px;
+      cursor: pointer;
+      flex-shrink: 0;
+      background: none;
+      vertical-align: middle;
+    }
+    input[type="color"].legend-color::-webkit-color-swatch-wrapper {
+      padding: 0;
+      border-radius: 50%;
+    }
+    input[type="color"].legend-color::-webkit-color-swatch {
+      border: none;
+      border-radius: 50%;
+    }
+    input[type="color"].legend-color-rect {
+      width: 22px;
+      height: 12px;
+      border-radius: 2px;
+      border: 1px solid #999;
+      padding: 1px;
+      cursor: pointer;
+      flex-shrink: 0;
+      background: none;
+      vertical-align: middle;
+      opacity: 0.8;
+    }
+    input[type="color"].legend-color-rect::-webkit-color-swatch-wrapper {
+      padding: 0;
+      border-radius: 2px;
+    }
+    input[type="color"].legend-color-rect::-webkit-color-swatch {
+      border: none;
+      border-radius: 2px;
+    }
+
     /* ------------------------------------------------------------------ */
     /* Footer                                                              */
     /* ------------------------------------------------------------------ */
@@ -542,31 +583,50 @@
 
     <!-- Colour legend -->
     <div class="legend">
-      <h3>Legend</h3>
+      <h3>Colour Scheme</h3>
       <div class="legend-grid">
         <div class="legend-item">
-          <div class="swatch" style="background:lightblue;"></div>
-          Sequence 1 (strand)
+            <input type="color" id="color-seq1" class="legend-color"
+                            title="Select sequence 1 strand colour"
+                            onchange="applyColors(); runVisualization();" />
+              <label for="color-seq1"
+                onmouseenter="this.title = document.getElementById('color-seq1')?.getAttribute('title') || '';"
+                onclick="document.getElementById('color-seq1').click();">Sequence 1 (strand)</label>
         </div>
         <div class="legend-item">
-          <div class="swatch" style="background:#F4BB44;"></div>
-          Sequence 2 (strand)
+          <input type="color" id="color-seq2" class="legend-color"
+                 title="Select sequence 2 strand colour" onchange="applyColors(); runVisualization();" />
+           <label for="color-seq2"
+             onmouseenter="this.title = document.getElementById('color-seq2')?.getAttribute('title') || '';"
+             onclick="document.getElementById('color-seq2').click();">Sequence 2 (strand)</label>
         </div>
         <div class="legend-item">
-          <div class="swatch" style="background:red;border:none;"></div>
-          Intermolecular highlight
+          <input type="color" id="color-basepair" class="legend-color-rect"
+                 title="Select base pair colour" onchange="applyColors(); runVisualization();" />
+           <label for="color-basepair"
+             onmouseenter="this.title = document.getElementById('color-basepair')?.getAttribute('title') || '';"
+             onclick="document.getElementById('color-basepair').click();">Base pair</label>
         </div>
         <div class="legend-item">
-          <div class="swatch line" style="background:red;opacity:.2;height:12px;border-radius:2px;"></div>
-          Background highlight
+          <input type="color" id="color-subseq" class="legend-color"
+                 title="Select subsequence highlight colour" onchange="applyColors(); runVisualization();" />
+           <label for="color-subseq"
+             onmouseenter="this.title = document.getElementById('color-subseq')?.getAttribute('title') || '';"
+             onclick="document.getElementById('color-subseq').click();">Subsequence highlight</label>
         </div>
         <div class="legend-item">
-          <div class="swatch" style="background:purple;opacity:.4;"></div>
-          Subsequence highlight
+          <input type="color" id="color-intermol" class="legend-color"
+                 title="Select nucleotide highlight colour" onchange="applyColors(); runVisualization();" />
+           <label for="color-intermol"
+             onmouseenter="this.title = document.getElementById('color-intermol')?.getAttribute('title') || '';"
+             onclick="document.getElementById('color-intermol').click();">Nucleotide highlight</label>
         </div>
         <div class="legend-item">
-          <div class="swatch line" style="background:#999;border:none;border-top:2px dashed #555;"></div>
-          G-U basepair (dashed)
+          <input type="color" id="color-bg" class="legend-color-rect"
+                 title="Select background highlight colour" onchange="applyColors(); runVisualization();" />
+           <label for="color-bg"
+             onmouseenter="this.title = document.getElementById('color-bg')?.getAttribute('title') || '';"
+             onclick="document.getElementById('color-bg').click();">Background highlight</label>
         </div>
       </div>
     </div>
@@ -642,6 +702,50 @@
     document.getElementById('highlightSubseq1').value  = '';
     document.getElementById('highlightSubseq2').value  = '';
     runVisualization();
+  }
+
+  // -------------------------------------------------------------------------
+  // Colour helpers
+  // -------------------------------------------------------------------------
+
+  /**
+   * Convert any CSS colour string (named, hex, rgb, etc.) to a 7-character
+   * hex string suitable for <input type="color">.  Uses an off-screen canvas
+   * so the browser does the conversion.
+   *
+   * @param {string} css  Any valid CSS colour value.
+   * @returns {string}    Lowercase hex colour, e.g. "#ff0000".
+   */
+  function cssColorToHex(css) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = css;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  /** Initialise each colour picker to the current vaRRI.js default. */
+  function initColorPickers() {
+    const c = vaRRI.getColors();
+    document.getElementById('color-seq1').value     = cssColorToHex(c.sequence1);
+    document.getElementById('color-seq2').value     = cssColorToHex(c.sequence2);
+    document.getElementById('color-intermol').value = cssColorToHex(c.intermolecularHighlight);
+    document.getElementById('color-bg').value       = cssColorToHex(c.backgroundHighlight);
+    document.getElementById('color-subseq').value   = cssColorToHex(c.subsequenceHighlight);
+    document.getElementById('color-basepair').value = cssColorToHex(c.basepair);
+  }
+
+  function applyColors() {
+    vaRRI.setColors({
+      sequence1:              document.getElementById('color-seq1').value,
+      sequence2:              document.getElementById('color-seq2').value,
+      intermolecularHighlight: document.getElementById('color-intermol').value,
+      backgroundHighlight:    document.getElementById('color-bg').value,
+      subsequenceHighlight:   document.getElementById('color-subseq').value,
+      basepair:               document.getElementById('color-basepair').value,
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -747,6 +851,7 @@
 
   function runVisualization() {
     clearMsg();
+    applyColors();
 
     const args = {
       structure:              document.getElementById('structure').value.trim(),
@@ -815,6 +920,9 @@
   // Auto-load 2-molecule example on page load
   // -------------------------------------------------------------------------
   window.addEventListener('load', () => {
+    // Initialise colour pickers from the vaRRI.js defaults
+    initColorPickers();
+
     // Clear per-field error as the user edits each input
     ['structure', 'sequence', 'startIndex1', 'startIndex2',
      'highlightSubseq1', 'highlightSubseq2'].forEach(id => {
