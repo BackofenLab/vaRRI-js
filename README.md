@@ -123,7 +123,7 @@ npm test
 | **G-U basepairs as dashed lines** | When checked, G-U basepairs are drawn with a dashed stroke. |
 | **Highlight subseq 1/2** | Comma-separated `start-end` ranges (using the same index space as Start index). Example: `3-8` or `3-8,15-20`. |
 
-4. Editing any input field revalidates the form immediately and rerenders the visualisation as soon as the inputs are valid.
+4. Editing any input field revalidates the form immediately and rerenders the visualization as soon as the inputs are valid.
 
 ### Example Inputs
 

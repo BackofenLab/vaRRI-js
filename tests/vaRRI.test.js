@@ -13,7 +13,8 @@ const vm = require('vm');
 const vaRRI = require('../src/vaRRI.js');
 const vaRRISource = fs.readFileSync(path.join(__dirname, '../src/vaRRI.js'), 'utf8');
 const indexHTMLSource = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
-const indexInlineScript = indexHTMLSource.match(/<script>\s*([\s\S]*?)\s*<\/script>\s*<\/body>/)[1];
+const indexInlineScriptMatch = indexHTMLSource.match(/<script>\s*([\s\S]*?)\s*<\/script>\s*<\/body>/);
+const indexInlineScript = indexInlineScriptMatch ? indexInlineScriptMatch[1] : '';
 
 describe('browser global export', () => {
     test('attaches vaRRI to window even when module.exports is present', () => {
@@ -740,6 +741,8 @@ function createIndexHtmlSandbox() {
     };
 
     const loadHandlers = [];
+    let nextTimerId = 1;
+    const timers = new Map();
     const vaRRIStub = {
         getColors: jest.fn(() => ({
             sequence1: '#000000',
@@ -790,53 +793,85 @@ function createIndexHtmlSandbox() {
                 }
             }),
         },
+        setTimeout: jest.fn((handler) => {
+            const id = nextTimerId++;
+            timers.set(id, handler);
+            return id;
+        }),
+        clearTimeout: jest.fn((id) => {
+            timers.delete(id);
+        }),
         vaRRI: vaRRIStub,
     };
 
     vm.createContext(sandbox);
     vm.runInContext(indexInlineScript, sandbox);
 
-    return { elements, loadHandlers, vaRRIStub };
+    function runPendingTimers() {
+        const pending = Array.from(timers.entries());
+        timers.clear();
+        pending.forEach(([, handler]) => handler());
+    }
+
+    return { elements, loadHandlers, runPendingTimers, vaRRIStub };
 }
 
-describe('index.html auto visualisation UI', () => {
-    test('removes the manual visualisation button', () => {
+describe('index.html auto visualization UI', () => {
+    test('removes the manual visualization button', () => {
         expect(indexHTMLSource).not.toContain('▶ Visualise');
         expect(indexHTMLSource).not.toContain('onclick="runVisualization()"');
     });
 
     test('revalidates and rerenders on every editable field change', () => {
-        const { elements, loadHandlers, vaRRIStub } = createIndexHtmlSandbox();
+        expect(indexInlineScript).not.toBe('');
+
+        const { elements, loadHandlers, runPendingTimers, vaRRIStub } = createIndexHtmlSandbox();
         const listenerConfig = {
-            structure: 'input',
-            sequence: 'input',
-            startIndex1: 'input',
-            startIndex2: 'input',
-            labelInterval: 'input',
-            coloring: 'change',
-            highlighting: 'change',
-            backgroundhighlighting: 'change',
-            guBasepairs: 'change',
-            highlightSubseq1: 'input',
-            highlightSubseq2: 'input',
-            animation: 'change',
+            structure: { eventName: 'input', delay: 150 },
+            sequence: { eventName: 'input', delay: 150 },
+            startIndex1: { eventName: 'input', delay: 150 },
+            startIndex2: { eventName: 'input', delay: 150 },
+            labelInterval: { eventName: 'input', delay: 150 },
+            coloring: { eventName: 'change' },
+            highlighting: { eventName: 'change' },
+            backgroundhighlighting: { eventName: 'change' },
+            guBasepairs: { eventName: 'change' },
+            highlightSubseq1: { eventName: 'input', delay: 150 },
+            highlightSubseq2: { eventName: 'input', delay: 150 },
+            animation: { eventName: 'change' },
         };
 
         expect(loadHandlers).toHaveLength(1);
         loadHandlers[0]();
 
-        Object.entries(listenerConfig).forEach(([id, eventName]) => {
-            expect(elements[id].listeners[eventName]).toEqual(expect.any(Function));
+        Object.entries(listenerConfig).forEach(([id, config]) => {
+            expect(elements[id].listeners[config.eventName]).toEqual(expect.any(Function));
         });
 
         vaRRIStub.validate.mockClear();
         vaRRIStub.render.mockClear();
 
-        Object.entries(listenerConfig).forEach(([id, eventName]) => {
-            elements[id].listeners[eventName]();
+        Object.entries(listenerConfig).forEach(([id, config]) => {
+            elements[id].listeners[config.eventName]();
+            runPendingTimers();
         });
 
         expect(vaRRIStub.validate).toHaveBeenCalledTimes(Object.keys(listenerConfig).length);
         expect(vaRRIStub.render).toHaveBeenCalledTimes(Object.keys(listenerConfig).length);
+    });
+
+    test('debounces repeated typed input before rerendering', () => {
+        const { elements, loadHandlers, runPendingTimers, vaRRIStub } = createIndexHtmlSandbox();
+
+        loadHandlers[0]();
+        vaRRIStub.validate.mockClear();
+        vaRRIStub.render.mockClear();
+
+        elements.structure.listeners.input();
+        elements.structure.listeners.input();
+        runPendingTimers();
+
+        expect(vaRRIStub.validate).toHaveBeenCalledTimes(1);
+        expect(vaRRIStub.render).toHaveBeenCalledTimes(1);
     });
 });

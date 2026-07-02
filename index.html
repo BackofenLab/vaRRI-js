@@ -776,6 +776,7 @@
   // -------------------------------------------------------------------------
   let currentContainerId = 'rna_ss';
   let committedRotationDeg = 0;
+  let autoVisualizationTimeoutId = null;
 
   function showMsg(text, type) {
     const el = document.getElementById('msg');
@@ -957,29 +958,46 @@
     }
   }
 
+  function queueVisualization(delay = 0) {
+    if (autoVisualizationTimeoutId !== null) {
+      clearTimeout(autoVisualizationTimeoutId);
+      autoVisualizationTimeoutId = null;
+    }
+
+    if (delay <= 0) {
+      runVisualization();
+      return;
+    }
+
+    autoVisualizationTimeoutId = setTimeout(() => {
+      autoVisualizationTimeoutId = null;
+      runVisualization();
+    }, delay);
+  }
+
   function attachAutoVisualizationListeners() {
     const listenerConfig = {
-      structure: 'input',
-      sequence: 'input',
-      startIndex1: 'input',
-      startIndex2: 'input',
-      labelInterval: 'input',
-      coloring: 'change',
-      highlighting: 'change',
-      backgroundhighlighting: 'change',
-      guBasepairs: 'change',
-      highlightSubseq1: 'input',
-      highlightSubseq2: 'input',
-      animation: 'change',
+      structure: { eventName: 'input', delay: 150 },
+      sequence: { eventName: 'input', delay: 150 },
+      startIndex1: { eventName: 'input', delay: 150 },
+      startIndex2: { eventName: 'input', delay: 150 },
+      labelInterval: { eventName: 'input', delay: 150 },
+      coloring: { eventName: 'change' },
+      highlighting: { eventName: 'change' },
+      backgroundhighlighting: { eventName: 'change' },
+      guBasepairs: { eventName: 'change' },
+      highlightSubseq1: { eventName: 'input', delay: 150 },
+      highlightSubseq2: { eventName: 'input', delay: 150 },
+      animation: { eventName: 'change' },
     };
 
-    Object.entries(listenerConfig).forEach(([id, eventName]) => {
+    Object.entries(listenerConfig).forEach(([id, config]) => {
       const el = document.getElementById(id);
       if (!el) return;
 
-      el.addEventListener(eventName, () => {
+      el.addEventListener(config.eventName, () => {
         clearFieldError(id);
-        runVisualization();
+        queueVisualization(config.delay || 0);
       });
     });
   }
