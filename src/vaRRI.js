@@ -621,7 +621,7 @@
      *
      * @param {number} targetIndex
      */
-    function colorLabelRed(targetIndex) {
+    function highlightLabel(targetIndex) {
         document.querySelectorAll(`[label_num="${targetIndex}"]`).forEach(label => {
             label.setAttribute('style', `stroke: ${COLORS.intermolecularHighlight};stroke-width: 0.8;`);
         });
@@ -684,7 +684,7 @@
                     if (!(pos in indexDict)) continue;
                     const [, number] = indexDict[pos];
                     indexLabels[pos] = validateLabelPos(pos, indexLabels, number);
-                    colorLabelRed(pos);
+                    highlightLabel(pos);
                 }
             }
         }
