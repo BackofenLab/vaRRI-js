@@ -593,32 +593,32 @@
       <h3>Legend</h3>
       <div class="legend-grid">
         <div class="legend-item">
-          <input type="color" id="color-seq1" class="legend-color" value="#add8e6"
+          <input type="color" id="color-seq1" class="legend-color"
                  title="Sequence 1 strand colour" onchange="applyColors(); runVisualization();" />
           Sequence 1 (strand)
         </div>
         <div class="legend-item">
-          <input type="color" id="color-seq2" class="legend-color" value="#f4bb44"
+          <input type="color" id="color-seq2" class="legend-color"
                  title="Sequence 2 strand colour" onchange="applyColors(); runVisualization();" />
           Sequence 2 (strand)
         </div>
         <div class="legend-item">
-          <input type="color" id="color-intermol" class="legend-color" value="#ff0000"
+          <input type="color" id="color-intermol" class="legend-color"
                  title="Intermolecular highlight colour" onchange="applyColors(); runVisualization();" />
           Intermolecular highlight
         </div>
         <div class="legend-item">
-          <input type="color" id="color-bg" class="legend-color-rect" value="#ff0000"
+          <input type="color" id="color-bg" class="legend-color-rect"
                  title="Background highlight colour" onchange="applyColors(); runVisualization();" />
           Background highlight
         </div>
         <div class="legend-item">
-          <input type="color" id="color-subseq" class="legend-color" value="#800080"
+          <input type="color" id="color-subseq" class="legend-color"
                  title="Subsequence highlight colour" onchange="applyColors(); runVisualization();" />
           Subsequence highlight
         </div>
         <div class="legend-item">
-          <input type="color" id="color-basepair" class="legend-color-rect" value="#ff0000"
+          <input type="color" id="color-basepair" class="legend-color-rect"
                  title="Base pair colour" onchange="applyColors(); runVisualization();" />
           Base pair
         </div>
@@ -693,6 +693,36 @@
   // -------------------------------------------------------------------------
   // Colour helpers
   // -------------------------------------------------------------------------
+
+  /**
+   * Convert any CSS colour string (named, hex, rgb, etc.) to a 7-character
+   * hex string suitable for <input type="color">.  Uses an off-screen canvas
+   * so the browser does the conversion.
+   *
+   * @param {string} css  Any valid CSS colour value.
+   * @returns {string}    Lowercase hex colour, e.g. "#ff0000".
+   */
+  function cssColorToHex(css) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = css;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  /** Initialise each colour picker to the current vaRRI.js default. */
+  function initColorPickers() {
+    const c = vaRRI.getColors();
+    document.getElementById('color-seq1').value     = cssColorToHex(c.sequence1);
+    document.getElementById('color-seq2').value     = cssColorToHex(c.sequence2);
+    document.getElementById('color-intermol').value = cssColorToHex(c.intermolecularHighlight);
+    document.getElementById('color-bg').value       = cssColorToHex(c.backgroundHighlight);
+    document.getElementById('color-subseq').value   = cssColorToHex(c.subsequenceHighlight);
+    document.getElementById('color-basepair').value = cssColorToHex(c.basepair);
+  }
+
   function applyColors() {
     vaRRI.setColors({
       sequence1:              document.getElementById('color-seq1').value,
@@ -876,6 +906,9 @@
   // Auto-load 2-molecule example on page load
   // -------------------------------------------------------------------------
   window.addEventListener('load', () => {
+    // Initialise colour pickers from the vaRRI.js defaults
+    initColorPickers();
+
     // Clear per-field error as the user edits each input
     ['structure', 'sequence', 'startIndex1', 'startIndex2',
      'highlightSubseq1', 'highlightSubseq2'].forEach(id => {

@@ -833,7 +833,7 @@
      *
      * @param {Object} v  Validated parameter dictionary.
      */
-    function highlightingRegion(v) {
+    function highlightRegion(v) {
         const basepairRegion = getIntermolBasepairRegion(v.structure1, v.structure2);
         const intermolNodes = [];
         for (const [start, end] of basepairRegion) {
@@ -847,7 +847,7 @@
      *
      * @param {Object} v  Validated parameter dictionary.
      */
-    function highlightingBasepairs(v) {
+    function highlightBasepairs(v) {
         const split = v.sequence1.length + 1;
         document.querySelectorAll('[link_type="basepair"]').forEach(link => {
             const nodes = [
@@ -978,7 +978,7 @@
      *
      * @param {Object} v  Validated parameter dictionary.
      */
-    function visualiseBasepairStrength(v) {
+    function styleBasepairs(v) {
         // Apply basepair colour to all basepair links using inline style so it
         // overrides the Fornac CSS rule `line.fornac-link[link_type="basepair"]
         // { stroke: red; }`, which takes precedence over SVG presentation
@@ -1063,7 +1063,7 @@
      *
      * @param {Object} v  Validated parameter dictionary.
      */
-    function backgroundhighlightingBasepairs(v) {
+    function backgroundhighlightBasepairs(v) {
         const intermolPairs = listIntermolPairs(v);
         if (intermolPairs.length === 0) return;
 
@@ -1093,7 +1093,7 @@
      *
      * @param {Object} v  Validated parameter dictionary.
      */
-    function backgroundhighlightingRegion(v) {
+    function backgroundhighlightRegion(v) {
         const basepairRegion = getIntermolBasepairRegion(v.structure1, v.structure2);
         const intermolNodes = [];
         for (const [start, end] of basepairRegion) {
@@ -1208,15 +1208,15 @@
 
             // Highlighting (only for 2-molecule input)
             if (v.molecules === '2') {
-                if (v.highlighting === 'region') highlightingRegion(v);
-                if (v.highlighting === 'basepairs') highlightingBasepairs(v);
-                if (v.backgroundhighlighting === 'region') backgroundhighlightingRegion(v);
-                if (v.backgroundhighlighting === 'basepairs') backgroundhighlightingBasepairs(v);
+                if (v.highlighting === 'region') highlightRegion(v);
+                if (v.highlighting === 'basepairs') highlightBasepairs(v);
+                if (v.backgroundhighlighting === 'region') backgroundhighlightRegion(v);
+                if (v.backgroundhighlighting === 'basepairs') backgroundhighlightBasepairs(v);
             }
 
             // G-U basepair strength
             if (v.guBasepairs) {
-                visualiseBasepairStrength(v);
+                styleBasepairs(v);
             }
 
             // Subsequence highlights
@@ -1234,8 +1234,8 @@
                     (v.backgroundhighlighting === 'basepairs' || v.backgroundhighlighting === 'region')) {
                 function bgHighlightLoop() {
                     document.querySelectorAll('[data-varri-bg]').forEach(el => el.remove());
-                    if (v.backgroundhighlighting === 'region') backgroundhighlightingRegion(v);
-                    if (v.backgroundhighlighting === 'basepairs') backgroundhighlightingBasepairs(v);
+                    if (v.backgroundhighlighting === 'region') backgroundhighlightRegion(v);
+                    if (v.backgroundhighlighting === 'basepairs') backgroundhighlightBasepairs(v);
                     _animFrameId = requestAnimationFrame(bgHighlightLoop);
                 }
                 _animFrameId = requestAnimationFrame(bgHighlightLoop);
@@ -1502,11 +1502,11 @@
         updateNodeToolTips,
         updateLinkTooltips,
         setIndexLabels,
-        highlightingRegion,
-        highlightingBasepairs,
-        backgroundhighlightingRegion,
-        backgroundhighlightingBasepairs,
-        visualiseBasepairStrength,
+        highlightRegion,
+        highlightBasepairs,
+        backgroundhighlightRegion,
+        backgroundhighlightBasepairs,
+        styleBasepairs,
         highlightSubsequence,
         removeDummyNodes,
         removeSecondLink,
