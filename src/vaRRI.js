@@ -987,23 +987,31 @@
             link.style.stroke = COLORS.basepair;
         });
 
-        // Build a 1-based sequence map including gap dots
-        const seq1 = v.sequence1;
-        const seq2 = v.sequence2;
-        const gapDots = '.'.repeat(GAP);
-        const combined = seq1 + gapDots + seq2;
-        const seqDict = {};
-        for (let i = 0; i < combined.length; i++) {
-            seqDict[String(i + 1)] = combined[i];
-        }
-
-        document.querySelectorAll('[link_type="basepair"]').forEach(link => {
-            const l1 = seqDict[link.getAttribute('start')];
-            const l2 = seqDict[link.getAttribute('end')];
-            if ((l1 === 'G' && l2 === 'U') || (l1 === 'U' && l2 === 'G')) {
-                link.style.strokeDasharray = '1,1';
+        if (v.guBasepairs) {
+            // Build a 1-based sequence map including gap dots
+            const seq1 = v.sequence1;
+            const seq2 = v.sequence2;
+            const gapDots = '.'.repeat(GAP);
+            const combined = seq1 + gapDots + seq2;
+            const seqDict = {};
+            for (let i = 0; i < combined.length; i++) {
+                seqDict[String(i + 1)] = combined[i];
             }
-        });
+
+            document.querySelectorAll('[link_type="basepair"]').forEach(link => {
+                const l1 = seqDict[link.getAttribute('start')];
+                const l2 = seqDict[link.getAttribute('end')];
+                if ((l1 === 'G' && l2 === 'U') || (l1 === 'U' && l2 === 'G')) {
+                    link.style.strokeDasharray = '1,1';
+                } else {
+                    link.style.strokeDasharray = '';
+                }
+            });
+        } else {
+            document.querySelectorAll('[link_type="basepair"]').forEach(link => {
+                link.style.strokeDasharray = '';
+            });
+        }
     }
 
     /**
@@ -1214,10 +1222,8 @@
                 if (v.backgroundhighlighting === 'basepairs') backgroundhighlightBasepairs(v);
             }
 
-            // G-U basepair strength
-            if (v.guBasepairs) {
-                styleBasepairs(v);
-            }
+            // Basepair styling (colour + optional G-U dashing)
+            styleBasepairs(v);
 
             // Subsequence highlights
             if (v.highlightSubseq1 !== null) highlightSubsequence(v, '1');
