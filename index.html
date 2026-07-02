@@ -1007,9 +1007,10 @@
       });
 
       el.addEventListener('change', () => {
-        if (skipNextCommittedFieldChange.get(el)) {
+        const skippedValue = skipNextCommittedFieldChange.get(el);
+        if (skippedValue !== undefined) {
           skipNextCommittedFieldChange.delete(el);
-          return;
+          if (skippedValue === el.value) return;
         }
         clearFieldError(id);
         queueVisualization();
@@ -1019,7 +1020,7 @@
 
       el.addEventListener('keydown', event => {
         if (event.key !== 'Enter') return;
-        skipNextCommittedFieldChange.set(el, true);
+        skipNextCommittedFieldChange.set(el, el.value);
         clearFieldError(id);
         queueVisualization();
       });

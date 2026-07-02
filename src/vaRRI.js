@@ -1209,7 +1209,8 @@
             clearTimeout(_renderTimeoutId);
             _renderTimeoutId = null;
             if (_pendingRenderResolve) {
-                _pendingRenderResolve({ cancelled: true });
+                const resolvePendingRender = _pendingRenderResolve;
+                queueMicrotask(() => resolvePendingRender({ cancelled: true }));
                 _pendingRenderResolve = null;
             }
         }
