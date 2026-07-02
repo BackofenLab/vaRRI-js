@@ -818,7 +818,7 @@
     const container = document.getElementById(currentContainerId);
     if (!container || !container.querySelector('svg')) return;
 
-    const sliderDelta = Number(slider.value || 0);
+    const sliderDelta = Number(slider.value);
     vaRRI.rotateVisualization(
       currentContainerId,
       committedRotationDeg + sliderDelta,
@@ -830,7 +830,7 @@
     const slider = document.getElementById('rotation-slider');
     if (!slider) return;
 
-    const sliderDelta = Number(slider.value || 0);
+    const sliderDelta = Number(slider.value);
     committedRotationDeg = vaRRI.normaliseRotationDegrees(committedRotationDeg + sliderDelta);
     slider.value = '0';
 

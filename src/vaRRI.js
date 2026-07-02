@@ -1284,13 +1284,10 @@
      * @returns {SVGGElement}
      */
     function ensureRotationLayer(svgEl) {
-        let layer = null;
-        Array.from(svgEl.children).forEach(child => {
-            if (child.tagName && child.tagName.toLowerCase() === 'g' &&
-                    child.getAttribute('data-varri-rotation-layer') === 'true') {
-                layer = child;
-            }
-        });
+        let layer = Array.from(svgEl.children).find(child =>
+            child.tagName && child.tagName.toLowerCase() === 'g' &&
+            child.getAttribute('data-varri-rotation-layer') === 'true'
+        );
 
         if (!layer) {
             layer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -1298,14 +1295,15 @@
             svgEl.appendChild(layer);
         }
 
-        Array.from(svgEl.childNodes).forEach(node => {
-            if (node === layer) return;
+        const nodesToMove = Array.from(svgEl.childNodes).filter(node => {
+            if (node === layer) return false;
             if (node.nodeType === Node.ELEMENT_NODE && node.tagName &&
                     node.tagName.toLowerCase() === 'defs') {
-                return;
+                return false;
             }
-            layer.appendChild(node);
+            return true;
         });
+        nodesToMove.forEach(node => layer.appendChild(node));
 
         return layer;
     }
