@@ -252,6 +252,29 @@
       height: 100%;
     }
 
+    .rotation-control {
+      background: var(--surface);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(15, 46, 74, .12);
+      padding: .6rem 1.2rem;
+      margin-top: .75rem;
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+    .rotation-control label {
+      margin: 0;
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--brand-blue-dark);
+      white-space: nowrap;
+    }
+    .rotation-control input[type="range"] {
+      flex: 1;
+      margin: 0;
+      min-width: 0;
+    }
+
     .export-bar {
       background: var(--surface);
       border-radius: 8px;
@@ -581,6 +604,11 @@
   <section class="result-panel">
     <div id="rna_ss" tabindex="1"></div>
 
+    <div class="rotation-control">
+      <label for="rotation-slider">Rotate</label>
+      <input type="range" id="rotation-slider" min="-180" max="180" step="1" value="0" />
+    </div>
+
     <!-- Colour legend -->
     <div class="legend">
       <h3>Colour Scheme</h3>
@@ -752,6 +780,7 @@
   // Main visualisation
   // -------------------------------------------------------------------------
   let currentContainerId = 'rna_ss';
+  let committedRotationDeg = 0;
 
   function showMsg(text, type) {
     const el = document.getElementById('msg');
@@ -771,8 +800,44 @@
     document.getElementById('highlightSubseq1').value = '';
     document.getElementById('highlightSubseq2').value = '';
     document.getElementById('rna_ss').innerHTML = '';
+    resetRotationControl();
     clearMsg();
     clearAllFieldErrors();
+  }
+
+  function resetRotationControl() {
+    committedRotationDeg = 0;
+    const slider = document.getElementById('rotation-slider');
+    if (slider) slider.value = '0';
+  }
+
+  function applySliderRotation() {
+    const slider = document.getElementById('rotation-slider');
+    if (!slider) return;
+
+    const container = document.getElementById(currentContainerId);
+    if (!container || !container.querySelector('svg')) return;
+
+    const sliderDelta = Number(slider.value || 0);
+    vaRRI.rotateVisualization(
+      currentContainerId,
+      committedRotationDeg + sliderDelta,
+      { mode: 'absolute' }
+    );
+  }
+
+  function commitSliderRotation() {
+    const slider = document.getElementById('rotation-slider');
+    if (!slider) return;
+
+    const sliderDelta = Number(slider.value || 0);
+    committedRotationDeg = vaRRI.normaliseRotationDegrees(committedRotationDeg + sliderDelta);
+    slider.value = '0';
+
+    const container = document.getElementById(currentContainerId);
+    if (!container || !container.querySelector('svg')) return;
+
+    vaRRI.rotateVisualization(currentContainerId, committedRotationDeg, { mode: 'absolute' });
   }
 
   // -------------------------------------------------------------------------
@@ -880,6 +945,7 @@
     // Clear previous output
     const container = document.getElementById(currentContainerId);
     container.innerHTML = '';
+    resetRotationControl();
 
     const animation = document.getElementById('animation').checked;
 
@@ -929,6 +995,12 @@
       const el = document.getElementById(id);
       if (el) el.addEventListener('input', () => clearFieldError(id));
     });
+
+    const rotationSlider = document.getElementById('rotation-slider');
+    if (rotationSlider) {
+      rotationSlider.addEventListener('input', applySliderRotation);
+      rotationSlider.addEventListener('change', commitSliderRotation);
+    }
     loadExample('2mol');
   });
 </script>

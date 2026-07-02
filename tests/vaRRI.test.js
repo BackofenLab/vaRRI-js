@@ -652,3 +652,21 @@ describe('setColors', () => {
         expect(vaRRI.getColors().sequence1).toBe('lightblue');
     });
 });
+
+describe('normaliseRotationDegrees', () => {
+    test('keeps angles already in range', () => {
+        expect(vaRRI.normaliseRotationDegrees(90)).toBe(90);
+        expect(vaRRI.normaliseRotationDegrees(-180)).toBe(-180);
+        expect(vaRRI.normaliseRotationDegrees(180)).toBe(180);
+    });
+
+    test('wraps angles outside [-180, 180]', () => {
+        expect(vaRRI.normaliseRotationDegrees(270)).toBe(-90);
+        expect(vaRRI.normaliseRotationDegrees(-270)).toBe(90);
+        expect(vaRRI.normaliseRotationDegrees(360)).toBe(0);
+    });
+
+    test('throws on non-finite values', () => {
+        expect(() => vaRRI.normaliseRotationDegrees(NaN)).toThrow(/finite number/);
+    });
+});
