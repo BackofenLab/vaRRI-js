@@ -275,6 +275,18 @@
       min-width: 0;
     }
 
+    .cropping-control {
+      display: flex;
+      margin-bottom: .75rem;
+      }
+    .cropping-control label {
+      margin-right: 1em;
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--brand-blue-dark);
+      white-space: nowrap;
+    }
+
     .export-bar {
       background: var(--surface);
       border-radius: 8px;
@@ -522,6 +534,18 @@
     <div class="input-wrap"><textarea id="sequence" rows="3"
       placeholder="ACGAUCAGAGAUUAGAGCAUACGACAGCAG&ACGAAAAGAGCAUACGACAGUAG"></textarea><span class="field-tooltip"></span></div>
 
+    <!-- Sequence cropping -->
+    <div class="cropping-control">
+      <label for="cropping">Crop: 
+        <!-- dummy element to show the value of cropping input slider-->
+         <span id="cropping-value" style="font-weight:600; color:#1c2b39; margin-left:0.3em;">0</span>
+      </label>
+         <div class="input-wrap">
+      <input type="range" id="cropping" class="form-control-range" min="0" max="10" value="0" title="0 disables cropping. Higher values crop the ends to resp. unpaired positions.">
+      <span class="field-tooltip"></span>
+      </div>
+    </div>
+    
     <div class="row-3">
       <!-- Start indices -->
       <div class="input-wrap">
@@ -694,6 +718,7 @@
       startIndex1: '1', startIndex2: '1',
       coloring: 'strand', highlighting: 'region',
       backgroundhighlighting: 'basepairs', guBasepairs: true,
+      cropping: '2'
     },
     '1mol': {
       structure: '(((....)))',
@@ -716,6 +741,7 @@
     if (!ex) return;
     document.getElementById('structure').value         = ex.structure;
     document.getElementById('sequence').value          = ex.sequence;
+    document.getElementById('cropping').value          = ex.cropping;
     document.getElementById('startIndex1').value       = ex.startIndex1;
     document.getElementById('startIndex2').value       = ex.startIndex2;
     document.getElementById('coloring').value          = ex.coloring;
@@ -893,6 +919,20 @@
       catch (e) { setFieldError('structure', e.message); valid = false; }
     }
 
+    // Cropping
+    if (args.cropping) {
+      try { vaRRI.validateCroppingInput(args.structure, args.cropping); }
+      catch (e) { 
+        setFieldError('structure', e.message); 
+        setFieldError('cropping', e.message); 
+        valid = false; }
+      // update cropping value field "cropping-value"
+      const croppingValueEl = document.getElementById('cropping-value');
+      if (croppingValueEl) {
+        croppingValueEl.textContent = args.cropping;
+      }
+    }
+
     // Start index 1
     let offset1;
     try { offset1 = vaRRI.validateOffset(String(args.startIndex1 || '1')); }
@@ -927,6 +967,7 @@
       sequence:               document.getElementById('sequence').value.trim(),
       startIndex1:            document.getElementById('startIndex1').value.trim() || '1',
       startIndex2:            document.getElementById('startIndex2').value.trim() || '1',
+      cropping:               document.getElementById('cropping').value.trim() || '0',
       labelInterval:          document.getElementById('labelInterval').value.trim() || '10',
       coloring:               document.getElementById('coloring').value,
       highlighting:           document.getElementById('highlighting').value,
@@ -988,6 +1029,7 @@
     const committedFieldIds = [
       'structure',
       'sequence',
+      'cropping',
       'startIndex1',
       'startIndex2',
       'labelInterval',

@@ -249,6 +249,28 @@
     }
 
     /**
+     * Validate cropping input.  Must be an integer string, and disallowed for
+     * @param {string} cropping (integer string to be validated)
+     * @param {string} structure Validated structure string, used to check for unpaired-only structures)
+     * @returns the validated cropping string
+     * @throws {Error}  When cropping is not a valid integer or when cropping is disallowed for unpaired-only structures.
+     */
+    function validateCroppingInput(structure, cropping) {
+        // check if cropping is a valid integer string
+        if (!/^-?\d+$/.test(cropping)) {
+            throw new Error(`The given cropping input is not an integer: ${cropping}`);
+        }
+        if (cropping === '0') return;
+        // check if structure is only composed of dots (unpaired) and if so, disallow cropping
+        if( structure && !structure.match(/[^.&]/)) {
+            throw new Error('Cropping is not allowed for structures with only unpaired nucleotides.');
+        }
+        return cropping;
+    }
+
+
+
+    /**
      * Validate a structure string in dot-bracket notation.
      *
      * @param {string} structure
@@ -433,11 +455,50 @@
     }
 
     /**
+     * Crop leading and trailing unpaired nucleotides from sequences and structures.
+     * 
+     * @param {string} rawSeq 
+     * @param {string} validStruc 
+     * @param {integer} offset1 
+     * @param {integer} offset2 
+     * @param {integer} cropping 
+     * @returns Object with updated rawSeq, validStruc, offset1, offset2
+     */
+    function applyCropping(rawSeq, validStruc, offset1, offset2, cropping) {
+
+        let seq = rawSeq.split('&');
+        let str = validStruc.split('&');
+        let off = [offset1, offset2];
+                
+        for (let i = 0; i < seq.length; i++) {
+            // leading cropping
+            let unpairedLeading = str[i].match(/^\.+/);
+            if (unpairedLeading && unpairedLeading[0].length > cropping) {
+                seq[i] = seq[i].slice(unpairedLeading[0].length - cropping);
+                str[i] = str[i].slice(unpairedLeading[0].length - cropping);
+                const offOld = off[i];
+                off[i] += unpairedLeading[0].length - cropping;
+                if (off[i] >= 0 && offOld < 0) { off[i] += 1; } // skip 0
+            }
+            // trailing cropping
+            let trailing = str[i].match(/\.+$/);
+            if (trailing && trailing[0].length > cropping) {
+                seq[i] = seq[i].slice(0, seq[i].length - (trailing[0].length - cropping));
+                str[i] = str[i].slice(0, str[i].length - (trailing[0].length - cropping));
+                }
+        }
+                    
+        // return updated values
+        return { rawSeq: seq.join("&"), validStruc: str.join("&"), offset1: off[0], offset2: off[1] };
+    }
+
+    /**
      * Validate all inputs and return a `validated` parameter object ready for rendering.
      *
      * @param {Object} args  Raw input parameters.
      * @param {string} args.structure    Dot-bracket structure, one or two molecules separated by `&`.
      * @param {string} args.sequence     RNA sequence, one or two molecules separated by `&`.
+     * @param {string} [args.cropping="0"]  Cropping value (integer string).
      * @param {string} [args.startIndex1="1"]  Start index for sequence 1.
      * @param {string} [args.startIndex2="1"]  Start index for sequence 2.
      * @param {string} [args.labelInterval="10"]  Interval for index label display.
@@ -456,17 +517,29 @@
         // Sequence
         const rawSeq = (args.sequence || '').trim();
         validateSequenceInput(rawSeq);
-        const seqFmt = formatSequence(rawSeq);
-        Object.assign(v, seqFmt);
-
-        // Offsets
-        v.offset1 = validateOffset(String(args.startIndex1 || '1'));
-        v.offset2 = validateOffset(String(args.startIndex2 || '1'));
-
+        
         // Structure
         const rawStruc = (args.structure || '').trim();
         const validStruc = validateStructureInput(rawStruc, rawSeq);
-        const strucFmt = formatStructure(validStruc);
+        
+        // Offsets
+        v.offset1 = validateOffset(String(args.startIndex1 || '1'));
+        v.offset2 = validateOffset(String(args.startIndex2 || '1'));
+        
+        // Cropping
+        const cropping = validateCroppingInput(validStruc, String(args.cropping || '0'));
+
+        // update sequences, structures and offsets based on cropping
+        const cropped = applyCropping(rawSeq, validStruc, v.offset1, v.offset2, cropping);
+
+        // update offset information
+        v.offset1 = cropped.offset1;
+        v.offset2 = cropped.offset2;
+
+        // create the formatted sequence and structure objects
+        const seqFmt = formatSequence(cropped.rawSeq);
+        Object.assign(v, seqFmt);
+        const strucFmt = formatStructure(cropped.validStruc);
         Object.assign(v, strucFmt);
 
         // Molecules
@@ -1694,6 +1767,7 @@
         // Validation helpers
         checkStructureInputSimple,
         validateSequenceInput,
+        validateCroppingInput,
         validateStructureInput,
         validateOffset,
         validateHighlighting,
