@@ -252,7 +252,7 @@
       height: 100%;
     }
 
-    .rotation-control {
+    .viz-control {
       background: var(--surface);
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(15, 46, 74, .12);
@@ -262,29 +262,17 @@
       align-items: center;
       gap: .75rem;
     }
-    .rotation-control label {
+    .viz-control label {
       margin: 0;
       font-size: .85rem;
       font-weight: 600;
       color: var(--brand-blue-dark);
       white-space: nowrap;
     }
-    .rotation-control input[type="range"] {
+    .viz-control input[type="range"] {
       flex: 1;
       margin: 0;
       min-width: 0;
-    }
-
-    .cropping-control {
-      display: flex;
-      margin-bottom: .75rem;
-      }
-    .cropping-control label {
-      margin-right: 1em;
-      font-size: .85rem;
-      font-weight: 600;
-      color: var(--brand-blue-dark);
-      white-space: nowrap;
     }
 
     .export-bar {
@@ -533,18 +521,6 @@
     </label>
     <div class="input-wrap"><textarea id="sequence" rows="3"
       placeholder="ACGAUCAGAGAUUAGAGCAUACGACAGCAG&ACGAAAAGAGCAUACGACAGUAG"></textarea><span class="field-tooltip"></span></div>
-
-    <!-- Sequence cropping -->
-    <div class="cropping-control">
-      <label for="cropping">Crop: 
-        <!-- dummy element to show the value of cropping input slider-->
-         <span id="cropping-value" style="font-weight:600; color:#1c2b39; margin-left:0.3em;">0</span>
-      </label>
-         <div class="input-wrap">
-      <input type="range" id="cropping" class="form-control-range" min="0" max="10" value="0" title="0 disables cropping. Higher values crop the ends to resp. unpaired positions.">
-      <span class="field-tooltip"></span>
-      </div>
-    </div>
     
     <div class="row-3">
       <!-- Start indices -->
@@ -623,10 +599,19 @@
   <section class="result-panel">
     <div id="rna_ss" tabindex="1"></div>
 
-    <div class="rotation-control">
+    <div class="viz-control">
       <label for="rotation-slider">Rotate</label>
       <input type="range" id="rotation-slider" min="-180" max="180" step="1" value="0" />
+      <label for="cropping">Crop: 
+        <!-- dummy element to show the value of cropping input slider-->
+         <span id="cropping-value" style="font-weight:600; color:#1c2b39; margin-left:0.3em;">0</span>
+      </label>
+         <div class="input-wrap">
+      <input type="range" id="cropping" class="form-control-range" min="0" max="10" value="0" title="0 disables cropping. Higher values crop the ends to resp. unpaired positions.">
+      <span class="field-tooltip"></span>
+      </div>
     </div>
+
 
     <!-- Colour legend -->
     <div class="legend">

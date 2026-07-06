@@ -19,6 +19,7 @@ Validates all user-supplied input parameters and returns a normalised
 |---|---|---|---|
 | `structure` | `string` | *(required)* | Dot-bracket structure string. May contain `&` to separate two molecules. |
 | `sequence` | `string` | *(required)* | RNA/DNA sequence (IUPAC characters). May contain `&`. |
+| `cropping` | `string\|number` | `"0"` | Number of unpaired nucleotides to crop from each end of the structure. `"0"` disables cropping. |
 | `startIndex1` | `string\|number` | `"1"` | Start index for molecule 1. |
 | `startIndex2` | `string\|number` | `"1"` | Start index for molecule 2. |
 | `labelInterval` | `string\|number` | `"10"` | Interval for displayed index labels. |

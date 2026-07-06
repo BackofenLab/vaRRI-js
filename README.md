@@ -135,6 +135,13 @@ Three built-in examples can be loaded with the buttons at the top of the panel:
 | **1-molecule example** | A single RNA hairpin with Fornac default (loop) coloring. |
 | **Pseudoknot** | A structure containing square-bracket pseudoknot notation `[…]`. |
 
+### Additional Features
+
+- **Rotation**: Click and drag the structure to rotate it for better visualization. Use the mouse wheel or trackpad to zoom in and out.
+- **Color Pickers**: Customize the colors for strands, loops, and highlights using the color pickers in the settings panel.
+- **Cropping**: Use the slider to crop unpaired nucleotides from the ends of the structure. Cropping is applied to both molecules and can be used to focus on the interaction region.
+
+
 ### Export
 
 After rendering, use the buttons in the export bar below the visualisation:
