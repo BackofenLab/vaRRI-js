@@ -166,6 +166,12 @@
       gap: .5rem;
     }
 
+    .row-4 {
+      display: grid;
+      grid-template-columns: 0.5fr 1fr 0.5fr 1fr;
+      gap: .5rem;
+    }
+
     .checkbox-row {
       display: flex;
       align-items: center;
@@ -424,6 +430,15 @@
     .input-wrap.has-error > input {
       border-color: #e74c3c !important;
       background: #fff5f5 !important;
+    }   
+    .input-line {
+      position: relative;
+      display: flex;
+    }
+    .input-line.has-error > textarea,
+    .input-line.has-error > input {
+      border-color: #e74c3c !important;
+      background: #fff5f5 !important;
     }
     .field-tooltip {
       display: none;
@@ -455,6 +470,9 @@
     }
     .input-wrap.has-error:hover .field-tooltip {
       display: block;
+    }
+    .input-line.has-error:hover .field-tooltip {
+      display: flex;
     }
 
     /* ------------------------------------------------------------------ */
@@ -507,14 +525,7 @@
         -->
       <button class="btn btn-sm" onclick="clearAll()" style="background:#d8e5f1;color:#1c2b39">✕ Clear</button>
     </div>
-
-    <!-- Structure -->
-    <label for="structure">
-      Structure <small>(dot-bracket; separate two molecules with &amp;)</small>
-    </label>
-    <div class="input-wrap"><textarea id="structure" rows="3"
-      placeholder="..(((((....)))))(((....)))..&..(((......))).."></textarea><span class="field-tooltip"></span></div>
-
+    
     <!-- Sequence -->
     <label for="sequence">
       Sequence <small>(IUPAC; separate two molecules with &amp;)</small>
@@ -522,24 +533,28 @@
     <div class="input-wrap"><textarea id="sequence" rows="3"
       placeholder="ACGAUCAGAGAUUAGAGCAUACGACAGCAG&ACGAAAAGAGCAUACGACAGUAG"></textarea><span class="field-tooltip"></span></div>
     
-    <div class="row-3">
+      <div class="row-4">
       <!-- Start indices -->
-      <div class="input-wrap">
-        <label for="startIndex1">Start index 1</label>
-        <input type="number" id="startIndex1" value="1" /><span class="field-tooltip"></span>
-      </div>
-      <div class="input-wrap">
-        <label for="startIndex2">Start index 2</label>
-        <input type="number" id="startIndex2" value="1" /><span class="field-tooltip"></span>
-      </div>
-      <!-- Label interval -->
-      <div>
-        <label for="labelInterval">Label interval</label>
-        <input type="number" id="labelInterval" value="10" min="1" />
-      </div>
+      <label for="startIndex1">Start 1</label>
+      <input type="number" id="startIndex1" value="1" /><span class="field-tooltip"></span>
+      <label for="startIndex2">Start 2</label>
+      <input type="number" id="startIndex2" value="1" /><span class="field-tooltip"></span>
+      <!--
+        <div class="input-line">
+        </div>
+        <div class="input-line">
+        </div>
+        -->
     </div>
+    
+        <!-- Structure -->
+        <label for="structure">
+          Structure <small>(dot-bracket; separate two molecules with &amp;)</small>
+        </label>
+        <div class="input-wrap"><textarea id="structure" rows="3"
+          placeholder="..(((((....)))))(((....)))..&..(((......))).."></textarea><span class="field-tooltip"></span></div>
 
-
+    
     <!-- Coloring -->
     <label for="coloring">Coloring</label>
     <select id="coloring">
@@ -607,7 +622,7 @@
          <span id="cropping-value" style="font-weight:600; color:#1c2b39; margin-left:0.3em;">0</span>
       </label>
          <div class="input-wrap">
-      <input type="range" id="cropping" class="form-control-range" min="0" max="10" value="0" title="0 disables cropping. Higher values crop the ends to resp. unpaired positions.">
+      <input type="range" id="cropping" class="form-control-range" min="-1" max="10" value="-1" title="-1 disables cropping. Higher values crop the ends to resp. unpaired positions.">
       <span class="field-tooltip"></span>
       </div>
     </div>
@@ -952,8 +967,8 @@
       sequence:               document.getElementById('sequence').value.trim(),
       startIndex1:            document.getElementById('startIndex1').value.trim() || '1',
       startIndex2:            document.getElementById('startIndex2').value.trim() || '1',
-      cropping:               document.getElementById('cropping').value.trim() || '0',
-      labelInterval:          document.getElementById('labelInterval').value.trim() || '10',
+      cropping:               document.getElementById('cropping').value.trim() || '-1',
+      labelInterval:          '10',
       coloring:               document.getElementById('coloring').value,
       highlighting:           document.getElementById('highlighting').value,
       backgroundhighlighting: document.getElementById('backgroundhighlighting').value,
@@ -1017,7 +1032,6 @@
       'cropping',
       'startIndex1',
       'startIndex2',
-      'labelInterval',
       'highlightSubseq1',
       'highlightSubseq2',
     ];

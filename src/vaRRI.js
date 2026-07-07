@@ -256,11 +256,17 @@
      * @throws {Error}  When cropping is not a valid integer or when cropping is disallowed for unpaired-only structures.
      */
     function validateCroppingInput(structure, cropping) {
+        // check if cropping is not set, return default value
+        if (!cropping) return '-1';  // default value
+
         // check if cropping is a valid integer string
         if (!/^-?\d+$/.test(cropping)) {
             throw new Error(`The given cropping input is not an integer: ${cropping}`);
         }
-        if (cropping === '0') return;
+        
+        // negative cropping is indicating no cropping, return -1
+        if (parseInt(cropping, 10) < 0) return -1;  
+
         // check if structure is only composed of dots (unpaired) and if so, disallow cropping
         if( structure && !structure.match(/[^.&]/)) {
             throw new Error('Cropping is not allowed for structures with only unpaired nucleotides.');
@@ -466,6 +472,11 @@
      */
     function applyCropping(rawSeq, validStruc, offset1, offset2, cropping) {
 
+        // check if cropping is not set or is negative, return original values
+        if( !cropping || cropping < 0 ) {
+            return { rawSeq, validStruc, offset1, offset2 };
+        }
+
         let seq = rawSeq.split('&');
         let str = validStruc.split('&');
         let off = [offset1, offset2];
@@ -498,7 +509,7 @@
      * @param {Object} args  Raw input parameters.
      * @param {string} args.structure    Dot-bracket structure, one or two molecules separated by `&`.
      * @param {string} args.sequence     RNA sequence, one or two molecules separated by `&`.
-     * @param {string} [args.cropping="0"]  Cropping value (integer string).
+     * @param {string} [args.cropping="-1"]  Cropping value (integer string).
      * @param {string} [args.startIndex1="1"]  Start index for sequence 1.
      * @param {string} [args.startIndex2="1"]  Start index for sequence 2.
      * @param {string} [args.labelInterval="10"]  Interval for index label display.
@@ -527,7 +538,7 @@
         v.offset2 = validateOffset(String(args.startIndex2 || '1'));
         
         // Cropping
-        const cropping = validateCroppingInput(validStruc, String(args.cropping || '0'));
+        const cropping = validateCroppingInput(validStruc, String(args.cropping || '-1'));
 
         // update sequences, structures and offsets based on cropping
         const cropped = applyCropping(rawSeq, validStruc, v.offset1, v.offset2, cropping);
