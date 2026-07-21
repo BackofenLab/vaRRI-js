@@ -403,6 +403,56 @@ describe('parseSubsequences', () => {
     });
 });
 
+describe('subsequence highlight registry', () => {
+    beforeEach(() => {
+        vaRRI.clearSubsequenceHighlights();
+    });
+
+    test('creates a normalized highlight object from string input', () => {
+        const highlight = vaRRI.createSubsequenceHighlight({
+            sequence: 1,
+            range: '3-8,10-12',
+            color: '#123456',
+        });
+
+        expect(highlight.sequence).toBe('1');
+        expect(highlight.ranges).toEqual([[3, 8], [10, 12]]);
+        expect(highlight.rangeText).toBe('3-8,10-12');
+        expect(highlight.color).toBe('#123456');
+    });
+
+    test('registers, updates and removes highlights by id', () => {
+        const added = vaRRI.registerSubsequenceHighlight({
+            sequence: '1',
+            range: '2-4',
+            color: '#abcdef',
+        });
+
+        expect(added.id).toBe(1);
+        expect(vaRRI.getSubsequenceHighlights()).toHaveLength(1);
+
+        const updated = vaRRI.updateSubsequenceHighlight(added.id, {
+            sequence: '2',
+            range: '5-7',
+            color: '#111111',
+        });
+
+        expect(updated.sequence).toBe('2');
+        expect(updated.rangeText).toBe('5-7');
+        expect(updated.color).toBe('#111111');
+
+        expect(vaRRI.removeSubsequenceHighlight(added.id)).toBe(true);
+        expect(vaRRI.getSubsequenceHighlights()).toHaveLength(0);
+    });
+
+    test('validates highlight ranges against sequence context', () => {
+        expect(() => vaRRI.registerSubsequenceHighlight(
+            { sequence: '1', range: '-2-3', color: '#000000' },
+            { '1': { offset: -2, length: 4 } }
+        )).toThrow(/valid sequence indices/);
+    });
+});
+
 // ---------------------------------------------------------------------------
 // listIntermolNodes
 // ---------------------------------------------------------------------------
@@ -576,6 +626,21 @@ describe('validate', () => {
         expect(v.highlightSubseq1).toEqual([[2, 4]]);
     });
 
+    test('accepts generic subsequenceHighlights objects', () => {
+        const v = vaRRI.validate({
+            ...base2mol,
+            subsequenceHighlights: [
+                { sequence: '1', range: '2-4', color: '#123456' },
+                { sequence: '2', range: '1-2', color: '#654321' },
+            ],
+        });
+
+        expect(v.subsequenceHighlights).toHaveLength(2);
+        expect(v.subsequenceHighlights[0].sequence).toBe('1');
+        expect(v.subsequenceHighlights[0].color).toBe('#123456');
+        expect(v.subsequenceHighlights[1].sequence).toBe('2');
+    });
+
     test('parses negative highlightSubseq ranges with negative sequence start index', () => {
         const v = vaRRI.validate({ ...base2mol, startIndex1: '-2', highlightSubseq1: '-2-2' });
         expect(v.highlightSubseq1).toEqual([[-2, 2]]);
@@ -710,13 +775,15 @@ function createIndexHtmlSandbox() {
         'sequence',
         'startIndex1',
         'startIndex2',
-        'highlightSubseq1',
-        'highlightSubseq2',
+        'highlightSequence',
+        'highlightRange',
+        'highlightColor',
     ]);
 
     function makeWrap() {
         const tooltip = { textContent: '' };
         return {
+            __tooltip: tooltip,
             classList: {
                 add: jest.fn(),
                 remove: jest.fn(),
@@ -733,16 +800,26 @@ function createIndexHtmlSandbox() {
             checked,
             tagName,
             type,
+            children: [],
+            dataset: {},
             innerHTML: '',
             className: '',
             textContent: '',
             style: {},
             listeners: {},
+            classList: {
+                add: jest.fn(),
+                remove: jest.fn(),
+            },
             addEventListener(eventName, handler) {
                 if (!this.listeners[eventName]) {
                     this.listeners[eventName] = [];
                 }
                 this.listeners[eventName].push(handler);
+            },
+            appendChild(child) {
+                this.children.push(child);
+                return child;
             },
             trigger(eventName, event = {}) {
                 (this.listeners[eventName] || []).forEach(handler => handler(event));
@@ -751,6 +828,7 @@ function createIndexHtmlSandbox() {
                 return selector === '.input-wrap' ? wrap : null;
             },
             querySelector: jest.fn(() => null),
+            __wrap: wrap,
         };
     }
 
@@ -759,19 +837,24 @@ function createIndexHtmlSandbox() {
         sequence: makeElement('sequence', { tagName: 'TEXTAREA' }),
         startIndex1: makeElement('startIndex1', { value: '1', type: 'number' }),
         startIndex2: makeElement('startIndex2', { value: '1', type: 'number' }),
-        labelInterval: makeElement('labelInterval', { value: '10', type: 'number' }),
+        cropping: makeElement('cropping', { value: '-1', type: 'range' }),
+        'cropping-value': makeElement('cropping-value', { tagName: 'SPAN' }),
         coloring: makeElement('coloring', { value: 'strand', tagName: 'SELECT' }),
         highlighting: makeElement('highlighting', { value: 'region', tagName: 'SELECT' }),
         backgroundhighlighting: makeElement('backgroundhighlighting', { value: 'basepairs', tagName: 'SELECT' }),
         guBasepairs: makeElement('guBasepairs', { checked: true, type: 'checkbox' }),
-        highlightSubseq1: makeElement('highlightSubseq1'),
-        highlightSubseq2: makeElement('highlightSubseq2'),
+        highlightSequence: makeElement('highlightSequence', { value: '1', tagName: 'SELECT' }),
+        highlightRange: makeElement('highlightRange'),
+        highlightColor: makeElement('highlightColor', { value: '#000000', type: 'color' }),
+        highlightEditId: makeElement('highlightEditId', { value: '', type: 'hidden' }),
+        highlightSubmitBtn: makeElement('highlightSubmitBtn', { tagName: 'BUTTON' }),
+        highlightCancelBtn: makeElement('highlightCancelBtn', { tagName: 'BUTTON' }),
+        'highlight-list': makeElement('highlight-list', { tagName: 'UL' }),
         animation: makeElement('animation', { type: 'checkbox' }),
         'color-seq1': makeElement('color-seq1', { value: '#000000', type: 'color' }),
         'color-seq2': makeElement('color-seq2', { value: '#000000', type: 'color' }),
         'color-intermol': makeElement('color-intermol', { value: '#000000', type: 'color' }),
         'color-bg': makeElement('color-bg', { value: '#000000', type: 'color' }),
-        'color-subseq': makeElement('color-subseq', { value: '#000000', type: 'color' }),
         'color-basepair': makeElement('color-basepair', { value: '#000000', type: 'color' }),
         'rotation-slider': makeElement('rotation-slider', { value: '0', type: 'range' }),
         rna_ss: makeElement('rna_ss', { tagName: 'DIV' }),
@@ -782,6 +865,8 @@ function createIndexHtmlSandbox() {
     let nextTimerId = 1;
     const timers = new Map();
     const scheduledDelays = [];
+    const highlightStore = [];
+    let nextHighlightId = 1;
     const vaRRIStub = {
         getColors: jest.fn(() => ({
             sequence1: '#000000',
@@ -795,9 +880,43 @@ function createIndexHtmlSandbox() {
         validateSequenceInput: jest.fn(v => v),
         validateStructureInput: jest.fn(v => v),
         validateOffset: jest.fn(v => Number(v)),
-        parseSubsequences: jest.fn(() => null),
         validate: jest.fn(args => args),
         render: jest.fn(() => Promise.resolve({ cancelled: false })),
+        clearSubsequenceHighlights: jest.fn(() => {
+            highlightStore.length = 0;
+            nextHighlightId = 1;
+        }),
+        getSubsequenceHighlights: jest.fn(() =>
+            highlightStore.map(h => ({ ...h, ranges: h.ranges.map(([a, b]) => [a, b]) }))
+        ),
+        registerSubsequenceHighlight: jest.fn((input) => {
+            const item = {
+                id: nextHighlightId++,
+                sequence: String(input.sequence),
+                ranges: [[1, 2]],
+                rangeText: String(input.range),
+                color: input.color || '#000000',
+            };
+            highlightStore.push(item);
+            return { ...item, ranges: item.ranges.map(([a, b]) => [a, b]) };
+        }),
+        updateSubsequenceHighlight: jest.fn((id, patch) => {
+            const idx = highlightStore.findIndex(h => h.id === id);
+            if (idx === -1) throw new Error('not found');
+            highlightStore[idx] = {
+                ...highlightStore[idx],
+                sequence: patch.sequence !== undefined ? String(patch.sequence) : highlightStore[idx].sequence,
+                rangeText: patch.range !== undefined ? String(patch.range) : highlightStore[idx].rangeText,
+                color: patch.color !== undefined ? patch.color : highlightStore[idx].color,
+            };
+            return { ...highlightStore[idx], ranges: highlightStore[idx].ranges.map(([a, b]) => [a, b]) };
+        }),
+        removeSubsequenceHighlight: jest.fn((id) => {
+            const idx = highlightStore.findIndex(h => h.id === id);
+            if (idx === -1) return false;
+            highlightStore.splice(idx, 1);
+            return true;
+        }),
         rotateVisualization: jest.fn(),
         normaliseRotationDegrees: jest.fn(v => v),
         downloadSVG: jest.fn(),
@@ -810,19 +929,19 @@ function createIndexHtmlSandbox() {
             getElementById: jest.fn(id => elements[id] || null),
             querySelectorAll: jest.fn(() => []),
             createElement: jest.fn(tag => {
-                if (tag !== 'canvas') {
-                    throw new Error(`Unexpected element creation: ${tag}`);
+                if (tag === 'canvas') {
+                    return {
+                        width: 0,
+                        height: 0,
+                        getContext: () => ({
+                            fillStyle: '',
+                            fillRect: () => {},
+                            getImageData: () => ({ data: [0, 0, 0, 255] }),
+                        }),
+                    };
                 }
 
-                return {
-                    width: 0,
-                    height: 0,
-                    getContext: () => ({
-                        fillStyle: '',
-                        fillRect: () => {},
-                        getImageData: () => ({ data: [0, 0, 0, 255] }),
-                    }),
-                };
+                return makeElement(`created-${tag}`, { tagName: tag.toUpperCase() });
             }),
         },
         window: {
@@ -864,8 +983,8 @@ describe('index.html auto visualization UI', () => {
 
     test('registers commit-based listeners for typed fields and change listeners for toggles', () => {
         const { elements, loadHandlers } = createIndexHtmlSandbox();
-        const committedFields = ['structure', 'sequence', 'startIndex1', 'startIndex2', 'labelInterval', 'highlightSubseq1', 'highlightSubseq2'];
-        const enterCommittedFields = ['startIndex1', 'startIndex2', 'labelInterval', 'highlightSubseq1', 'highlightSubseq2'];
+        const committedFields = ['structure', 'sequence', 'cropping', 'startIndex1', 'startIndex2'];
+        const enterCommittedFields = ['cropping', 'startIndex1', 'startIndex2'];
         const immediateFields = ['coloring', 'highlighting', 'backgroundhighlighting', 'guBasepairs', 'animation'];
 
         expect(loadHandlers).toHaveLength(1);
@@ -882,6 +1001,9 @@ describe('index.html auto visualization UI', () => {
 
         expect(elements.structure.listeners.keydown).toBeUndefined();
         expect(elements.sequence.listeners.keydown).toBeUndefined();
+
+        expect(elements.highlightSubmitBtn.listeners.click).toHaveLength(1);
+        expect(elements.highlightCancelBtn.listeners.click).toHaveLength(1);
 
         immediateFields.forEach(id => {
             expect(elements[id].listeners.change).toHaveLength(1);
@@ -946,5 +1068,47 @@ describe('index.html auto visualization UI', () => {
 
         expect(vaRRIStub.validate).toHaveBeenCalledTimes(3);
         expect(vaRRIStub.render).toHaveBeenCalledTimes(3);
+    });
+
+    test('clears highlight form fields after successful add', () => {
+        const { elements, loadHandlers, vaRRIStub } = createIndexHtmlSandbox();
+
+        expect(loadHandlers).toHaveLength(1);
+        loadHandlers[0]();
+
+        elements.highlightSequence.value = '2';
+        elements.highlightRange.value = '3-8';
+        elements.highlightColor.value = '#112233';
+
+        elements.highlightSubmitBtn.trigger('click', {
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        });
+
+        expect(vaRRIStub.registerSubsequenceHighlight).toHaveBeenCalledTimes(1);
+        expect(elements.highlightEditId.value).toBe('');
+        expect(elements.highlightSequence.value).toBe('1');
+        expect(elements.highlightRange.value).toBe('');
+        expect(elements.highlightSubmitBtn.textContent).toBe('Add');
+    });
+
+    test('shows invalid range message on range input when parser mentions sequence indices', () => {
+        const { elements, loadHandlers, vaRRIStub } = createIndexHtmlSandbox();
+
+        expect(loadHandlers).toHaveLength(1);
+        loadHandlers[0]();
+
+        elements.highlightRange.value = '-2-3';
+        vaRRIStub.registerSubsequenceHighlight.mockImplementation(() => {
+            throw new Error('Invalid subsequence range: "-2-3". Range endpoints must be valid sequence indices.');
+        });
+
+        elements.highlightSubmitBtn.trigger('click', {
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        });
+
+        expect(elements.highlightRange.__wrap.classList.add).toHaveBeenCalledWith('has-error');
+        expect(elements.highlightRange.__wrap.__tooltip.textContent).toMatch(/valid sequence indices/);
     });
 });

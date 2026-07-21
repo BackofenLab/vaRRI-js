@@ -33,44 +33,40 @@
 </header>
 
 <main>
-  <!-- ================================================================== -->
-  <!-- Input panel                                                          -->
-  <!-- ================================================================== -->
-  <aside class="panel">
-    <h2>Input</h2>
+  <div class="controls-column">
+    <!-- ================================================================== -->
+    <!-- Input panel                                                          -->
+    <!-- ================================================================== -->
+    <aside class="panel control-panel">
+      <details class="control-group" open>
+        <summary>Input</summary>
+        <div class="control-group-body">
+        <!-- Quick examples -->
+        <label>Example</label>
+        <div class="examples">
+          <button class="example-btn" onclick="loadExample('2mol')">RNA-RNA interaction</button>
+          <!--
+            <button class="example-btn" onclick="loadExample('1mol')">nested</button>
+            <button class="example-btn" onclick="loadExample('pseudoknot')">pseudoknot</button>
+            -->
+          <button class="btn btn-sm" onclick="clearAll()" style="background:#d8e5f1;color:#1c2b39">✕ Clear</button>
+        </div>
 
-    <!-- Quick examples -->
-    <label>Example</label>
-    <div class="examples">
-      <button class="example-btn" onclick="loadExample('2mol')">RNA-RNA interaction</button>
-      <!--
-        <button class="example-btn" onclick="loadExample('1mol')">nested</button>
-        <button class="example-btn" onclick="loadExample('pseudoknot')">pseudoknot</button>
-        -->
-      <button class="btn btn-sm" onclick="clearAll()" style="background:#d8e5f1;color:#1c2b39">✕ Clear</button>
-    </div>
-    
-    <!-- Sequence -->
-    <label for="sequence">
-      Sequence <small>(IUPAC; separate two molecules with &amp;)</small>
-    </label>
-    <div class="input-wrap"><textarea id="sequence" rows="3"
-      placeholder="ACGAUCAGAGAUUAGAGCAUACGACAGCAG&ACGAAAAGAGCAUACGACAGUAG"></textarea><span class="field-tooltip"></span></div>
-    
-      <div class="row-4">
-      <!-- Start indices -->
-      <label for="startIndex1">Start 1</label>
-      <input type="number" id="startIndex1" value="1" /><span class="field-tooltip"></span>
-      <label for="startIndex2">Start 2</label>
-      <input type="number" id="startIndex2" value="1" /><span class="field-tooltip"></span>
-      <!--
-        <div class="input-line">
+        <!-- Sequence -->
+        <label for="sequence">
+          Sequence <small>(IUPAC; separate two molecules with &amp;)</small>
+        </label>
+        <div class="input-wrap"><textarea id="sequence" rows="3"
+          placeholder="ACGAUCAGAGAUUAGAGCAUACGACAGCAG&ACGAAAAGAGCAUACGACAGUAG"></textarea><span class="field-tooltip"></span></div>
+
+        <div class="row-4">
+          <!-- Start indices -->
+          <label for="startIndex1">Start 1</label>
+          <input type="number" id="startIndex1" value="1" /><span class="field-tooltip"></span>
+          <label for="startIndex2">Start 2</label>
+          <input type="number" id="startIndex2" value="1" /><span class="field-tooltip"></span>
         </div>
-        <div class="input-line">
-        </div>
-        -->
-    </div>
-    
+
         <!-- Structure -->
         <label for="structure">
           Structure <small>(dot-bracket; separate two molecules with &amp;)</small>
@@ -78,59 +74,105 @@
         <div class="input-wrap"><textarea id="structure" rows="3"
           placeholder="..(((((....)))))(((....)))..&..(((......))).."></textarea><span class="field-tooltip"></span></div>
 
-    
-    <!-- Coloring -->
-    <label for="coloring">Coloring</label>
-    <select id="coloring">
-      <option value="strand" selected>strand (seq1=blue, seq2=yellow)</option>
-      <option value="loop">loop (Fornac default)</option>
-    </select>
+        </div>
+      </details>
 
-    <div class="row-2">
-      <div>
-        <!-- Base Cirle Highlighting -->
-        <label for="highlighting">Nucleotide highlighting</label>
-        <select id="highlighting">
-          <option value="region" selected>region</option>
-          <option value="basepairs">basepairs</option>
-          <option value="nothing">nothing</option>
-        </select>
-      </div>
-      <div>
-        <!-- Background highlighting -->
-        <label for="backgroundhighlighting">Background highlighting</label>
-        <select id="backgroundhighlighting">
-          <option value="basepairs" selected>basepairs</option>
-          <option value="region">region</option>
-          <option value="nothing">nothing</option>
-        </select>
-      </div>
-    </div>
+      <div id="msg"></div>
+    </aside>
 
-    <!-- G-U basepairs -->
-    <div class="checkbox-row">
-      <input type="checkbox" id="guBasepairs" checked />
-      <label for="guBasepairs" style="margin:0">Show G-U basepairs as dashed lines</label>
-    </div>
+    <!-- ================================================================== -->
+    <!-- Visualization panel                                                 -->
+    <!-- ================================================================== -->
+    <aside class="panel control-panel">
+      <details class="control-group">
+        <summary>Visualization</summary>
+        <div class="control-group-body">
+          <div class="label-dropdown-row">
+            <label for="coloring">Nucleotide color</label>
+            <select id="coloring">
+              <option value="strand" selected>by sequence</option>
+              <option value="loop">by loop type</option>
+            </select>
+          </div>
 
-    <!-- Subsequence highlights -->
-    <label for="highlightSubseq1">
-      Highlight subseq in mol. 1 <small>(e.g. 3-8 or 3-8,15-20)</small>
-    </label>
-    <div class="input-wrap"><input type="text" id="highlightSubseq1" placeholder="e.g. 3-8" /><span class="field-tooltip"></span></div>
+          <label for="highlighting">Highlighting</label>
+          <div class="label-dropdown-row">
+            <label for="highlighting">&thinsp;&thinsp;&thinsp;of RRI Nucleotide</label>
+            <select id="highlighting">
+              <option value="region" selected>region</option>
+              <option value="basepairs">basepairs</option>
+              <option value="nothing">nothing</option>
+            </select>
+          </div>
 
-    <label for="highlightSubseq2">
-      Highlight subseq in mol. 2 <small>(e.g. 2-5)</small>
-    </label>
-    <div class="input-wrap"><input type="text" id="highlightSubseq2" placeholder="e.g. 2-5" /><span class="field-tooltip"></span></div>
+          <div class="label-dropdown-row">
+            <label for="backgroundhighlighting">&thinsp;&thinsp;&thinsp;of RRI Background</label>
+            <select id="backgroundhighlighting">
+              <option value="basepairs" selected>basepairs</option>
+              <option value="region">region</option>
+              <option value="nothing">nothing</option>
+            </select>
+          </div>
 
-    <!-- Animation -->
-    <div class="checkbox-row">
-      <input type="checkbox" id="animation" />
-      <label for="animation" style="margin:0">Enable Fornac force-layout animation</label>
-    </div>
-    <div id="msg"></div>
-  </aside>
+          <div class="checkbox-row">
+            <input type="checkbox" id="guBasepairs" checked />
+            <label for="guBasepairs" style="margin:0">Show G-U basepairs as dashed lines</label>
+          </div>
+
+          <div class="checkbox-row">
+            <input type="checkbox" id="animation" />
+            <label for="animation" style="margin:0">Enable Fornac force-layout animation</label>
+          </div>
+        </div>
+      </details>
+    </aside>
+
+    <!-- ================================================================== -->
+    <!-- Highlighting panel                                                  -->
+    <!-- ================================================================== -->
+    <aside class="panel control-panel">
+      <details class="control-group" open>
+        <summary>Highlighting</summary>
+        <div class="control-group-body">
+          <ul id="highlight-list" class="highlight-list" aria-label="Registered subsequence highlights"></ul>
+
+          <input type="hidden" id="highlightEditId" value="" />
+
+          <div class="highlightInput">
+            <div>
+              <label for="highlightSequence">Seq.</label>
+              <div class="input-wrap">
+                <select id="highlightSequence">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                </select>
+                <span class="field-tooltip"></span>
+              </div>
+            </div>
+            <div>
+              <label for="highlightRange">Range</label>
+              <div class="input-wrap">
+                <input type="text" id="highlightRange" placeholder="e.g. 3-8" />
+                <span class="field-tooltip"></span>
+              </div>
+            </div>
+            <div>
+              <label for="highlightColor">Color</label>
+              <div class="input-wrap">
+                <input type="color" id="highlightColor" />
+                <span class="field-tooltip"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="highlightSubmitBtn" class="btn btn-primary btn-sm" type="button">Add</button>
+            <button id="highlightCancelBtn" class="btn btn-sm" type="button" style="background:#d8e5f1;color:#1c2b39">Cancel</button>
+          </div>
+        </div>
+      </details>
+    </aside>
+  </div>
 
   <!-- ================================================================== -->
   <!-- Result panel                                                         -->
@@ -162,14 +204,14 @@
                             onchange="applyColors(); runVisualization();" />
               <label for="color-seq1"
                 onmouseenter="this.title = document.getElementById('color-seq1')?.getAttribute('title') || '';"
-                onclick="document.getElementById('color-seq1').click();">Sequence 1 (strand)</label>
+                onclick="document.getElementById('color-seq1').click();">Sequence 1</label>
         </div>
         <div class="legend-item">
           <input type="color" id="color-seq2" class="legend-color"
                  title="Select sequence 2 strand colour" onchange="applyColors(); runVisualization();" />
            <label for="color-seq2"
              onmouseenter="this.title = document.getElementById('color-seq2')?.getAttribute('title') || '';"
-             onclick="document.getElementById('color-seq2').click();">Sequence 2 (strand)</label>
+             onclick="document.getElementById('color-seq2').click();">Sequence 2</label>
         </div>
         <div class="legend-item">
           <input type="color" id="color-basepair" class="legend-color-rect"
@@ -179,25 +221,18 @@
              onclick="document.getElementById('color-basepair').click();">Base pair</label>
         </div>
         <div class="legend-item">
-          <input type="color" id="color-subseq" class="legend-color"
-                 title="Select subsequence highlight colour" onchange="applyColors(); runVisualization();" />
-           <label for="color-subseq"
-             onmouseenter="this.title = document.getElementById('color-subseq')?.getAttribute('title') || '';"
-             onclick="document.getElementById('color-subseq').click();">Subsequence highlight</label>
-        </div>
-        <div class="legend-item">
           <input type="color" id="color-intermol" class="legend-color"
                  title="Select nucleotide highlight colour" onchange="applyColors(); runVisualization();" />
            <label for="color-intermol"
              onmouseenter="this.title = document.getElementById('color-intermol')?.getAttribute('title') || '';"
-             onclick="document.getElementById('color-intermol').click();">Nucleotide highlight</label>
+             onclick="document.getElementById('color-intermol').click();">RRI Nucleotide</label>
         </div>
         <div class="legend-item">
           <input type="color" id="color-bg" class="legend-color-rect"
                  title="Select background highlight colour" onchange="applyColors(); runVisualization();" />
            <label for="color-bg"
              onmouseenter="this.title = document.getElementById('color-bg')?.getAttribute('title') || '';"
-             onclick="document.getElementById('color-bg').click();">Background highlight</label>
+             onclick="document.getElementById('color-bg').click();">RRI Background</label>
         </div>
       </div>
     </div>
@@ -210,6 +245,7 @@
     </div>
 
   </section>
+
 </main>
 
 <footer class="site-footer" aria-label="Service information">
@@ -272,8 +308,9 @@
     document.getElementById('highlighting').value      = ex.highlighting;
     document.getElementById('backgroundhighlighting').value = ex.backgroundhighlighting;
     document.getElementById('guBasepairs').checked     = ex.guBasepairs;
-    document.getElementById('highlightSubseq1').value  = '';
-    document.getElementById('highlightSubseq2').value  = '';
+    vaRRI.clearSubsequenceHighlights();
+    renderHighlightList();
+    resetHighlightForm();
     runVisualization();
   }
 
@@ -306,7 +343,7 @@
     document.getElementById('color-seq2').value     = cssColorToHex(c.sequence2);
     document.getElementById('color-intermol').value = cssColorToHex(c.intermolecularHighlight);
     document.getElementById('color-bg').value       = cssColorToHex(c.backgroundHighlight);
-    document.getElementById('color-subseq').value   = cssColorToHex(c.subsequenceHighlight);
+    document.getElementById('highlightColor').value = getDefaultSubsequenceHighlightColor();
     document.getElementById('color-basepair').value = cssColorToHex(c.basepair);
   }
 
@@ -316,7 +353,7 @@
       sequence2:              document.getElementById('color-seq2').value,
       intermolecularHighlight: document.getElementById('color-intermol').value,
       backgroundHighlight:    document.getElementById('color-bg').value,
-      subsequenceHighlight:   document.getElementById('color-subseq').value,
+      subsequenceHighlight:   document.getElementById('highlightColor').value,
       basepair:               document.getElementById('color-basepair').value,
     });
   }
@@ -329,6 +366,13 @@
   let autoVisualizationTimeoutId = null;
   let latestVisualizationRunId = 0;
   const skipNextCommittedFieldChange = new WeakMap();
+  let defaultSubsequenceHighlightColor = null;
+
+  function getDefaultSubsequenceHighlightColor() {
+    if (defaultSubsequenceHighlightColor !== null) return defaultSubsequenceHighlightColor;
+    defaultSubsequenceHighlightColor = cssColorToHex(vaRRI.getColors().subsequenceHighlight);
+    return defaultSubsequenceHighlightColor;
+  }
 
   function showMsg(text, type) {
     const el = document.getElementById('msg');
@@ -345,8 +389,9 @@
   function clearAll() {
     document.getElementById('structure').value = '';
     document.getElementById('sequence').value  = '';
-    document.getElementById('highlightSubseq1').value = '';
-    document.getElementById('highlightSubseq2').value = '';
+    vaRRI.clearSubsequenceHighlights();
+    renderHighlightList();
+    resetHighlightForm();
     const container = document.getElementById('rna_ss');
     container.innerHTML = '';
     container.style.visibility = '';
@@ -421,6 +466,153 @@
     });
   }
 
+  function getBaseVisualizationArgs() {
+    return {
+      structure:              document.getElementById('structure').value.trim(),
+      sequence:               document.getElementById('sequence').value.trim(),
+      startIndex1:            document.getElementById('startIndex1').value.trim() || '1',
+      startIndex2:            document.getElementById('startIndex2').value.trim() || '1',
+      cropping:               document.getElementById('cropping').value.trim() || '-1',
+      labelInterval:          '10',
+      coloring:               document.getElementById('coloring').value,
+      highlighting:           document.getElementById('highlighting').value,
+      backgroundhighlighting: document.getElementById('backgroundhighlighting').value,
+      guBasepairs:            document.getElementById('guBasepairs').checked,
+    };
+  }
+
+  function getHighlightSequenceContext() {
+    const baseArgs = getBaseVisualizationArgs();
+    const v = vaRRI.validate(baseArgs);
+    return {
+      '1': { offset: v.offset1, length: v.sequence1.length },
+      '2': { offset: v.offset2, length: v.sequence2.length },
+    };
+  }
+
+  function resetHighlightForm() {
+    document.getElementById('highlightEditId').value = '';
+    document.getElementById('highlightSequence').value = '1';
+    document.getElementById('highlightRange').value = '';
+    document.getElementById('highlightColor').value = getDefaultSubsequenceHighlightColor();
+    document.getElementById('highlightSubmitBtn').textContent = 'Add';
+    clearFieldError('highlightSequence');
+    clearFieldError('highlightRange');
+    clearFieldError('highlightColor');
+    document.querySelectorAll('.highlight-item.active').forEach(el => el.classList.remove('active'));
+  }
+
+  function renderHighlightList() {
+    const listEl = document.getElementById('highlight-list');
+    const highlights = vaRRI.getSubsequenceHighlights();
+
+    if (highlights.length === 0) {
+      listEl.innerHTML = '<li class="highlight-empty">No highlights defined.</li>';
+      return;
+    }
+
+    listEl.innerHTML = '';
+    highlights.forEach(highlight => {
+      const item = document.createElement('li');
+      item.className = 'highlight-item';
+      item.dataset.highlightId = String(highlight.id);
+
+      const info = document.createElement('button');
+      info.type = 'button';
+      info.className = 'highlight-item-main';
+      info.textContent = `Seq ${highlight.sequence} | ${highlight.rangeText} | ${highlight.color}`;
+      info.style.borderLeft = `10px solid ${highlight.color}`;
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'highlight-delete';
+      removeBtn.setAttribute('aria-label', `Remove highlight ${highlight.id}`);
+      removeBtn.textContent = '🗑️'; // trash can icon
+      removeBtn.title = 'Remove highlight';
+
+      info.addEventListener('click', () => {
+        document.querySelectorAll('.highlight-item.active').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
+        document.getElementById('highlightEditId').value = String(highlight.id);
+        document.getElementById('highlightSequence').value = highlight.sequence;
+        document.getElementById('highlightRange').value = highlight.rangeText;
+        document.getElementById('highlightColor').value = cssColorToHex(highlight.color);
+        document.getElementById('highlightSubmitBtn').textContent = 'Update';
+        clearFieldError('highlightSequence');
+        clearFieldError('highlightRange');
+        clearFieldError('highlightColor');
+      });
+
+      removeBtn.addEventListener('click', () => {
+        const removed = vaRRI.removeSubsequenceHighlight(highlight.id);
+        if (!removed) return;
+        if (document.getElementById('highlightEditId').value === String(highlight.id)) {
+          resetHighlightForm();
+        }
+        renderHighlightList();
+        runVisualization();
+      });
+
+      item.appendChild(info);
+      item.appendChild(removeBtn);
+      listEl.appendChild(item);
+    });
+  }
+
+  function submitHighlightForm(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    clearFieldError('highlightSequence');
+    clearFieldError('highlightRange');
+    clearFieldError('highlightColor');
+
+    const sequence = document.getElementById('highlightSequence').value;
+    const range = document.getElementById('highlightRange').value.trim();
+    const color = document.getElementById('highlightColor').value;
+    const editIdRaw = document.getElementById('highlightEditId').value;
+
+    if (!range) {
+      setFieldError('highlightRange', 'Highlight range must not be empty.');
+      return;
+    }
+
+    let sequenceContext;
+    try {
+      sequenceContext = getHighlightSequenceContext();
+    } catch (err) {
+      showMsg('Please fix sequence/structure inputs first: ' + err.message, 'error');
+      return;
+    }
+
+    try {
+      if (editIdRaw) {
+        vaRRI.updateSubsequenceHighlight(Number(editIdRaw), { sequence, range, color }, sequenceContext);
+      } else {
+        vaRRI.registerSubsequenceHighlight({ sequence, range, color }, sequenceContext);
+      }
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+
+      // Route parsing/validation failures for the range text box to the
+      // range field, even when the message mentions "sequence indices".
+      const isSequenceSelectorError = /must be "1" or "2"/i.test(message);
+      const isColorError = /color/i.test(message);
+
+      if (isSequenceSelectorError) setFieldError('highlightSequence', message);
+      else if (isColorError) setFieldError('highlightColor', message);
+      else setFieldError('highlightRange', message);
+      return;
+    }
+
+    // Reset first so the form is cleared even if later UI updates fail.
+    resetHighlightForm();
+    renderHighlightList();
+    runVisualization();
+  }
+
   function validateFields(args) {
     clearAllFieldErrors();
     let valid = true;
@@ -467,18 +659,6 @@
     try { offset2 = vaRRI.validateOffset(String(args.startIndex2 || '1')); }
     catch (e) { setFieldError('startIndex2', e.message); valid = false; }
 
-    const [seq1, seq2] = vaRRI.splitAtAmpersand(args.sequence || '');
-
-    // Subsequence highlights
-    if (args.highlightSubseq1) {
-      try { vaRRI.parseSubsequences(args.highlightSubseq1, offset1, seq1.length); }
-      catch (e) { setFieldError('highlightSubseq1', e.message); valid = false; }
-    }
-    if (args.highlightSubseq2) {
-      try { vaRRI.parseSubsequences(args.highlightSubseq2, offset2, seq2.length); }
-      catch (e) { setFieldError('highlightSubseq2', e.message); valid = false; }
-    }
-
     return valid;
   }
 
@@ -487,18 +667,12 @@
     applyColors();
 
     const args = {
-      structure:              document.getElementById('structure').value.trim(),
-      sequence:               document.getElementById('sequence').value.trim(),
-      startIndex1:            document.getElementById('startIndex1').value.trim() || '1',
-      startIndex2:            document.getElementById('startIndex2').value.trim() || '1',
-      cropping:               document.getElementById('cropping').value.trim() || '-1',
-      labelInterval:          '10',
-      coloring:               document.getElementById('coloring').value,
-      highlighting:           document.getElementById('highlighting').value,
-      backgroundhighlighting: document.getElementById('backgroundhighlighting').value,
-      guBasepairs:            document.getElementById('guBasepairs').checked,
-      highlightSubseq1:       document.getElementById('highlightSubseq1').value.trim() || null,
-      highlightSubseq2:       document.getElementById('highlightSubseq2').value.trim() || null,
+      ...getBaseVisualizationArgs(),
+      subsequenceHighlights: vaRRI.getSubsequenceHighlights().map(highlight => ({
+        sequence: highlight.sequence,
+        range: highlight.ranges,
+        color: highlight.color,
+      })),
     };
 
     if (!validateFields(args)) return;
@@ -556,8 +730,6 @@
       'cropping',
       'startIndex1',
       'startIndex2',
-      'highlightSubseq1',
-      'highlightSubseq2',
     ];
     const listenerConfig = {
       coloring: { eventName: 'change' },
@@ -632,6 +804,13 @@
   window.addEventListener('load', () => {
     // Initialise colour pickers from the vaRRI.js defaults
     initColorPickers();
+    resetHighlightForm();
+    renderHighlightList();
+
+    const submitBtn = document.getElementById('highlightSubmitBtn');
+    const cancelBtn = document.getElementById('highlightCancelBtn');
+    if (submitBtn) submitBtn.addEventListener('click', submitHighlightForm);
+    if (cancelBtn) cancelBtn.addEventListener('click', resetHighlightForm);
 
     attachAutoVisualizationListeners();
 

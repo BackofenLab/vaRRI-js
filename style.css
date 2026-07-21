@@ -79,12 +79,56 @@ header p  { font-size: 0.9rem; opacity: 0.88; color: #d9e8f6; }
 }
 
 main {
-  max-width: 1100px;
+  width: 100%;
+  max-width: 1360px;
   margin: 1.5rem auto;
   padding: 0 1rem;
   display: grid;
-  grid-template-columns: 380px 1fr;
+  grid-template-columns: minmax(360px, 380px) auto;
+  justify-content: start;
+  align-items: flex-start;
   gap: 1.5rem;
+  overflow-x: auto;
+}
+
+.controls-column {
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.control-panel {
+  padding: .85rem;
+}
+
+.control-group {
+  border: 1px solid #dbe6f0;
+  border-radius: 8px;
+  background: #fbfdff;
+  overflow: hidden;
+}
+
+.control-group > summary {
+  cursor: pointer;
+  padding: .6rem .8rem;
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--brand-blue-dark);
+  user-select: none;
+}
+
+.control-group > summary::-webkit-details-marker {
+  margin-right: .35rem;
+}
+
+.control-group[open] > summary {
+  border-bottom: 1px solid #dbe6f0;
+  background: #f3f8fd;
+}
+
+.control-group-body {
+  padding: .8rem .8rem .35rem;
 }
 
 /* ------------------------------------------------------------------ */
@@ -156,6 +200,22 @@ textarea { resize: vertical; }
   gap: .5rem;
 }
 
+.label-dropdown-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .6rem;
+  align-items: center;
+  margin-bottom: .55rem;
+}
+
+.label-dropdown-row > label {
+  margin: 0;
+}
+
+.label-dropdown-row > select {
+  margin-bottom: 0;
+}
+
 .checkbox-row {
   display: flex;
   align-items: center;
@@ -221,10 +281,87 @@ textarea { resize: vertical; }
 .result-panel {
   display: flex;
   flex-direction: column;
+  width: min(600px, calc(100vw - 470px));
   resize: both;
   overflow: auto;
-  min-width: 420px;
+  min-width: 460px;
   min-height: 520px;
+}
+
+.highlight-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  background: #fcfdff;
+}
+
+.highlight-empty {
+  padding: .6rem .7rem;
+  color: #5d6f81;
+  font-size: .84rem;
+}
+
+.highlight-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .4rem;
+  padding: .3rem;
+  border-bottom: 1px solid #e4ecf4;
+}
+
+.highlight-item:last-child {
+  border-bottom: none;
+}
+
+.highlight-item-main {
+  text-align: left;
+  border: 1px solid #d7e2ee;
+  border-radius: 5px;
+  background: #fff;
+  color: #1f3144;
+  padding: .42rem .52rem;
+  font-size: .79rem;
+  font-family: "Courier New", monospace;
+  cursor: pointer;
+}
+
+.highlight-item.active .highlight-item-main {
+  background: #eaf2f8;
+  border-color: #9fb9d4;
+}
+
+.highlight-delete {
+  border: 1px solid #d9c5c5;
+  border-radius: 5px;
+  background: #fff2f2;
+  color: #9a2e2e;
+  padding: .35rem .5rem;
+  font-size: .73rem;
+  cursor: pointer;
+}
+
+.highlight-delete:hover {
+  background: #ffe3e3;
+}
+
+.highlightInput {
+  display: grid;
+  grid-template-columns: 40px 1fr 30px;
+  gap: .45rem;
+}
+
+#highlightColor {
+  width: 100%;
+  height: 34px;
+  padding: 2px;
+  margin-bottom: .75rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  background: #fcfdff;
 }
 
 #rna_ss {
@@ -377,7 +514,7 @@ input[type="color"].legend-color-rect::-webkit-color-swatch {
 /* Footer                                                              */
 /* ------------------------------------------------------------------ */
 .site-footer {
-  max-width: 1100px;
+  width: 100%;
   margin: 0 auto 1.5rem;
   padding: .9rem 1rem 0;
 }
@@ -390,6 +527,7 @@ input[type="color"].legend-color-rect::-webkit-color-swatch {
   font-size: .82rem;
   line-height: 1.45;
   color: #30455f;
+  text-align: center;
 }
 .footer-content p + p {
   margin-top: .45rem;
@@ -463,7 +601,14 @@ input[type="color"].legend-color-rect::-webkit-color-swatch {
 /* Responsive                                                           */
 /* ------------------------------------------------------------------ */
 @media (max-width: 780px) {
-  main { grid-template-columns: 1fr; }
+  main {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+  .label-dropdown-row {
+    grid-template-columns: 1fr;
+    gap: .3rem;
+  }
   header {
     flex-direction: column;
     align-items: flex-start;

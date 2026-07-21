@@ -50,6 +50,191 @@
         basepair: 'red',
     };
 
+    /** In-memory registry of user-defined subsequence highlight objects. */
+    const SUBSEQUENCE_HIGHLIGHTS = [];
+    let _nextHighlightId = 1;
+
+    /**
+     * Return a deep-enough clone of a highlight object for external consumers.
+     *
+     * @param {Object} highlight
+     * @returns {Object}
+     */
+    function cloneSubsequenceHighlight(highlight) {
+        return {
+            id: highlight.id,
+            sequence: highlight.sequence,
+            ranges: highlight.ranges.map(([start, end]) => [start, end]),
+            color: highlight.color,
+            rangeText: highlight.rangeText,
+        };
+    }
+
+    /**
+     * Validate and normalize a sequence selector for subsequence highlighting.
+     *
+     * @param {string|number} sequence
+     * @returns {'1'|'2'}
+     */
+    function normaliseHighlightSequence(sequence) {
+        const seq = String(sequence);
+        if (seq !== '1' && seq !== '2') {
+            throw new Error('Highlight sequence must be "1" or "2".');
+        }
+        return seq;
+    }
+
+    /**
+     * Normalize and validate a highlight range input.
+     *
+     * @param {string|Array<[number, number]>} rangeInput
+     * @param {{offset:number, length:number}=} context
+     * @returns {{ranges:Array<[number, number]>, rangeText:string}}
+     */
+    function normaliseHighlightRanges(rangeInput, context) {
+        if (typeof rangeInput === 'string') {
+            const ranges = parseSubsequences(
+                rangeInput,
+                context ? context.offset : undefined,
+                context ? context.length : undefined
+            );
+            if (!ranges || ranges.length === 0) {
+                throw new Error('Highlight range must not be empty.');
+            }
+            return { ranges, rangeText: rangeInput.trim() };
+        }
+
+        if (!Array.isArray(rangeInput) || rangeInput.length === 0) {
+            throw new Error('Highlight range must not be empty.');
+        }
+
+        const ranges = rangeInput.map((pair, idx) => {
+            if (!Array.isArray(pair) || pair.length !== 2) {
+                throw new Error(`Invalid subsequence range at index ${idx}. Expected [start, end].`);
+            }
+            const start = Number(pair[0]);
+            const end = Number(pair[1]);
+            if (!Number.isInteger(start) || !Number.isInteger(end)) {
+                throw new Error(`Invalid subsequence range at index ${idx}. Range bounds must be integers.`);
+            }
+            if (start === 0 || end === 0) {
+                throw new Error(`Invalid subsequence range at index ${idx}. Index 0 is not valid.`);
+            }
+            if (start > end) {
+                throw new Error(`Invalid subsequence range at index ${idx}. Start index must be <= end index.`);
+            }
+            return [start, end];
+        });
+
+        if (context) {
+            parseSubsequences(
+                ranges.map(([start, end]) => `${start}-${end}`).join(','),
+                context.offset,
+                context.length
+            );
+        }
+
+        return {
+            ranges,
+            rangeText: ranges.map(([start, end]) => `${start}-${end}`).join(','),
+        };
+    }
+
+    /**
+     * Build a normalized subsequence-highlight object from user input.
+     *
+     * @param {{sequence:string|number, range:string|Array<[number, number]>, color?:string, id?:number}} input
+     * @param {{'1'?:{offset:number, length:number}, '2'?:{offset:number, length:number}}=} sequenceContext
+     * @returns {{id:number, sequence:'1'|'2', ranges:Array<[number, number]>, color:string, rangeText:string}}
+     */
+    function createSubsequenceHighlight(input, sequenceContext = {}) {
+        const sequence = normaliseHighlightSequence(input.sequence);
+        const context = sequenceContext[sequence];
+        const normalizedRanges = normaliseHighlightRanges(input.range, context);
+        const color = (input.color || '').trim() || COLORS.subsequenceHighlight;
+
+        return {
+            id: Number.isInteger(input.id) ? input.id : 0,
+            sequence,
+            ranges: normalizedRanges.ranges,
+            color,
+            rangeText: normalizedRanges.rangeText,
+        };
+    }
+
+    /**
+     * Register a new subsequence highlight object.
+     *
+     * @param {{sequence:string|number, range:string|Array<[number, number]>, color?:string}} input
+     * @param {{'1'?:{offset:number, length:number}, '2'?:{offset:number, length:number}}=} sequenceContext
+     * @returns {Object}
+     */
+    function registerSubsequenceHighlight(input, sequenceContext = {}) {
+        const normalized = createSubsequenceHighlight(input, sequenceContext);
+        normalized.id = _nextHighlightId++;
+        SUBSEQUENCE_HIGHLIGHTS.push(normalized);
+        return cloneSubsequenceHighlight(normalized);
+    }
+
+    /**
+     * Update an existing subsequence highlight object.
+     *
+     * @param {number} id
+     * @param {{sequence?:string|number, range?:string|Array<[number, number]>, color?:string}} patch
+     * @param {{'1'?:{offset:number, length:number}, '2'?:{offset:number, length:number}}=} sequenceContext
+     * @returns {Object}
+     */
+    function updateSubsequenceHighlight(id, patch, sequenceContext = {}) {
+        const target = SUBSEQUENCE_HIGHLIGHTS.find(h => h.id === id);
+        if (!target) {
+            throw new Error(`Highlight with id ${id} not found.`);
+        }
+
+        const normalized = createSubsequenceHighlight({
+            id,
+            sequence: patch.sequence !== undefined ? patch.sequence : target.sequence,
+            range: patch.range !== undefined ? patch.range : target.ranges,
+            color: patch.color !== undefined ? patch.color : target.color,
+        }, sequenceContext);
+
+        target.sequence = normalized.sequence;
+        target.ranges = normalized.ranges;
+        target.color = normalized.color;
+        target.rangeText = normalized.rangeText;
+
+        return cloneSubsequenceHighlight(target);
+    }
+
+    /**
+     * Remove a subsequence highlight object by id.
+     *
+     * @param {number} id
+     * @returns {boolean}
+     */
+    function removeSubsequenceHighlight(id) {
+        const idx = SUBSEQUENCE_HIGHLIGHTS.findIndex(h => h.id === id);
+        if (idx === -1) return false;
+        SUBSEQUENCE_HIGHLIGHTS.splice(idx, 1);
+        return true;
+    }
+
+    /**
+     * Remove all registered subsequence highlights.
+     */
+    function clearSubsequenceHighlights() {
+        SUBSEQUENCE_HIGHLIGHTS.length = 0;
+        _nextHighlightId = 1;
+    }
+
+    /**
+     * Read registered subsequence highlights.
+     *
+     * @returns {Array<Object>}
+     */
+    function getSubsequenceHighlights() {
+        return SUBSEQUENCE_HIGHLIGHTS.map(cloneSubsequenceHighlight);
+    }
+
     /**
      * Override one or more default rendering colours.
      *
@@ -517,8 +702,10 @@
      * @param {string} [args.highlighting="region"]  Highlighting option: `"nothing"`, `"basepairs"`, `"region"`.
      * @param {string} [args.backgroundhighlighting="basepairs"]  Background-highlighting option.
      * @param {boolean} [args.guBasepairs=true]  Whether to display G-U basepairs as dashed lines.
-     * @param {string|null} [args.highlightSubseq1=null]  Subsequence range for sequence 1 `"start-end"` or null.
-     * @param {string|null} [args.highlightSubseq2=null]  Subsequence range for sequence 2 `"start-end"` or null.
+    * @param {string|null} [args.highlightSubseq1=null]  Legacy subsequence range for sequence 1 `"start-end"` or null.
+    * @param {string|null} [args.highlightSubseq2=null]  Legacy subsequence range for sequence 2 `"start-end"` or null.
+    * @param {Array<{sequence:string|number, range:string|Array<[number, number]>, color?:string}>} [args.subsequenceHighlights=[]]
+    *     Generic subsequence-highlight definitions.
      * @returns {Object}  Validated parameter dictionary.
      * @throws {Error}  On invalid input.
      */
@@ -565,9 +752,43 @@
         v.guBasepairs = args.guBasepairs !== false; // default true
         v.labelInterval = parseInt(String(args.labelInterval || '10'), 10) || 10;
 
-        // Subsequence highlights (parse "start-end" strings)
-        v.highlightSubseq1 = parseSubsequences(args.highlightSubseq1, v.offset1, v.sequence1.length);
-        v.highlightSubseq2 = parseSubsequences(args.highlightSubseq2, v.offset2, v.sequence2.length);
+        // Subsequence highlights (generic framework + legacy compatibility)
+        const sequenceContext = {
+            '1': { offset: v.offset1, length: v.sequence1.length },
+            '2': { offset: v.offset2, length: v.sequence2.length },
+        };
+
+        if (Array.isArray(args.subsequenceHighlights)) {
+            v.subsequenceHighlights = args.subsequenceHighlights.map(h =>
+                createSubsequenceHighlight(h, sequenceContext)
+            );
+        } else {
+            const legacyHighlights = [];
+            const parsedSeq1 = parseSubsequences(args.highlightSubseq1, v.offset1, v.sequence1.length);
+            const parsedSeq2 = parseSubsequences(args.highlightSubseq2, v.offset2, v.sequence2.length);
+
+            if (parsedSeq1 !== null) {
+                legacyHighlights.push(createSubsequenceHighlight({
+                    sequence: '1',
+                    range: parsedSeq1,
+                    color: COLORS.subsequenceHighlight,
+                }, sequenceContext));
+            }
+
+            if (parsedSeq2 !== null) {
+                legacyHighlights.push(createSubsequenceHighlight({
+                    sequence: '2',
+                    range: parsedSeq2,
+                    color: COLORS.subsequenceHighlight,
+                }, sequenceContext));
+            }
+
+            v.subsequenceHighlights = legacyHighlights;
+        }
+
+        // Legacy fields are still exported for callers that rely on them.
+        v.highlightSubseq1 = (v.subsequenceHighlights.find(h => h.sequence === '1') || {}).ranges || null;
+        v.highlightSubseq2 = (v.subsequenceHighlights.find(h => h.sequence === '2') || {}).ranges || null;
 
         return v;
     }
@@ -1058,13 +1279,14 @@
     }
 
     /**
-     * Highlight a subsequence range with a purple polyline or circle overlay.
+     * Highlight subsequence ranges with polyline/circle overlays.
      *
      * @param {Object} v  Validated parameter dictionary.
      * @param {"1"|"2"} seq  Which sequence to highlight.
+     * @param {Array<[number, number]>} ranges  Parsed index ranges.
+     * @param {string} color  Highlight color.
      */
-    function highlightSubsequence(v, seq) {
-        const keyHighlight = `highlightSubseq${seq}`;
+    function highlightSubsequence(v, seq, ranges, color) {
         const keyOffset = `offset${seq}`;
 
         // Map RNA index → Fornac web node id for the relevant sequence
@@ -1077,13 +1299,13 @@
 
         const shift = seq === '2' ? v.sequence1.length + GAP : 0;
 
-        for (const [start, end] of (v[keyHighlight] || [])) {
+        for (const [start, end] of (ranges || [])) {
             const startIndex = v[keyOffset];
 
             if (start === end) {
                 const webId = indexDict[start];
                 const [x, y] = getPositionOfNode(webId);
-                addElement('circle', { cx: String(x), cy: String(y), r: '7px', style: `fill:${COLORS.subsequenceHighlight};opacity:0.3;` });
+                addElement('circle', { cx: String(x), cy: String(y), r: '7px', style: `fill:${color};opacity:0.3;` });
                 continue;
             }
 
@@ -1099,10 +1321,27 @@
             for (let i = startNode; i <= endNode; i++) indices.push(i);
 
             polyline(indices,
-                `stroke:${COLORS.subsequenceHighlight};stroke-width:10;opacity:0.3;fill:None;` +
+                `stroke:${color};stroke-width:10;opacity:0.3;fill:None;` +
                 'stroke-linejoin:miter;stroke-miterlimit:0.1;'
             );
         }
+    }
+
+    /**
+     * Apply all subsequence highlights from `v.subsequenceHighlights`.
+     *
+     * @param {Object} v
+     */
+    function applySubsequenceHighlights(v) {
+        const highlights = Array.isArray(v.subsequenceHighlights) ? v.subsequenceHighlights : [];
+        highlights.forEach(highlight => {
+            highlightSubsequence(
+                v,
+                highlight.sequence,
+                highlight.ranges,
+                highlight.color || COLORS.subsequenceHighlight
+            );
+        });
     }
 
     /**
@@ -1369,8 +1608,7 @@
             styleBasepairs(v);
 
             // Subsequence highlights
-            if (v.highlightSubseq1 !== null) highlightSubsequence(v, '1');
-            if (v.molecules === '2' && v.highlightSubseq2 !== null) highlightSubsequence(v, '2');
+            applySubsequenceHighlights(v);
 
             // Accessibility overlay
             if (accessData) {
@@ -1791,6 +2029,12 @@
         formatStructure,
         formatSequence,
         parseSubsequences,
+        createSubsequenceHighlight,
+        registerSubsequenceHighlight,
+        updateSubsequenceHighlight,
+        removeSubsequenceHighlight,
+        clearSubsequenceHighlights,
+        getSubsequenceHighlights,
 
         // Utility
         listIntermolNodes,
@@ -1812,6 +2056,7 @@
         backgroundhighlightBasepairs,
         styleBasepairs,
         highlightSubsequence,
+        applySubsequenceHighlights,
         removeDummyNodes,
         removeSecondLink,
         addStyleToNodes,
