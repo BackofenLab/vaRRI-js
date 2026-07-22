@@ -200,6 +200,54 @@ textarea { resize: vertical; }
   gap: .5rem;
 }
 
+.profile-label-with-color {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+.profile-color-picker {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid #7e92a4;
+  border-radius: 2px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.profile-color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.profile-color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 1px;
+}
+
+.profile-color-mode-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: .22rem;
+  margin-left: .1rem;
+}
+
+.profile-color-mode-checkbox {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+.profile-color-mode-text {
+  font-size: .72rem;
+  font-weight: 600;
+  color: #4f6478;
+  line-height: 1;
+}
+
 .label-dropdown-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -131,7 +131,7 @@
     <!-- Highlighting panel                                                  -->
     <!-- ================================================================== -->
     <aside class="panel control-panel">
-      <details class="control-group" open>
+      <details class="control-group">
         <summary>Highlighting of Subsequences</summary>
         <div class="control-group-body">
           <ul id="highlight-list" class="highlight-list" aria-label="Registered subsequence highlights"></ul>
@@ -182,18 +182,38 @@
         <div class="control-group-body">
           <label><small>Space-separated CSV, # comment line</small></label>
           <div class="row-2">
-            <label for="profile-data-1">Seq. 1 profile</label>
-            <label for="profile-data-2">Seq. 2 profile</label>
+            <label for="profile-data-1" class="profile-label-with-color">
+              <span>Seq. 1 profile</span>
+              <input type="color" id="profile-color-1" class="profile-color-picker" title="Accessibility color for sequence 1" />
+              <span class="profile-color-mode-wrap">
+                <span class="profile-color-mode-text">=1</span>
+                <input type="checkbox" id="profile-color-1-represents-one" class="profile-color-mode-checkbox" />
+              </span>
+            </label>
+            <label for="profile-data-2" class="profile-label-with-color">
+              <span>Seq. 2 profile</span>
+              <input type="color" id="profile-color-2" class="profile-color-picker" title="Accessibility color for sequence 2" />
+              <span class="profile-color-mode-wrap">
+                <span class="profile-color-mode-text">=1</span>
+                <input type="checkbox" id="profile-color-2-represents-one" class="profile-color-mode-checkbox" />
+              </span>
+            </label>
           </div>
           <div class="row-2">
-            <textarea id="profile-data-1" name="profile-data-1" rows="10" cols="10" wrap='off'></textarea>
-            <textarea id="profile-data-2" name="profile-data-2" rows="10" cols="10" wrap='off'>
+            <div class="input-wrap">
+              <textarea id="profile-data-1" name="profile-data-1" rows="10" cols="10" wrap='off'></textarea>
+              <span class="field-tooltip"></span>
+            </div>
+            <div class="input-wrap">
+              <textarea id="profile-data-2" name="profile-data-2" rows="10" cols="10" wrap='off'>
 # unpaired probabilities
   #i$	l=1	2	3
 1	0.9949492	NA	NA
 2	0.9949079	0.9941056	NA
 3	0.9554214	0.9518663	0.9511048		
 4	0.9165814 </textarea>
+              <span class="field-tooltip"></span>
+            </div>
           </div>
 
           <div class="row-2">
@@ -205,23 +225,30 @@
             <!-- Start index 1 -->
             <div class="row-4">
               <input type="radio" id="profile-idx-ref-1.1" name="profile-idx-ref-1" value="1" checked/>
-              <label for="profile-idx-ref-1.1">1</label>
+              <label for="profile-idx-ref-1.1">1st nt</label>
               <input type="radio" id="profile-idx-ref-1.start" name="profile-idx-ref-1" value="start" />
-              <label for="profile-idx-ref-1.start">Start</label>
+              <label for="profile-idx-ref-1.start">Start 1</label>
             </div>
             <!-- Start index 2 -->
             <div class="row-4">
               <input type="radio" id="profile-idx-ref-2.1" name="profile-idx-ref-2" value="1" checked/>
-              <label for="profile-idx-ref-2.1">1</label>
+              <label for="profile-idx-ref-2.1">1st nt</label>
               <input type="radio" id="profile-idx-ref-2.start" name="profile-idx-ref-2" value="start" />
-              <label for="profile-idx-ref-2.start">Start</label>
+              <label for="profile-idx-ref-2.start">Start 2</label>
             </div>
+          </div>
+
+          <div class="action-row">
+            <button id="profileApplyBtn" class="btn btn-primary btn-sm" type="button">Apply</button>
           </div>
 
         </div>
       </details>
     </aside>
-  </div>
+
+
+
+  </div> <!-- end of control panel -->
 
 
 
@@ -393,10 +420,29 @@
     const c = vaRRI.getColors();
     document.getElementById('color-seq1').value     = cssColorToHex(c.sequence1);
     document.getElementById('color-seq2').value     = cssColorToHex(c.sequence2);
+    document.getElementById('profile-color-1').value = cssColorToHex(c.seq1profileColor);
+    document.getElementById('profile-color-2').value = cssColorToHex(c.seq2profileColor);
+    document.getElementById('profile-color-1-represents-one').checked = false;
+    document.getElementById('profile-color-2-represents-one').checked = false;
     document.getElementById('color-intermol').value = cssColorToHex(c.intermolecularHighlight);
     document.getElementById('color-bg').value       = cssColorToHex(c.backgroundHighlight);
     document.getElementById('highlightColor').value = getDefaultSubsequenceHighlightColor();
     document.getElementById('color-basepair').value = cssColorToHex(c.basepair);
+  }
+
+  function getProfileAccessibilityColors() {
+    const defaults = vaRRI.getColors();
+    return {
+      sequence1: document.getElementById('profile-color-1')?.value || cssColorToHex(defaults.seq1profileColor),
+      sequence2: document.getElementById('profile-color-2')?.value || cssColorToHex(defaults.seq2profileColor),
+    };
+  }
+
+  function getProfileAccessibilityMode() {
+    return {
+      sequence1RepresentsOne: !!document.getElementById('profile-color-1-represents-one')?.checked,
+      sequence2RepresentsOne: !!document.getElementById('profile-color-2-represents-one')?.checked,
+    };
   }
 
   function applyColors() {
@@ -539,6 +585,126 @@
     return {
       '1': { offset: v.offset1, length: v.sequence1.length },
       '2': { offset: v.offset2, length: v.sequence2.length },
+    };
+  }
+
+  function getProfileIndexReference(seq) {
+    const selected = document.querySelector(`input[name="profile-idx-ref-${seq}"]:checked`);
+    return selected ? selected.value : '1';
+  }
+
+  function parseProfileLines(profileText, fieldId) {
+    const lines = String(profileText || '').split(/\r?\n/);
+    const data = [];
+
+    for (let lineNo = 0; lineNo < lines.length; lineNo++) {
+      const line = lines[lineNo];
+      if (/^\s*$/.test(line)) continue;
+      if (/^\s*#/.test(line)) continue;
+
+      const match = line.match(/^\s*(-?\d+)\s+(\d+(?:\.\d+)?)/);
+      if (!match) {
+        throw {
+          fieldId,
+          message: `Invalid profile line ${lineNo + 1}. Expected empty/comment or "index value" data line.`,
+        };
+      }
+
+      data.push({
+        index: parseInt(match[1], 10),
+        value: parseFloat(match[2]),
+      });
+
+      const current = data[data.length - 1];
+      if (current.value < 0 || current.value > 1) {
+        throw {
+          fieldId,
+          message: `Invalid profile line ${lineNo + 1}. Probability value must be within [0, 1].`,
+        };
+      }
+    }
+
+    return data;
+  }
+
+  function getOriginalProfileSequencePositions(vUncropped, seqId) {
+    const seqLength = seqId === '1' ? vUncropped.sequence1.length : vUncropped.sequence2.length;
+    const offset = seqId === '1' ? vUncropped.offset1 : vUncropped.offset2;
+    const seqKey = seqId === '1' ? 's1' : 's2';
+    return vaRRI.getSequenceIndices(seqKey, offset, seqLength).map(([, pos]) => pos);
+  }
+
+  function mapProfileDataToAccessData(seqData, seqId, refMode, v, vUncropped) {
+    const seqKey = seqId === '1' ? 's1' : 's2';
+    const seqLength = seqId === '1' ? v.sequence1.length : v.sequence2.length;
+    const renderedSeqPositions = vaRRI
+      .getSequenceIndices(seqKey, seqId === '1' ? v.offset1 : v.offset2, seqLength)
+      .map(([, pos]) => pos);
+    const renderedSeqPositionSet = new Set(renderedSeqPositions);
+
+    const sourceSeqPositions = getOriginalProfileSequencePositions(vUncropped, seqId);
+    const sourceSeqPositionSet = new Set(sourceSeqPositions);
+
+    const seqNodeMap = {};
+    for (const [nodeIdStr, [seqName, pos]] of Object.entries(vaRRI.getIndexDictionary(v))) {
+      if (seqName === seqKey) seqNodeMap[pos] = Number(nodeIdStr);
+    }
+
+    const accessData = {};
+    seqData.forEach(({ index, value }) => {
+      let seqPosition;
+      if (refMode === '1') {
+        const ordinal = index;
+        if (!Number.isInteger(ordinal) || ordinal < 1 || ordinal > sourceSeqPositions.length) {
+          throw {
+            fieldId: `profile-data-${seqId}`,
+            message: `Profile index ${index} is out of 1-based sequence bounds [1, ${sourceSeqPositions.length}] for sequence ${seqId}.`,
+          };
+        }
+        seqPosition = sourceSeqPositions[ordinal - 1];
+      } else {
+        // Start-index mode is resolved against the original (uncropped)
+        // sequence coordinate system.
+        if (sourceSeqPositionSet.has(index)) {
+          seqPosition = index;
+        } else {
+          seqPosition = index;
+        }
+      }
+
+      const nodeId = seqNodeMap[seqPosition];
+      if (!nodeId) {
+        // Cropping can remove nucleotides referenced by profile input.
+        // In that case, skip the entry instead of remapping it or failing.
+        if (sourceSeqPositionSet.has(seqPosition) && !renderedSeqPositionSet.has(seqPosition)) {
+          return;
+        }
+        throw {
+          fieldId: `profile-data-${seqId}`,
+          message: `Profile index ${index} does not map to a valid nucleotide of sequence ${seqId}.`,
+        };
+      }
+
+      accessData[nodeId] = value;
+    });
+
+    return accessData;
+  }
+
+  function parseProfileAccessData(v, args) {
+    const vUncropped = vaRRI.validate({ ...args, cropping: '-1' });
+    const profile1Raw = document.getElementById('profile-data-1').value;
+    const profile2Raw = document.getElementById('profile-data-2').value;
+
+    const seq1Data = parseProfileLines(profile1Raw, 'profile-data-1');
+    const seq2Data = parseProfileLines(profile2Raw, 'profile-data-2');
+
+    const ref1 = getProfileIndexReference('1');
+    const ref2 = getProfileIndexReference('2');
+
+    return {
+      ...mapProfileDataToAccessData(seq1Data, '1', ref1, v, vUncropped),
+      ...mapProfileDataToAccessData(seq2Data, '2', ref2, v, vUncropped),
     };
   }
 
@@ -711,6 +877,13 @@
     try { offset2 = vaRRI.validateOffset(String(args.startIndex2 || '1')); }
     catch (e) { setFieldError('startIndex2', e.message); valid = false; }
 
+    // Profile textarea syntax
+    try { parseProfileLines(document.getElementById('profile-data-1').value, 'profile-data-1'); }
+    catch (e) { setFieldError(e.fieldId || 'profile-data-1', e.message || String(e)); valid = false; }
+
+    try { parseProfileLines(document.getElementById('profile-data-2').value, 'profile-data-2'); }
+    catch (e) { setFieldError(e.fieldId || 'profile-data-2', e.message || String(e)); valid = false; }
+
     return valid;
   }
 
@@ -737,6 +910,14 @@
       return;
     }
 
+    let accessData;
+    try {
+      accessData = parseProfileAccessData(v, args);
+    } catch (err) {
+      setFieldError(err.fieldId || 'profile-data-1', err.message || String(err));
+      return;
+    }
+
     // Clear previous output
     const runId = ++latestVisualizationRunId;
     const container = document.getElementById(currentContainerId);
@@ -745,9 +926,11 @@
     resetRotationControl();
 
     const animation = document.getElementById('animation').checked;
+    const accessColors = getProfileAccessibilityColors();
+    const accessColorMode = getProfileAccessibilityMode();
 
     try {
-      const renderState = await vaRRI.render(currentContainerId, v, { animation });
+      const renderState = await vaRRI.render(currentContainerId, v, { animation, accessData, accessColors, accessColorMode });
       if (runId !== latestVisualizationRunId || renderState?.cancelled) return;
       container.style.visibility = '';
       showMsg('Visualisation ready. Use the export buttons to save.', 'success');
@@ -782,6 +965,8 @@
       'cropping',
       'startIndex1',
       'startIndex2',
+      'profile-data-1',
+      'profile-data-2',
     ];
     const listenerConfig = {
       coloring: { eventName: 'change' },
@@ -789,6 +974,14 @@
       backgroundhighlighting: { eventName: 'change' },
       guBasepairs: { eventName: 'change' },
       animation: { eventName: 'change' },
+      'profile-color-1': { eventName: 'change' },
+      'profile-color-2': { eventName: 'change' },
+      'profile-color-1-represents-one': { eventName: 'change' },
+      'profile-color-2-represents-one': { eventName: 'change' },
+      'profile-idx-ref-1.1': { eventName: 'change' },
+      'profile-idx-ref-1.start': { eventName: 'change' },
+      'profile-idx-ref-2.1': { eventName: 'change' },
+      'profile-idx-ref-2.start': { eventName: 'change' },
     };
 
     committedFieldIds.forEach(id => {
@@ -861,8 +1054,10 @@
 
     const submitBtn = document.getElementById('highlightSubmitBtn');
     const cancelBtn = document.getElementById('highlightCancelBtn');
+    const profileApplyBtn = document.getElementById('profileApplyBtn');
     if (submitBtn) submitBtn.addEventListener('click', submitHighlightForm);
     if (cancelBtn) cancelBtn.addEventListener('click', resetHighlightForm);
+    if (profileApplyBtn) profileApplyBtn.addEventListener('click', () => runVisualization());
 
     attachAutoVisualizationListeners();
 
