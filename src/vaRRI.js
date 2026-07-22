@@ -464,7 +464,7 @@
      * any rendering function.
      *
     * Valid keys: `sequence1`, `sequence2`, `seq1profileColor`, `seq2profileColor`,
-    * `intermolecularHighlight`, `backgroundHighlight`, `subsequenceHighlight`, `basepair`.
+    * `mutationColor`, `intermolecularHighlight`, `backgroundHighlight`, `subsequenceHighlight`, `basepair`.
      *
      * @param {Partial<typeof COLORS>} overrides  Key → CSS-colour-string map.
      */
