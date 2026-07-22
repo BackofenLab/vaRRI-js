@@ -743,10 +743,11 @@ describe('validate', () => {
 // ---------------------------------------------------------------------------
 
 describe('getColors', () => {
-    test('returns an object with all six colour keys', () => {
+    test('returns an object with all seven colour keys', () => {
         const colors = vaRRI.getColors();
         expect(colors).toHaveProperty('sequence1');
         expect(colors).toHaveProperty('sequence2');
+        expect(colors).toHaveProperty('mutationColor');
         expect(colors).toHaveProperty('intermolecularHighlight');
         expect(colors).toHaveProperty('backgroundHighlight');
         expect(colors).toHaveProperty('subsequenceHighlight');
@@ -759,6 +760,10 @@ describe('getColors', () => {
 
     test('returns default sequence2 as #F4BB44', () => {
         expect(vaRRI.getColors().sequence2).toBe('#F4BB44');
+    });
+
+    test('returns default mutationColor as Darkgreen', () => {
+        expect(vaRRI.getColors().mutationColor).toBe('Darkgreen');
     });
 
     test('returns default basepair as red', () => {
@@ -787,6 +792,7 @@ describe('setColors', () => {
         vaRRI.setColors({ sequence1: 'blue' });
         const colors = vaRRI.getColors();
         expect(colors.sequence2).toBe('#F4BB44');
+        expect(colors.mutationColor).toBe('Darkgreen');
         expect(colors.intermolecularHighlight).toBe('red');
         expect(colors.backgroundHighlight).toBe('red');
         expect(colors.subsequenceHighlight).toBe('purple');

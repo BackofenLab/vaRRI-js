@@ -44,6 +44,8 @@
         seq1profileColor: 'purple',
         /** Default fill colour for sequence-2 accessibility/profile overlays. */
         seq2profileColor: 'red',
+        /** Default fill colour for point mutation overlays. */
+        mutationColor: 'Darkgreen',
         /** Stroke colour used for intermolecular nucleotide and index-label highlighting. */
         intermolecularHighlight: 'red',
         /** Fill/stroke colour used for background (region / basepair-stack) highlighting. */
