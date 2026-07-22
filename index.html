@@ -651,20 +651,46 @@
     const el = document.getElementById(fieldId);
     if (!el) return;
     const wrap = el.closest('.input-wrap');
-    if (!wrap) return;
-    wrap.classList.add('has-error');
-    const tooltip = wrap.querySelector('.field-tooltip');
-    if (tooltip) tooltip.textContent = msg;
+    if (wrap) {
+      wrap.classList.add('has-error');
+      const tooltip = wrap.querySelector('.field-tooltip');
+      if (tooltip) tooltip.textContent = msg;
+      return;
+    }
+
+    const inlineRow = el.closest('.start-index-label-row');
+    if (!inlineRow) return;
+    inlineRow.classList.add('has-error');
+    el.style.borderColor = '#e74c3c';
+    el.style.background = '#fff5f5';
+    const tooltip = inlineRow.querySelector('.field-tooltip');
+    if (tooltip) {
+      tooltip.textContent = msg;
+      tooltip.style.display = 'block';
+    }
   }
 
   function clearFieldError(fieldId) {
     const el = document.getElementById(fieldId);
     if (!el) return;
     const wrap = el.closest('.input-wrap');
-    if (!wrap) return;
-    wrap.classList.remove('has-error');
-    const tooltip = wrap.querySelector('.field-tooltip');
-    if (tooltip) tooltip.textContent = '';
+    if (wrap) {
+      wrap.classList.remove('has-error');
+      const tooltip = wrap.querySelector('.field-tooltip');
+      if (tooltip) tooltip.textContent = '';
+      return;
+    }
+
+    const inlineRow = el.closest('.start-index-label-row');
+    if (!inlineRow) return;
+    inlineRow.classList.remove('has-error');
+    el.style.borderColor = '';
+    el.style.background = '';
+    const tooltip = inlineRow.querySelector('.field-tooltip');
+    if (tooltip) {
+      tooltip.textContent = '';
+      tooltip.style.display = '';
+    }
   }
 
   function clearAllFieldErrors() {
@@ -672,6 +698,20 @@
       wrap.classList.remove('has-error');
       const t = wrap.querySelector('.field-tooltip');
       if (t) t.textContent = '';
+    });
+
+    document.querySelectorAll('.start-index-label-row.has-error').forEach(row => {
+      row.classList.remove('has-error');
+      const input = row.querySelector('input[type="number"]');
+      if (input) {
+        input.style.borderColor = '';
+        input.style.background = '';
+      }
+      const tooltip = row.querySelector('.field-tooltip');
+      if (tooltip) {
+        tooltip.textContent = '';
+        tooltip.style.display = '';
+      }
     });
   }
 
@@ -823,6 +863,111 @@
       ...mapProfileDataToAccessData(seq1Data, '1', ref1, v, vUncropped),
       ...mapProfileDataToAccessData(seq2Data, '2', ref2, v, vUncropped),
     };
+  }
+
+  function getCompatibilityValidationContext(v) {
+    return {
+      '1': { offset: v.offset1, sequence: v.sequence1 },
+      '2': { offset: v.offset2, sequence: v.sequence2 },
+    };
+  }
+
+  function getVisibleSequencePositionSets(v) {
+    const visible = { '1': new Set(), '2': new Set() };
+    const indexDictionary = vaRRI.getIndexDictionary(v);
+    Object.values(indexDictionary).forEach(([seqName, pos]) => {
+      if (seqName === 's1') visible['1'].add(pos);
+      if (seqName === 's2') visible['2'].add(pos);
+    });
+    return visible;
+  }
+
+  function validateStartIndexCompatibility(args) {
+    const argsWithoutAnnotations = {
+      ...args,
+      subsequenceHighlights: [],
+      pointMutations: [],
+    };
+
+    let validatedBase;
+    try {
+      validatedBase = vaRRI.validate(argsWithoutAnnotations);
+    } catch (err) {
+      return {
+        ok: false,
+        message: err && err.message ? err.message : String(err),
+        focusField: null,
+        startField: null,
+      };
+    }
+
+    const sequenceContext = getCompatibilityValidationContext(validatedBase);
+    const visiblePositions = getVisibleSequencePositionSets(validatedBase);
+
+    const highlights = vaRRI.getSubsequenceHighlights();
+    for (const highlight of highlights) {
+      try {
+        vaRRI.createSubsequenceHighlight({
+          sequence: highlight.sequence,
+          range: highlight.ranges,
+          color: highlight.color,
+        }, sequenceContext);
+      } catch (err) {
+        const message = err && err.message ? err.message : String(err);
+        return {
+          ok: false,
+          message: `Start index ${highlight.sequence} is incompatible with subsequence highlight "${highlight.rangeText}": ${message}`,
+          focusField: 'highlightRange',
+          startField: highlight.sequence === '1' ? 'startIndex1' : 'startIndex2',
+        };
+      }
+    }
+
+    const mutations = vaRRI.getPointMutations();
+    for (const mutation of mutations) {
+      try {
+        const normalized = vaRRI.createPointMutation({
+          sequence: mutation.sequence,
+          position: mutation.position,
+          replacement: mutation.replacement,
+          color: mutation.color,
+        }, sequenceContext);
+
+        if (!visiblePositions[normalized.sequence].has(normalized.position)) {
+          return {
+            ok: false,
+            message: `Start index ${normalized.sequence} is incompatible with mutation ${normalized.labelText}.`,
+            focusField: 'mutationPosition',
+            startField: normalized.sequence === '1' ? 'startIndex1' : 'startIndex2',
+          };
+        }
+      } catch (err) {
+        const message = err && err.message ? err.message : String(err);
+        const mutationSeq = String(mutation.sequence);
+        return {
+          ok: false,
+          message: `Start index ${mutationSeq} is incompatible with mutation at ${mutation.position}: ${message}`,
+          focusField: 'mutationPosition',
+          startField: mutationSeq === '1' ? 'startIndex1' : 'startIndex2',
+        };
+      }
+    }
+
+    try {
+      parseProfileAccessData(validatedBase, argsWithoutAnnotations);
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      const fieldId = err && err.fieldId ? err.fieldId : null;
+      const seq = fieldId === 'profile-data-2' ? '2' : '1';
+      return {
+        ok: false,
+        message: `Start index ${seq} is incompatible with profile data: ${message}`,
+        focusField: fieldId,
+        startField: seq === '1' ? 'startIndex1' : 'startIndex2',
+      };
+    }
+
+    return { ok: true };
   }
 
   function resetHighlightForm() {
@@ -1085,6 +1230,7 @@
 
   function validateFields(args) {
     clearAllFieldErrors();
+    clearMsg();
     let valid = true;
 
     // Sequence
@@ -1135,6 +1281,16 @@
 
     try { parseProfileLines(document.getElementById('profile-data-2').value, 'profile-data-2'); }
     catch (e) { setFieldError(e.fieldId || 'profile-data-2', e.message || String(e)); valid = false; }
+
+    if (valid) {
+      const compatibility = validateStartIndexCompatibility(args);
+      if (!compatibility.ok) {
+        if (compatibility.startField) setFieldError(compatibility.startField, compatibility.message);
+        if (compatibility.focusField) setFieldError(compatibility.focusField, compatibility.message);
+        showMsg(compatibility.message, 'error');
+        valid = false;
+      }
+    }
 
     return valid;
   }

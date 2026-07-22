@@ -179,6 +179,7 @@ label small {
   align-items: center;
   gap: .35rem;
   margin-bottom: .2rem;
+  position: relative;
 }
 
 .start-index-label-row .legend-color {
@@ -681,6 +682,7 @@ input[type="radio"] {
   display: none;
   position: absolute;
   left: 0;
+  right: 0;
   top: calc(100% + 3px);
   background: #2c2c2c;
   color: #fff;
@@ -690,8 +692,10 @@ input[type="radio"] {
   padding: .4rem .65rem;
   border-radius: 4px;
   white-space: normal;
-  max-width: 300px;
-  width: max-content;
+  width: auto;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   z-index: 200;
   pointer-events: none;
   line-height: 1.4;

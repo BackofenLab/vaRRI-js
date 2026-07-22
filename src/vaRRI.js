@@ -324,7 +324,7 @@
      */
     function normaliseMutationReplacement(replacement) {
         const newLetter = String(replacement || '').trim();
-        if (newLetter.length > 1){//} !== 1 ){
+        if (newLetter.length !== 1) {
             throw new Error('Mutation replacement must be a single letter.');
         }
         return newLetter;
@@ -346,9 +346,6 @@
 
         const referenceMap = context ? buildSequencePositionMap(context) : {};
         const reference = referenceMap[position] || '';
-        if (reference && reference.toUpperCase() === replacement) {
-            throw new Error('Mutation replacement must differ from the reference base.');
-        }
 
         return {
             id: Number.isInteger(input.id) ? input.id : 0,
