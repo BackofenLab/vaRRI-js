@@ -40,6 +40,10 @@
         sequence1: 'lightblue',
         /** Fill colour for nucleotide circles of sequence 2 in strand-colouring mode. */
         sequence2: '#F4BB44',
+        /** Default fill colour for sequence-1 accessibility/profile overlays. */
+        seq1profileColor: 'purple',
+        /** Default fill colour for sequence-2 accessibility/profile overlays. */
+        seq2profileColor: 'red',
         /** Stroke colour used for intermolecular nucleotide and index-label highlighting. */
         intermolecularHighlight: 'red',
         /** Fill/stroke colour used for background (region / basepair-stack) highlighting. */
@@ -242,8 +246,8 @@
      * their current values.  The new colours take effect on the next call to
      * any rendering function.
      *
-     * Valid keys: `sequence1`, `sequence2`, `intermolecularHighlight`,
-     * `backgroundHighlight`, `subsequenceHighlight`, `basepair`.
+    * Valid keys: `sequence1`, `sequence2`, `seq1profileColor`, `seq2profileColor`,
+    * `intermolecularHighlight`, `backgroundHighlight`, `subsequenceHighlight`, `basepair`.
      *
      * @param {Partial<typeof COLORS>} overrides  Key → CSS-colour-string map.
      */
@@ -1507,8 +1511,8 @@
      * @param {number} prb  Value in [0, 1].
      * @returns {number}
      */
-    function mapProbabilityToOpacity(prb) {
-        return 1 - prb;
+    function mapProbabilityToOpacity(prb, representsOne) {
+        return representsOne ? prb : (1 - prb);
     }
 
     /**
@@ -1516,12 +1520,21 @@
      *
      * @param {Object.<number, number>} accessData  Map of node ID → accessibility probability.
      * @param {number} lenSeq  Length of sequence 1 (used to distinguish colour by molecule).
+     * @param {{sequence1?: string, sequence2?: string}|null} accessColors  Optional colors for sequence 1/2 overlays.
+     * @param {{sequence1RepresentsOne?: boolean, sequence2RepresentsOne?: boolean}|null} accessColorMode
+     *     Optional per-sequence mapping flags. If true, probability 1 maps to full color.
      */
-    function visualiseAccessibility(accessData, lenSeq) {
+    function visualiseAccessibility(accessData, lenSeq, accessColors = null, accessColorMode = null) {
+        const seq1Color = accessColors?.sequence1 || COLORS.seq1profileColor;
+        const seq2Color = accessColors?.sequence2 || COLORS.seq2profileColor;
+        const seq1RepresentsOne = !!accessColorMode?.sequence1RepresentsOne;
+        const seq2RepresentsOne = !!accessColorMode?.sequence2RepresentsOne;
         for (const [indexStr, prb] of Object.entries(accessData)) {
             const index = parseInt(indexStr, 10);
-            const color = index <= lenSeq ? 'purple' : 'red';
-            const style = `fill: ${color};opacity: ${mapProbabilityToOpacity(prb)}; stroke-width: 0;`;
+            const isSeq1 = index <= lenSeq;
+            const color = isSeq1 ? seq1Color : seq2Color;
+            const representsOne = isSeq1 ? seq1RepresentsOne : seq2RepresentsOne;
+            const style = `fill: ${color};opacity: ${mapProbabilityToOpacity(prb, representsOne)}; stroke-width: 0;`;
             const prbTooltip = '\n' + prb.toExponential(2);
             addAccessibilityOverlay(index, style, prbTooltip);
         }
@@ -1543,6 +1556,9 @@
      * @param {boolean} [options.animation=false]  Enable Fornac force-layout animation.
      * @param {boolean} [options.legend=false]  Whether to also render the legend.
      * @param {Object.<number,number>|null} [options.accessData=null]  Accessibility data map.
+     * @param {{sequence1?: string, sequence2?: string}|null} [options.accessColors=null]  Optional accessibility-overlay colors.
+     * @param {{sequence1RepresentsOne?: boolean, sequence2RepresentsOne?: boolean}|null} [options.accessColorMode=null]
+     *     Optional per-sequence mapping flags; true means probability 1 maps to full color.
      */
     function render(containerId, v, options = {}) {
         // Cancel any background-highlight loop from a previous render.
@@ -1564,6 +1580,8 @@
         const {
             animation = false,
             accessData = null,
+            accessColors = null,
+            accessColorMode = null,
         } = options;
 
         // Build molecules via Fornac
@@ -1612,7 +1630,7 @@
 
             // Accessibility overlay
             if (accessData) {
-                visualiseAccessibility(accessData, v.sequence1.length);
+                visualiseAccessibility(accessData, v.sequence1.length, accessColors, accessColorMode);
             }
 
             // When animation is on, keep the background-highlight polygon in sync
