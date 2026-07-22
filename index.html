@@ -205,13 +205,7 @@
               <span class="field-tooltip"></span>
             </div>
             <div class="input-wrap">
-              <textarea id="profile-data-2" name="profile-data-2" rows="10" cols="10" wrap='off'>
-# unpaired probabilities
-  #i$	l=1	2	3
-1	0.9949492	NA	NA
-2	0.9949079	0.9941056	NA
-3	0.9554214	0.9518663	0.9511048		
-4	0.9165814 </textarea>
+              <textarea id="profile-data-2" name="profile-data-2" rows="10" cols="10" wrap='off'></textarea>
               <span class="field-tooltip"></span>
             </div>
           </div>
@@ -352,19 +346,34 @@
   // -------------------------------------------------------------------------
   const EXAMPLES = {
     '2mol': {
-      structure: '..((((...))))...((...((...((..&............))...))...))..',
-      sequence:  'ACGAUCAGAGAUUAGAGCAUACGACAGCAG&ACGAAAAAAAGAGCAUACGACAGUAG',
-      startIndex1: '1', startIndex2: '1',
+      structure: '..<<<<...>>>>...((...((...((..&............))...))...))..',
+      sequence:  'ACGAUCAUGGAUUAGAGCAUACGACAGCAG&ACGAAAAAAAGAGCAUACGACAGUAG',
+      startIndex1: '-6', startIndex2: '100',
       coloring: 'strand', highlighting: 'region',
       backgroundhighlighting: 'basepairs', guBasepairs: true,
-      cropping: '2'
+      cropping: '2',
+      profileColor1RepresentsOne: true,
+      profileColor2RepresentsOne: false,
+      profileData1: `# unpaired probabilities
+1 0.9
+2 0.7
+3 0.3
+4 0.1
+7 0.3
+8 0.7
+9 0.6`
     },
     '1mol': {
+      profileData2: '',
       structure: '(((....)))',
       sequence:  'GGGCAAAACC',
       startIndex1: '1', startIndex2: '1',
       coloring: 'loop', highlighting: 'nothing',
       backgroundhighlighting: 'nothing', guBasepairs: false,
+      profileColor1RepresentsOne: false,
+      profileColor2RepresentsOne: false,
+      profileData1: '',
+      profileData2: '',
     },
     'pseudoknot': {
       structure: '((.[[..))..]]',
@@ -372,6 +381,10 @@
       startIndex1: '1', startIndex2: '1',
       coloring: 'loop', highlighting: 'nothing',
       backgroundhighlighting: 'nothing', guBasepairs: false,
+      profileColor1RepresentsOne: false,
+      profileColor2RepresentsOne: false,
+      profileData1: '',
+      profileData2: '',
     },
   };
 
@@ -387,6 +400,10 @@
     document.getElementById('highlighting').value      = ex.highlighting;
     document.getElementById('backgroundhighlighting').value = ex.backgroundhighlighting;
     document.getElementById('guBasepairs').checked     = ex.guBasepairs;
+    document.getElementById('profile-data-1').value    = ex.profileData1 || '';
+    document.getElementById('profile-data-2').value    = ex.profileData2 || '';
+    document.getElementById('profile-color-1-represents-one').checked = !!ex.profileColor1RepresentsOne;
+    document.getElementById('profile-color-2-represents-one').checked = !!ex.profileColor2RepresentsOne;
     vaRRI.clearSubsequenceHighlights();
     renderHighlightList();
     resetHighlightForm();
@@ -487,6 +504,8 @@
   function clearAll() {
     document.getElementById('structure').value = '';
     document.getElementById('sequence').value  = '';
+    document.getElementById('profile-data-1').value = '';
+    document.getElementById('profile-data-2').value = '';
     vaRRI.clearSubsequenceHighlights();
     renderHighlightList();
     resetHighlightForm();
