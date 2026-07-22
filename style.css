@@ -510,6 +510,10 @@ input[type="color"].legend-color-rect::-webkit-color-swatch {
   border-radius: 2px;
 }
 
+input[type="radio"] {
+  transform: scale(0.6); /* Adjust to your preferred size (e.g., 0.6 to 0.9) */
+}
+
 /* ------------------------------------------------------------------ */
 /* Footer                                                              */
 /* ------------------------------------------------------------------ */

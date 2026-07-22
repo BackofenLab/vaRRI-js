@@ -39,7 +39,7 @@
     <!-- ================================================================== -->
     <aside class="panel control-panel">
       <details class="control-group" open>
-        <summary>Input</summary>
+        <summary>Sequence & Structure Input</summary>
         <div class="control-group-body">
         <!-- Quick examples -->
         <label>Example</label>
@@ -85,7 +85,7 @@
     <!-- ================================================================== -->
     <aside class="panel control-panel">
       <details class="control-group">
-        <summary>Visualization</summary>
+        <summary>Visualization Settings</summary>
         <div class="control-group-body">
           <div class="label-dropdown-row">
             <label for="coloring">Nucleotide color</label>
@@ -132,7 +132,7 @@
     <!-- ================================================================== -->
     <aside class="panel control-panel">
       <details class="control-group" open>
-        <summary>Highlighting</summary>
+        <summary>Highlighting of Subsequences</summary>
         <div class="control-group-body">
           <ul id="highlight-list" class="highlight-list" aria-label="Registered subsequence highlights"></ul>
 
@@ -172,7 +172,59 @@
         </div>
       </details>
     </aside>
+
+    <!-- ================================================================== -->
+    <!-- Profile panel                                                 -->
+    <!-- ================================================================== -->
+    <aside class="panel control-panel">
+      <details class="control-group">
+        <summary>Probability Profiles <small>(Accessibility, ...)</small></summary>
+        <div class="control-group-body">
+          <label><small>Space-separated CSV, # comment line</small></label>
+          <div class="row-2">
+            <label for="profile-data-1">Seq. 1 profile</label>
+            <label for="profile-data-2">Seq. 2 profile</label>
+          </div>
+          <div class="row-2">
+            <textarea id="profile-data-1" name="profile-data-1" rows="10" cols="10" wrap='off'></textarea>
+            <textarea id="profile-data-2" name="profile-data-2" rows="10" cols="10" wrap='off'>
+# unpaired probabilities
+  #i$	l=1	2	3
+1	0.9949492	NA	NA
+2	0.9949079	0.9941056	NA
+3	0.9554214	0.9518663	0.9511048		
+4	0.9165814 </textarea>
+          </div>
+
+          <div class="row-2">
+            <label>Indexed wrt. </label>
+            <label>Indexed wrt. </label>
+          </div>
+
+          <div class="row-2">
+            <!-- Start index 1 -->
+            <div class="row-4">
+              <input type="radio" id="profile-idx-ref-1.1" name="profile-idx-ref-1" value="1" checked/>
+              <label for="profile-idx-ref-1.1">1</label>
+              <input type="radio" id="profile-idx-ref-1.start" name="profile-idx-ref-1" value="start" />
+              <label for="profile-idx-ref-1.start">Start</label>
+            </div>
+            <!-- Start index 2 -->
+            <div class="row-4">
+              <input type="radio" id="profile-idx-ref-2.1" name="profile-idx-ref-2" value="1" checked/>
+              <label for="profile-idx-ref-2.1">1</label>
+              <input type="radio" id="profile-idx-ref-2.start" name="profile-idx-ref-2" value="start" />
+              <label for="profile-idx-ref-2.start">Start</label>
+            </div>
+          </div>
+
+        </div>
+      </details>
+    </aside>
   </div>
+
+
+
 
   <!-- ================================================================== -->
   <!-- Result panel                                                         -->
