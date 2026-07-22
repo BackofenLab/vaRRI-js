@@ -58,6 +58,10 @@
     const SUBSEQUENCE_HIGHLIGHTS = [];
     let _nextHighlightId = 1;
 
+    /** In-memory registry of user-defined point mutation objects. */
+    const POINT_MUTATIONS = [];
+    let _nextMutationId = 1;
+
     /**
      * Return a deep-enough clone of a highlight object for external consumers.
      *
@@ -237,6 +241,217 @@
      */
     function getSubsequenceHighlights() {
         return SUBSEQUENCE_HIGHLIGHTS.map(cloneSubsequenceHighlight);
+    }
+
+    /**
+     * Return a deep-enough clone of a point-mutation object for external consumers.
+     *
+     * @param {Object} mutation
+     * @returns {Object}
+     */
+    function clonePointMutation(mutation) {
+        return {
+            id: mutation.id,
+            sequence: mutation.sequence,
+            position: mutation.position,
+            replacement: mutation.replacement,
+            reference: mutation.reference,
+            nodeId: mutation.nodeId,
+            color: mutation.color,
+            labelText: mutation.labelText,
+        };
+    }
+
+    /**
+     * Validate and normalize a mutation sequence selector.
+     *
+     * @param {string|number} sequence
+     * @returns {'1'|'2'}
+     */
+    function normaliseMutationSequence(sequence) {
+        const seq = String(sequence);
+        if (seq !== '1' && seq !== '2') {
+            throw new Error('Mutation sequence must be "1" or "2".');
+        }
+        return seq;
+    }
+
+    /**
+     * Build a map of valid sequence positions to their bases.
+     *
+     * @param {{offset:number, sequence:string}|undefined} context
+     * @returns {Object.<number, string>}
+     */
+    function buildSequencePositionMap(context) {
+        const map = {};
+        if (!context || !Number.isInteger(context.offset) || typeof context.sequence !== 'string') {
+            return map;
+        }
+
+        getSequenceIndices('s', context.offset, context.sequence.length).forEach(([, position], index) => {
+            map[position] = context.sequence[index];
+        });
+        return map;
+    }
+
+    /**
+     * Normalize a mutation position and validate it against the current sequence context.
+     *
+     * @param {number|string} positionInput
+     * @param {{offset:number, sequence:string}|undefined} context
+     * @returns {number}
+     */
+    function normaliseMutationPosition(positionInput, context) {
+        const position = validateOffset(String(positionInput));
+
+        if (context) {
+            const sequencePositionMap = buildSequencePositionMap(context);
+            if (!(position in sequencePositionMap)) {
+                throw new Error('Mutation position must be a valid sequence index.');
+            }
+        }
+
+        return position;
+    }
+
+    /**
+     * Validate a point-mutation replacement base.
+     *
+     * @param {string} replacement
+     * @returns {string}
+     */
+    function normaliseMutationReplacement(replacement) {
+        const newLetter = String(replacement || '').trim();
+        if (newLetter.length > 1){//} !== 1 ){
+            throw new Error('Mutation replacement must be a single letter.');
+        }
+        return newLetter;
+    }
+
+    /**
+     * Build a normalized point-mutation object from user input.
+     *
+     * @param {{sequence:string|number, position:number|string, replacement:string, color?:string, id?:number}} input
+     * @param {{'1'?:{offset:number, sequence:string}, '2'?:{offset:number, sequence:string}}=} sequenceContext
+     * @returns {{id:number, sequence:'1'|'2', position:number, replacement:string, reference:string, nodeId:number, color:string, labelText:string}}
+     */
+    function createPointMutation(input, sequenceContext = {}) {
+        const sequence = normaliseMutationSequence(input.sequence);
+        const context = sequenceContext[sequence];
+        const position = normaliseMutationPosition(input.position, context);
+        const replacement = normaliseMutationReplacement(input.replacement);
+        const color = (input.color || '').trim() || COLORS.intermolecularHighlight;
+
+        const referenceMap = context ? buildSequencePositionMap(context) : {};
+        const reference = referenceMap[position] || '';
+        if (reference && reference.toUpperCase() === replacement) {
+            throw new Error('Mutation replacement must differ from the reference base.');
+        }
+
+        return {
+            id: Number.isInteger(input.id) ? input.id : 0,
+            sequence,
+            position,
+            replacement,
+            reference,
+            nodeId: 0,
+            color,
+            labelText: `${reference || '?'}${position}${replacement}`,
+        };
+    }
+
+    /**
+     * Register a new point mutation.
+     *
+     * @param {{sequence:string|number, position:number|string, replacement:string, color?:string}} input
+     * @param {{'1'?:{offset:number, sequence:string}, '2'?:{offset:number, sequence:string}}=} sequenceContext
+     * @returns {Object}
+     */
+    function registerPointMutation(input, sequenceContext = {}) {
+        const normalized = createPointMutation(input, sequenceContext);
+        normalized.id = _nextMutationId++;
+        POINT_MUTATIONS.push(normalized);
+        return clonePointMutation(normalized);
+    }
+
+    /**
+     * Update an existing point mutation.
+     *
+     * @param {number} id
+     * @param {{sequence?:string|number, position?:number|string, replacement?:string, color?:string}} patch
+     * @param {{'1'?:{offset:number, sequence:string}, '2'?:{offset:number, sequence:string}}=} sequenceContext
+     * @returns {Object}
+     */
+    function updatePointMutation(id, patch, sequenceContext = {}) {
+        const target = POINT_MUTATIONS.find(m => m.id === id);
+        if (!target) {
+            throw new Error(`Mutation with id ${id} not found.`);
+        }
+
+        const normalized = createPointMutation({
+            id,
+            sequence: patch.sequence !== undefined ? patch.sequence : target.sequence,
+            position: patch.position !== undefined ? patch.position : target.position,
+            replacement: patch.replacement !== undefined ? patch.replacement : target.replacement,
+            color: patch.color !== undefined ? patch.color : target.color,
+        }, sequenceContext);
+
+        target.sequence = normalized.sequence;
+        target.position = normalized.position;
+        target.replacement = normalized.replacement;
+        target.reference = normalized.reference;
+        target.nodeId = normalized.nodeId;
+        target.color = normalized.color;
+        target.labelText = normalized.labelText;
+
+        return clonePointMutation(target);
+    }
+
+    /**
+     * Remove a point mutation by id.
+     *
+     * @param {number} id
+     * @returns {boolean}
+     */
+    function removePointMutation(id) {
+        const idx = POINT_MUTATIONS.findIndex(m => m.id === id);
+        if (idx === -1) return false;
+        POINT_MUTATIONS.splice(idx, 1);
+        return true;
+    }
+
+    /**
+     * Remove all registered point mutations.
+     */
+    function clearPointMutations() {
+        POINT_MUTATIONS.length = 0;
+        _nextMutationId = 1;
+    }
+
+    /**
+     * Read registered point mutations.
+     *
+     * @returns {Array<Object>}
+     */
+    function getPointMutations() {
+        return POINT_MUTATIONS.map(clonePointMutation);
+    }
+
+    /**
+     * Find the node ID that corresponds to a given sequence position.
+     *
+     * @param {Object} v
+     * @param {'1'|'2'} sequence
+     * @param {number} position
+     * @returns {number}
+     */
+    function getNodeIdForSequencePosition(v, sequence, position) {
+        for (const [nodeId, [seqName, seqPosition]] of Object.entries(getIndexDictionary(v))) {
+            if (seqName === `s${sequence}` && seqPosition === position) {
+                return parseInt(nodeId, 10);
+            }
+        }
+        return 0;
     }
 
     /**
@@ -758,8 +973,8 @@
 
         // Subsequence highlights (generic framework + legacy compatibility)
         const sequenceContext = {
-            '1': { offset: v.offset1, length: v.sequence1.length },
-            '2': { offset: v.offset2, length: v.sequence2.length },
+            '1': { offset: v.offset1, sequence: v.sequence1 },
+            '2': { offset: v.offset2, sequence: v.sequence2 },
         };
 
         if (Array.isArray(args.subsequenceHighlights)) {
@@ -788,6 +1003,29 @@
             }
 
             v.subsequenceHighlights = legacyHighlights;
+        }
+
+        if (Array.isArray(args.pointMutations)) {
+            v.pointMutations = args.pointMutations.map(mutation =>
+                createPointMutation(mutation, sequenceContext)
+            );
+
+            const seenMutationPositions = new Set();
+            v.pointMutations.forEach(mutation => {
+                const key = `${mutation.sequence}:${mutation.position}`;
+                if (seenMutationPositions.has(key)) {
+                    throw new Error(`Duplicate point mutation at ${key}.`);
+                }
+                seenMutationPositions.add(key);
+
+                mutation.nodeId = getNodeIdForSequencePosition(v, mutation.sequence, mutation.position);
+                if (!mutation.nodeId) {
+                    throw new Error(`Mutation position ${mutation.position} is not visible in the current rendering.`);
+                }
+                mutation.labelText = `${mutation.reference || '?'}${mutation.position}${mutation.replacement}`;
+            });
+        } else {
+            v.pointMutations = [];
         }
 
         // Legacy fields are still exported for callers that rely on them.
@@ -966,6 +1204,27 @@
     }
 
     /**
+     * Set or update the SVG title used as a hover tooltip for a label.
+     *
+     * @param {SVGElement} label
+     * @param {string} text
+     */
+    function setLabelTooltip(label, text) {
+        const parent = label.parentElement;
+        if (!parent) return;
+
+        const existingTitleOnLabel = label.querySelector('title');
+        if (existingTitleOnLabel) existingTitleOnLabel.remove();
+
+        let title = parent.querySelector('title');
+        if (!title) {
+            title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+            parent.insertBefore(title, parent.firstChild);
+        }
+        title.textContent = text;
+    }
+
+    /**
      * Remove label group elements at the given index.
      *
      * @param {number} index
@@ -1002,6 +1261,10 @@
         const length1 = sequence1.length;
         const lengthTotal = Object.keys(sequence_dict).length;
         const indexDict = getIndexDictionary(v);
+        const mutationByNodeId = {};
+        (Array.isArray(v.pointMutations) ? v.pointMutations : []).forEach(mutation => {
+            if (mutation.nodeId) mutationByNodeId[mutation.nodeId] = mutation;
+        });
         const indexLabels = {};
         for (const key of Object.keys(indexDict)) {
             indexLabels[parseInt(key, 10)] = 0;
@@ -1036,15 +1299,31 @@
         }
 
         // Apply labels
-        const labelValues = Object.values(indexLabels);
+        const labelValues = Object.entries(indexLabels);
         document.querySelectorAll('[label_type="label"]').forEach((label, index) => {
-            label.innerHTML = labelValues[index] !== undefined ? labelValues[index] : '';
+            const [posStr, value] = labelValues[index] || [];
+            const pos = posStr ? parseInt(posStr, 10) : 0;
+            const mutation = pos && mutationByNodeId[pos] ? mutationByNodeId[pos] : null;
+
+            if (mutation) {
+                label.innerHTML = mutation.replacement;
+                setLabelTooltip(label, `Mutation: ${mutation.labelText}`);
+                label.setAttribute('style', `fill: ${mutation.color}; stroke: ${mutation.color}; stroke-width: 0.2; font-weight: bolder;`);
+                addStyleToNodes([mutation.nodeId], `stroke: ${mutation.color}; stroke-width: 2px;`);
+                return;
+            }
+
+            label.removeAttribute('style');
+            const parent = label.parentElement;
+            const existingTitle = parent?.querySelector('title');
+            if (existingTitle) existingTitle.remove();
+            label.innerHTML = value !== undefined ? value : '';
         });
 
         // Remove suppressed labels
         for (const [posStr, value] of Object.entries(indexLabels)) {
-            if (value === 0) {
-                const pos = parseInt(posStr, 10);
+            const pos = parseInt(posStr, 10);
+            if (value === 0 && !mutationByNodeId[pos]) {
                 removeLabel(pos);
                 removeLabelLink(pos);
             }
@@ -1349,6 +1628,19 @@
     }
 
     /**
+     * Apply point-mutation styling to nucleotide nodes.
+     *
+     * @param {Object} v
+     */
+    function applyPointMutations(v) {
+        const mutations = Array.isArray(v.pointMutations) ? v.pointMutations : [];
+        mutations.forEach(mutation => {
+            if (!mutation.nodeId) return;
+            addStyleToNodes([mutation.nodeId], `stroke: ${mutation.color}; stroke-width: 2px;`);
+        });
+    }
+
+    /**
      * Visualise basepairs: apply the basepair colour to all basepair links,
      * and additionally mark G-U basepairs with a dashed line style.
      *
@@ -1627,6 +1919,9 @@
 
             // Subsequence highlights
             applySubsequenceHighlights(v);
+
+            // Point mutations
+            applyPointMutations(v);
 
             // Accessibility overlay
             if (accessData) {
@@ -2053,6 +2348,12 @@
         removeSubsequenceHighlight,
         clearSubsequenceHighlights,
         getSubsequenceHighlights,
+        createPointMutation,
+        registerPointMutation,
+        updatePointMutation,
+        removePointMutation,
+        clearPointMutations,
+        getPointMutations,
 
         // Utility
         listIntermolNodes,
@@ -2075,6 +2376,7 @@
         styleBasepairs,
         highlightSubsequence,
         applySubsequenceHighlights,
+        applyPointMutations,
         removeDummyNodes,
         removeSecondLink,
         addStyleToNodes,

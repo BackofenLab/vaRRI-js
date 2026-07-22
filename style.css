@@ -398,8 +398,9 @@ textarea { resize: vertical; }
 
 .highlightInput {
   display: grid;
-  grid-template-columns: 40px 1fr 30px;
+  grid-template-columns: minmax(0, 0.5fr) minmax(0, 2fr) minmax(0, 0.2fr);
   gap: .45rem;
+  align-items: end;
 }
 
 #highlightColor {
@@ -411,6 +412,33 @@ textarea { resize: vertical; }
   border-radius: 4px;
   background: #fcfdff;
 }
+
+
+.mutationInput {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr) 3.25rem 2rem;
+  gap: .45rem;
+  align-items: end;
+}
+
+.mutationInput > div {
+  min-width: 0;
+}
+
+.mutationInput #mutationSequence,
+.mutationInput #mutationPosition,
+.mutationInput #mutationBase,
+.mutationInput #mutationColor {
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.mutationInput #mutationColor {
+  height: 34px;
+  padding: 2px;
+}
+
 
 #rna_ss {
   background: var(--surface);

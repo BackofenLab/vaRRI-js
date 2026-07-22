@@ -239,6 +239,59 @@
         </div>
       </details>
     </aside>
+    
+    <!-- ================================================================== -->
+    <!-- Mutation panel                                                 -->
+    <!-- ================================================================== -->
+    <aside class="panel control-panel">
+      <details class="control-group">
+        <summary>Point Mutations</summary>
+        <div class="control-group-body">
+          <ul id="mutation-list" class="highlight-list" aria-label="Registered point mutations"></ul>
+
+          <input type="hidden" id="mutationEditId" value="" />
+
+          <div class="mutationInput">
+            <div>
+              <label for="mutationSequence">Seq.</label>
+              <div class="input-wrap">
+                <select id="mutationSequence">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                </select>
+                <span class="field-tooltip"></span>
+              </div>
+            </div>
+            <div>
+              <label for="mutationPosition">Position</label>
+              <div class="input-wrap">
+                <input type="text" id="mutationPosition" inputmode="text" autocomplete="off" spellcheck="false" placeholder="e.g. -2" />
+                <span class="field-tooltip"></span>
+              </div>
+            </div>
+            <div>
+              <label for="mutationBase">To</label>
+              <div class="input-wrap">
+                <input type="text" id="mutationBase" maxlength="1" inputmode="text" autocomplete="off" spellcheck="false" placeholder="A"/>
+                <span class="field-tooltip"></span>
+              </div>
+            </div>
+            <div>
+              <label for="mutationColor">Color</label>
+              <div class="input-wrap">
+                <input type="color" id="mutationColor" />
+                <span class="field-tooltip"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="mutationSubmitBtn" class="btn btn-primary btn-sm" type="button">Add</button>
+            <button id="mutationCancelBtn" class="btn btn-sm" type="button" style="background:#d8e5f1;color:#1c2b39">Cancel</button>
+          </div>
+        </div>
+      </details>
+    </aside>
 
 
 
@@ -346,8 +399,8 @@
   // -------------------------------------------------------------------------
   const EXAMPLES = {
     '2mol': {
-      structure: '..<<<<...>>>>...((...((...((..&............))...))...))..',
-      sequence:  'ACGAUCAUGGAUUAGAGCAUACGACAGCAG&ACGAAAAAAAGAGCAUACGACAGUAG',
+      structure: '..<<<<...>>>>...((..(((...((..&............))...)))..))..',
+      sequence:  'ACGAUCAUGGAUUAGAGCAUUCGACAGCAG&ACGAAAAAAAGAGCAUACGACAGUAG',
       startIndex1: '-6', startIndex2: '100',
       coloring: 'strand', highlighting: 'region',
       backgroundhighlighting: 'basepairs', guBasepairs: true,
@@ -355,6 +408,10 @@
       subsequenceHighlights: [
         { sequence: '1', range: '18-20', color: '#338a29' },
         { sequence: '2', range: '114-116', color: '#338a29' },
+      ],
+      pointMutations: [
+        { sequence: '1', position: 16, replacement: 'G', color: '#338a29' },
+        { sequence: '2', position: 118, replacement: 'C', color: '#338a29' },
       ],
       profileColor1RepresentsOne: true,
       profileColor2RepresentsOne: false,
@@ -375,6 +432,7 @@
       coloring: 'loop', highlighting: 'nothing',
       backgroundhighlighting: 'nothing', guBasepairs: false,
       subsequenceHighlights: [],
+      pointMutations: [],
       profileColor1RepresentsOne: false,
       profileColor2RepresentsOne: false,
       profileData1: '',
@@ -387,6 +445,7 @@
       coloring: 'loop', highlighting: 'nothing',
       backgroundhighlighting: 'nothing', guBasepairs: false,
       subsequenceHighlights: [],
+      pointMutations: [],
       profileColor1RepresentsOne: false,
       profileColor2RepresentsOne: false,
       profileData1: '',
@@ -411,6 +470,7 @@
     document.getElementById('profile-color-1-represents-one').checked = !!ex.profileColor1RepresentsOne;
     document.getElementById('profile-color-2-represents-one').checked = !!ex.profileColor2RepresentsOne;
     vaRRI.clearSubsequenceHighlights();
+    vaRRI.clearPointMutations();
 
     const exampleHighlights = Array.isArray(ex.subsequenceHighlights)
       ? ex.subsequenceHighlights
@@ -426,8 +486,25 @@
       });
     }
 
+    const exampleMutations = Array.isArray(ex.pointMutations)
+      ? ex.pointMutations
+      : [];
+    if (exampleMutations.length > 0) {
+      const sequenceContext = getHighlightSequenceContext();
+      exampleMutations.forEach(mutation => {
+        vaRRI.registerPointMutation({
+          sequence: mutation.sequence,
+          position: mutation.position,
+          replacement: mutation.replacement,
+          color: mutation.color,
+        }, sequenceContext);
+      });
+    }
+
     renderHighlightList();
+    renderMutationList();
     resetHighlightForm();
+    resetMutationForm();
     runVisualization();
   }
 
@@ -462,6 +539,7 @@
     document.getElementById('profile-color-2').value = cssColorToHex(c.seq2profileColor);
     document.getElementById('profile-color-1-represents-one').checked = false;
     document.getElementById('profile-color-2-represents-one').checked = false;
+    document.getElementById('mutationColor').value = getDefaultMutationColor();
     document.getElementById('color-intermol').value = cssColorToHex(c.intermolecularHighlight);
     document.getElementById('color-bg').value       = cssColorToHex(c.backgroundHighlight);
     document.getElementById('highlightColor').value = getDefaultSubsequenceHighlightColor();
@@ -503,11 +581,18 @@
   let latestVisualizationRunId = 0;
   const skipNextCommittedFieldChange = new WeakMap();
   let defaultSubsequenceHighlightColor = null;
+  let defaultMutationColor = null;
 
   function getDefaultSubsequenceHighlightColor() {
     if (defaultSubsequenceHighlightColor !== null) return defaultSubsequenceHighlightColor;
     defaultSubsequenceHighlightColor = cssColorToHex(vaRRI.getColors().subsequenceHighlight);
     return defaultSubsequenceHighlightColor;
+  }
+
+  function getDefaultMutationColor() {
+    if (defaultMutationColor !== null) return defaultMutationColor;
+    defaultMutationColor = cssColorToHex(vaRRI.getColors().intermolecularHighlight);
+    return defaultMutationColor;
   }
 
   function showMsg(text, type) {
@@ -528,8 +613,11 @@
     document.getElementById('profile-data-1').value = '';
     document.getElementById('profile-data-2').value = '';
     vaRRI.clearSubsequenceHighlights();
+    vaRRI.clearPointMutations();
     renderHighlightList();
+    renderMutationList();
     resetHighlightForm();
+    resetMutationForm();
     const container = document.getElementById('rna_ss');
     container.innerHTML = '';
     container.style.visibility = '';
@@ -616,6 +704,12 @@
       highlighting:           document.getElementById('highlighting').value,
       backgroundhighlighting: document.getElementById('backgroundhighlighting').value,
       guBasepairs:            document.getElementById('guBasepairs').checked,
+      pointMutations:         vaRRI.getPointMutations().map(mutation => ({
+        sequence: mutation.sequence,
+        position: mutation.position,
+        replacement: mutation.replacement,
+        color: mutation.color,
+      })),
     };
   }
 
@@ -623,8 +717,8 @@
     const baseArgs = getBaseVisualizationArgs();
     const v = vaRRI.validate(baseArgs);
     return {
-      '1': { offset: v.offset1, length: v.sequence1.length },
-      '2': { offset: v.offset2, length: v.sequence2.length },
+      '1': { offset: v.offset1, length: v.sequence1.length, sequence: v.sequence1 },
+      '2': { offset: v.offset2, length: v.sequence2.length, sequence: v.sequence2 },
     };
   }
 
@@ -871,6 +965,141 @@
     runVisualization();
   }
 
+  function resetMutationForm() {
+    document.getElementById('mutationEditId').value = '';
+    document.getElementById('mutationSequence').value = '1';
+    document.getElementById('mutationPosition').value = '';
+    document.getElementById('mutationBase').value = '';
+    document.getElementById('mutationColor').value = getDefaultMutationColor();
+    document.getElementById('mutationSubmitBtn').textContent = 'Add';
+    clearFieldError('mutationSequence');
+    clearFieldError('mutationPosition');
+    clearFieldError('mutationBase');
+    clearFieldError('mutationColor');
+    document.querySelectorAll('.mutation-item.active').forEach(el => el.classList.remove('active'));
+  }
+
+  function renderMutationList() {
+    const listEl = document.getElementById('mutation-list');
+    const mutations = vaRRI.getPointMutations();
+
+    if (mutations.length === 0) {
+      listEl.innerHTML = '<li class="highlight-empty">No mutations defined.</li>';
+      return;
+    }
+
+    listEl.innerHTML = '';
+    mutations.forEach(mutation => {
+      const item = document.createElement('li');
+      item.className = 'highlight-item mutation-item';
+      item.dataset.mutationId = String(mutation.id);
+
+      const info = document.createElement('button');
+      info.type = 'button';
+      info.className = 'highlight-item-main';
+      info.textContent = `Seq ${mutation.sequence} | ${mutation.labelText} | ${mutation.color}`;
+      info.style.borderLeft = `10px solid ${mutation.color}`;
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'highlight-delete';
+      removeBtn.setAttribute('aria-label', `Remove mutation ${mutation.id}`);
+      removeBtn.textContent = '🗑️';
+      removeBtn.title = 'Remove mutation';
+
+      info.addEventListener('click', () => {
+        document.querySelectorAll('.mutation-item.active').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
+        document.getElementById('mutationEditId').value = String(mutation.id);
+        document.getElementById('mutationSequence').value = mutation.sequence;
+        document.getElementById('mutationPosition').value = String(mutation.position);
+        document.getElementById('mutationBase').value = mutation.replacement;
+        document.getElementById('mutationColor').value = cssColorToHex(mutation.color);
+        document.getElementById('mutationSubmitBtn').textContent = 'Update';
+        clearFieldError('mutationSequence');
+        clearFieldError('mutationPosition');
+        clearFieldError('mutationBase');
+        clearFieldError('mutationColor');
+      });
+
+      removeBtn.addEventListener('click', () => {
+        const removed = vaRRI.removePointMutation(mutation.id);
+        if (!removed) return;
+        if (document.getElementById('mutationEditId').value === String(mutation.id)) {
+          resetMutationForm();
+        }
+        renderMutationList();
+        runVisualization();
+      });
+
+      item.appendChild(info);
+      item.appendChild(removeBtn);
+      listEl.appendChild(item);
+    });
+  }
+
+  function submitMutationForm(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    clearFieldError('mutationSequence');
+    clearFieldError('mutationPosition');
+    clearFieldError('mutationBase');
+    clearFieldError('mutationColor');
+
+    const sequence = document.getElementById('mutationSequence').value;
+    const positionInput = document.getElementById('mutationPosition').value.trim();
+    const replacement = document.getElementById('mutationBase').value.trim();
+    const color = document.getElementById('mutationColor').value;
+    const editIdRaw = document.getElementById('mutationEditId').value;
+
+    if (!positionInput) {
+      setFieldError('mutationPosition', 'Mutation position must not be empty.');
+      return;
+    }
+
+    let position;
+    try {
+      position = vaRRI.validateOffset(positionInput);
+    } catch (err) {
+      setFieldError('mutationPosition', err && err.message ? err.message : String(err));
+      return;
+    }
+
+    let sequenceContext;
+    try {
+      sequenceContext = getHighlightSequenceContext();
+    } catch (err) {
+      showMsg('Please fix sequence/structure inputs first: ' + err.message, 'error');
+      return;
+    }
+
+    try {
+      if (editIdRaw) {
+        vaRRI.updatePointMutation(Number(editIdRaw), { sequence, position, replacement, color }, sequenceContext);
+      } else {
+        vaRRI.registerPointMutation({ sequence, position, replacement, color }, sequenceContext);
+      }
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      const isSequenceError = /sequence/i.test(message);
+      const isPositionError = /position|index/i.test(message);
+      const isBaseError = /replacement|reference|nucleotide|single letter/i.test(message);
+
+      if (isSequenceError) setFieldError('mutationSequence', message);
+      else if (isPositionError) setFieldError('mutationPosition', message);
+      else if (isBaseError) setFieldError('mutationBase', message);
+      else setFieldError('mutationColor', message);
+      return;
+    }
+
+    resetMutationForm();
+    renderMutationList();
+    runVisualization();
+  }
+
   function validateFields(args) {
     clearAllFieldErrors();
     let valid = true;
@@ -1005,6 +1234,7 @@
       'cropping',
       'startIndex1',
       'startIndex2',
+      'mutationPosition',
       'profile-data-1',
       'profile-data-2',
     ];
@@ -1018,6 +1248,9 @@
       'profile-color-2': { eventName: 'change' },
       'profile-color-1-represents-one': { eventName: 'change' },
       'profile-color-2-represents-one': { eventName: 'change' },
+      mutationSequence: { eventName: 'change' },
+      mutationBase: { eventName: 'change' },
+      mutationColor: { eventName: 'change' },
       'profile-idx-ref-1.1': { eventName: 'change' },
       'profile-idx-ref-1.start': { eventName: 'change' },
       'profile-idx-ref-2.1': { eventName: 'change' },
@@ -1090,13 +1323,19 @@
     // Initialise colour pickers from the vaRRI.js defaults
     initColorPickers();
     resetHighlightForm();
+    resetMutationForm();
     renderHighlightList();
+    renderMutationList();
 
     const submitBtn = document.getElementById('highlightSubmitBtn');
     const cancelBtn = document.getElementById('highlightCancelBtn');
+    const mutationSubmitBtn = document.getElementById('mutationSubmitBtn');
+    const mutationCancelBtn = document.getElementById('mutationCancelBtn');
     const profileApplyBtn = document.getElementById('profileApplyBtn');
     if (submitBtn) submitBtn.addEventListener('click', submitHighlightForm);
     if (cancelBtn) cancelBtn.addEventListener('click', resetHighlightForm);
+    if (mutationSubmitBtn) mutationSubmitBtn.addEventListener('click', submitMutationForm);
+    if (mutationCancelBtn) mutationCancelBtn.addEventListener('click', resetMutationForm);
     if (profileApplyBtn) profileApplyBtn.addEventListener('click', () => runVisualization());
 
     attachAutoVisualizationListeners();

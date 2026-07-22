@@ -453,6 +453,59 @@ describe('subsequence highlight registry', () => {
     });
 });
 
+describe('point mutation registry', () => {
+    beforeEach(() => {
+        vaRRI.clearPointMutations();
+    });
+
+    test('creates a normalized mutation object from string input', () => {
+        const mutation = vaRRI.createPointMutation(
+            { sequence: 1, position: 2, replacement: 'g' },
+            { '1': { offset: 1, sequence: 'ACGU' } }
+        );
+
+        expect(mutation.sequence).toBe('1');
+        expect(mutation.position).toBe(2);
+        expect(mutation.replacement).toBe('G');
+        expect(mutation.reference).toBe('C');
+        expect(mutation.labelText).toBe('C2G');
+    });
+
+    test('accepts any single letter replacement', () => {
+        const mutation = vaRRI.createPointMutation(
+            { sequence: '2', position: 110, replacement: 'x' },
+            { '2': { offset: 110, sequence: 'ACG' } }
+        );
+
+        expect(mutation.replacement).toBe('X');
+        expect(mutation.labelText).toBe('A110X');
+    });
+
+    test('registers, updates and removes mutations by id', () => {
+        const added = vaRRI.registerPointMutation(
+            { sequence: '1', position: 2, replacement: 'G', color: '#abcdef' },
+            { '1': { offset: 1, sequence: 'ACGU' } }
+        );
+
+        expect(added.id).toBe(1);
+        expect(vaRRI.getPointMutations()).toHaveLength(1);
+
+        const updated = vaRRI.updatePointMutation(added.id, {
+            sequence: '1',
+            position: 4,
+            replacement: 'A',
+            color: '#111111',
+        }, { '1': { offset: 1, sequence: 'ACGU' } });
+
+        expect(updated.position).toBe(4);
+        expect(updated.replacement).toBe('A');
+        expect(updated.color).toBe('#111111');
+
+        expect(vaRRI.removePointMutation(added.id)).toBe(true);
+        expect(vaRRI.getPointMutations()).toHaveLength(0);
+    });
+});
+
 // ---------------------------------------------------------------------------
 // listIntermolNodes
 // ---------------------------------------------------------------------------
@@ -641,6 +694,20 @@ describe('validate', () => {
         expect(v.subsequenceHighlights[1].sequence).toBe('2');
     });
 
+    test('accepts pointMutations objects', () => {
+        const v = vaRRI.validate({
+            ...base2mol,
+            pointMutations: [
+                { sequence: '1', position: 1, replacement: 'G', color: '#123456' },
+            ],
+        });
+
+        expect(v.pointMutations).toHaveLength(1);
+        expect(v.pointMutations[0].sequence).toBe('1');
+        expect(v.pointMutations[0].labelText).toBe('A1G');
+        expect(v.pointMutations[0].nodeId).toBeGreaterThan(0);
+    });
+
     test('parses negative highlightSubseq ranges with negative sequence start index', () => {
         const v = vaRRI.validate({ ...base2mol, startIndex1: '-2', highlightSubseq1: '-2-2' });
         expect(v.highlightSubseq1).toEqual([[-2, 2]]);
@@ -778,6 +845,10 @@ function createIndexHtmlSandbox() {
         'highlightSequence',
         'highlightRange',
         'highlightColor',
+        'mutationSequence',
+        'mutationPosition',
+        'mutationBase',
+        'mutationColor',
     ]);
 
     function makeWrap() {
@@ -850,6 +921,14 @@ function createIndexHtmlSandbox() {
         highlightSubmitBtn: makeElement('highlightSubmitBtn', { tagName: 'BUTTON' }),
         highlightCancelBtn: makeElement('highlightCancelBtn', { tagName: 'BUTTON' }),
         'highlight-list': makeElement('highlight-list', { tagName: 'UL' }),
+        mutationSequence: makeElement('mutationSequence', { value: '1', tagName: 'SELECT' }),
+        mutationPosition: makeElement('mutationPosition', { value: '', type: 'text' }),
+        mutationBase: makeElement('mutationBase', { value: 'A', type: 'text' }),
+        mutationColor: makeElement('mutationColor', { value: '#000000', type: 'color' }),
+        mutationEditId: makeElement('mutationEditId', { value: '', type: 'hidden' }),
+        mutationSubmitBtn: makeElement('mutationSubmitBtn', { tagName: 'BUTTON' }),
+        mutationCancelBtn: makeElement('mutationCancelBtn', { tagName: 'BUTTON' }),
+        'mutation-list': makeElement('mutation-list', { tagName: 'UL' }),
         animation: makeElement('animation', { type: 'checkbox' }),
         'color-seq1': makeElement('color-seq1', { value: '#000000', type: 'color' }),
         'color-seq2': makeElement('color-seq2', { value: '#000000', type: 'color' }),
@@ -867,6 +946,8 @@ function createIndexHtmlSandbox() {
     const scheduledDelays = [];
     const highlightStore = [];
     let nextHighlightId = 1;
+    const mutationStore = [];
+    let nextMutationId = 1;
     const vaRRIStub = {
         getColors: jest.fn(() => ({
             sequence1: '#000000',
@@ -915,6 +996,46 @@ function createIndexHtmlSandbox() {
             const idx = highlightStore.findIndex(h => h.id === id);
             if (idx === -1) return false;
             highlightStore.splice(idx, 1);
+            return true;
+        }),
+        clearPointMutations: jest.fn(() => {
+            mutationStore.length = 0;
+            nextMutationId = 1;
+        }),
+        getPointMutations: jest.fn(() =>
+            mutationStore.map(m => ({ ...m }))
+        ),
+        registerPointMutation: jest.fn((input) => {
+            const item = {
+                id: nextMutationId++,
+                sequence: String(input.sequence),
+                position: Number(input.position),
+                replacement: String(input.replacement),
+                reference: 'A',
+                nodeId: 1,
+                color: input.color || '#000000',
+                labelText: `A${Number(input.position)}${String(input.replacement)}`,
+            };
+            mutationStore.push(item);
+            return { ...item };
+        }),
+        updatePointMutation: jest.fn((id, patch) => {
+            const idx = mutationStore.findIndex(m => m.id === id);
+            if (idx === -1) throw new Error('not found');
+            mutationStore[idx] = {
+                ...mutationStore[idx],
+                sequence: patch.sequence !== undefined ? String(patch.sequence) : mutationStore[idx].sequence,
+                position: patch.position !== undefined ? Number(patch.position) : mutationStore[idx].position,
+                replacement: patch.replacement !== undefined ? String(patch.replacement) : mutationStore[idx].replacement,
+                color: patch.color !== undefined ? patch.color : mutationStore[idx].color,
+                labelText: `A${patch.position !== undefined ? Number(patch.position) : mutationStore[idx].position}${patch.replacement !== undefined ? String(patch.replacement) : mutationStore[idx].replacement}`,
+            };
+            return { ...mutationStore[idx] };
+        }),
+        removePointMutation: jest.fn((id) => {
+            const idx = mutationStore.findIndex(m => m.id === id);
+            if (idx === -1) return false;
+            mutationStore.splice(idx, 1);
             return true;
         }),
         rotateVisualization: jest.fn(),
@@ -983,9 +1104,18 @@ describe('index.html auto visualization UI', () => {
 
     test('registers commit-based listeners for typed fields and change listeners for toggles', () => {
         const { elements, loadHandlers } = createIndexHtmlSandbox();
-        const committedFields = ['structure', 'sequence', 'cropping', 'startIndex1', 'startIndex2'];
-        const enterCommittedFields = ['cropping', 'startIndex1', 'startIndex2'];
-        const immediateFields = ['coloring', 'highlighting', 'backgroundhighlighting', 'guBasepairs', 'animation'];
+        const committedFields = ['structure', 'sequence', 'cropping', 'startIndex1', 'startIndex2', 'mutationPosition'];
+        const enterCommittedFields = ['cropping', 'startIndex1', 'startIndex2', 'mutationPosition'];
+        const immediateFields = [
+            'coloring',
+            'highlighting',
+            'backgroundhighlighting',
+            'guBasepairs',
+            'animation',
+            'mutationSequence',
+            'mutationBase',
+            'mutationColor',
+        ];
 
         expect(loadHandlers).toHaveLength(1);
         loadHandlers[0]();
@@ -994,6 +1124,9 @@ describe('index.html auto visualization UI', () => {
             expect(elements[id].listeners.input).toHaveLength(1);
             expect(elements[id].listeners.change).toHaveLength(1);
         });
+
+        expect(elements.mutationPosition.listeners.input).toHaveLength(1);
+        expect(elements.mutationPosition.listeners.change).toHaveLength(1);
 
         enterCommittedFields.forEach(id => {
             expect(elements[id].listeners.keydown).toHaveLength(1);
@@ -1004,6 +1137,8 @@ describe('index.html auto visualization UI', () => {
 
         expect(elements.highlightSubmitBtn.listeners.click).toHaveLength(1);
         expect(elements.highlightCancelBtn.listeners.click).toHaveLength(1);
+        expect(elements.mutationSubmitBtn.listeners.click).toHaveLength(1);
+        expect(elements.mutationCancelBtn.listeners.click).toHaveLength(1);
 
         immediateFields.forEach(id => {
             expect(elements[id].listeners.change).toHaveLength(1);
@@ -1090,6 +1225,30 @@ describe('index.html auto visualization UI', () => {
         expect(elements.highlightSequence.value).toBe('1');
         expect(elements.highlightRange.value).toBe('');
         expect(elements.highlightSubmitBtn.textContent).toBe('Add');
+    });
+
+    test('clears mutation form fields after successful add', () => {
+        const { elements, loadHandlers, vaRRIStub } = createIndexHtmlSandbox();
+
+        expect(loadHandlers).toHaveLength(1);
+        loadHandlers[0]();
+
+        elements.mutationSequence.value = '2';
+        elements.mutationPosition.value = '7';
+        elements.mutationBase.value = 'G';
+        elements.mutationColor.value = '#223344';
+
+        elements.mutationSubmitBtn.trigger('click', {
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        });
+
+        expect(vaRRIStub.registerPointMutation).toHaveBeenCalledTimes(1);
+        expect(elements.mutationEditId.value).toBe('');
+        expect(elements.mutationSequence.value).toBe('1');
+        expect(elements.mutationPosition.value).toBe('');
+        expect(elements.mutationBase.value).toBe('A');
+        expect(elements.mutationSubmitBtn.textContent).toBe('Add');
     });
 
     test('shows invalid range message on range input when parser mentions sequence indices', () => {
