@@ -59,12 +59,27 @@
         <div class="input-wrap"><textarea id="sequence" rows="3"
           placeholder="ACGAUCAGAGAUUAGAGCAUACGACAGCAG&ACGAAAAGAGCAUACGACAGUAG"></textarea><span class="field-tooltip"></span></div>
 
-        <div class="row-4">
-          <!-- Start indices -->
-          <label for="startIndex1">Start 1</label>
-          <input type="number" id="startIndex1" value="1" /><span class="field-tooltip"></span>
-          <label for="startIndex2">Start 2</label>
-          <input type="number" id="startIndex2" value="1" /><span class="field-tooltip"></span>
+        <!-- Start indices and color -->
+        <div class="start-index-grid">
+          <div class="start-index-item">
+            <div class="start-index-label-row">
+              <input type="color" id="color-seq1" class="legend-color"
+                              title="Select sequence 1 strand colour"
+                              onchange="applyColors(); runVisualization();" />
+              <label for="startIndex1">Start&nbsp;1</label>
+              <input type="number" id="startIndex1" value="1" size="4" />
+              <span class="field-tooltip"></span>
+            </div>
+          </div>
+          <div class="start-index-item">
+            <div class="start-index-label-row">
+              <input type="color" id="color-seq2" class="legend-color"
+              title="Select sequence 2 strand colour" onchange="applyColors(); runVisualization();" />
+              <label for="startIndex2">Start&nbsp;2</label>
+              <input type="number" id="startIndex2" value="1" size="4" />
+              <span class="field-tooltip"></span>
+            </div>
+          </div>
         </div>
 
         <!-- Structure -->
@@ -96,22 +111,34 @@
           </div>
 
           <label for="highlighting">Highlighting</label>
-          <div class="label-dropdown-row">
+          <div class="label-dropdown-col-row">
             <label for="highlighting">&thinsp;&thinsp;&thinsp;of RRI Nucleotide</label>
             <select id="highlighting">
               <option value="region" selected>region</option>
               <option value="basepairs">basepairs</option>
               <option value="nothing">nothing</option>
             </select>
+            <input type="color" id="color-intermol" class="legend-color"
+                 title="Select nucleotide highlight colour" onchange="applyColors(); runVisualization();" />
           </div>
 
-          <div class="label-dropdown-row">
+          <div class="label-dropdown-col-row">
             <label for="backgroundhighlighting">&thinsp;&thinsp;&thinsp;of RRI Background</label>
             <select id="backgroundhighlighting">
               <option value="basepairs" selected>basepairs</option>
               <option value="region">region</option>
               <option value="nothing">nothing</option>
             </select>
+            <input type="color" id="color-bg" class="legend-color-rect"
+                 title="Select background highlight colour" onchange="applyColors(); runVisualization();" />
+          </div>
+
+          <div class="label-dropdown-row">
+            <label for="color-basepair"
+              onmouseenter="this.title = document.getElementById('color-basepair')?.getAttribute('title') || '';"
+              onclick="document.getElementById('color-basepair').click();">Base pair color</label>
+            <input type="color" id="color-basepair" class="legend-color-rect"
+                 title="Select base pair colour" onchange="applyColors(); runVisualization();" />
           </div>
 
           <div class="checkbox-row">
@@ -180,7 +207,7 @@
       <details class="control-group">
         <summary>Probability Profiles <small>(Accessibility, ...)</small></summary>
         <div class="control-group-body">
-          <label><small>Space-separated CSV, # comment line</small></label>
+          <label><small>Space-separated CSV; # starts comment line</small></label>
           <div class="row-2">
             <label for="profile-data-1" class="profile-label-with-color">
               <span>Seq. 1 profile</span>
@@ -319,50 +346,6 @@
       </div>
     </div>
 
-
-    <!-- Colour legend -->
-    <div class="legend">
-      <h3>Colour Scheme</h3>
-      <div class="legend-grid">
-        <div class="legend-item">
-            <input type="color" id="color-seq1" class="legend-color"
-                            title="Select sequence 1 strand colour"
-                            onchange="applyColors(); runVisualization();" />
-              <label for="color-seq1"
-                onmouseenter="this.title = document.getElementById('color-seq1')?.getAttribute('title') || '';"
-                onclick="document.getElementById('color-seq1').click();">Sequence 1</label>
-        </div>
-        <div class="legend-item">
-          <input type="color" id="color-seq2" class="legend-color"
-                 title="Select sequence 2 strand colour" onchange="applyColors(); runVisualization();" />
-           <label for="color-seq2"
-             onmouseenter="this.title = document.getElementById('color-seq2')?.getAttribute('title') || '';"
-             onclick="document.getElementById('color-seq2').click();">Sequence 2</label>
-        </div>
-        <div class="legend-item">
-          <input type="color" id="color-basepair" class="legend-color-rect"
-                 title="Select base pair colour" onchange="applyColors(); runVisualization();" />
-           <label for="color-basepair"
-             onmouseenter="this.title = document.getElementById('color-basepair')?.getAttribute('title') || '';"
-             onclick="document.getElementById('color-basepair').click();">Base pair</label>
-        </div>
-        <div class="legend-item">
-          <input type="color" id="color-intermol" class="legend-color"
-                 title="Select nucleotide highlight colour" onchange="applyColors(); runVisualization();" />
-           <label for="color-intermol"
-             onmouseenter="this.title = document.getElementById('color-intermol')?.getAttribute('title') || '';"
-             onclick="document.getElementById('color-intermol').click();">RRI Nucleotide</label>
-        </div>
-        <div class="legend-item">
-          <input type="color" id="color-bg" class="legend-color-rect"
-                 title="Select background highlight colour" onchange="applyColors(); runVisualization();" />
-           <label for="color-bg"
-             onmouseenter="this.title = document.getElementById('color-bg')?.getAttribute('title') || '';"
-             onclick="document.getElementById('color-bg').click();">RRI Background</label>
-        </div>
-      </div>
-    </div>
-    
     <!-- Export bar -->
     <div class="export-bar">
       <span>Export:</span>
