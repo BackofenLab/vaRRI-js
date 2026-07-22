@@ -352,6 +352,10 @@
       coloring: 'strand', highlighting: 'region',
       backgroundhighlighting: 'basepairs', guBasepairs: true,
       cropping: '2',
+      subsequenceHighlights: [
+        { sequence: '1', range: '18-20', color: '#338a29' },
+        { sequence: '2', range: '114-116', color: '#338a29' },
+      ],
       profileColor1RepresentsOne: true,
       profileColor2RepresentsOne: false,
       profileData1: `# unpaired probabilities
@@ -370,6 +374,7 @@
       startIndex1: '1', startIndex2: '1',
       coloring: 'loop', highlighting: 'nothing',
       backgroundhighlighting: 'nothing', guBasepairs: false,
+      subsequenceHighlights: [],
       profileColor1RepresentsOne: false,
       profileColor2RepresentsOne: false,
       profileData1: '',
@@ -381,6 +386,7 @@
       startIndex1: '1', startIndex2: '1',
       coloring: 'loop', highlighting: 'nothing',
       backgroundhighlighting: 'nothing', guBasepairs: false,
+      subsequenceHighlights: [],
       profileColor1RepresentsOne: false,
       profileColor2RepresentsOne: false,
       profileData1: '',
@@ -405,6 +411,21 @@
     document.getElementById('profile-color-1-represents-one').checked = !!ex.profileColor1RepresentsOne;
     document.getElementById('profile-color-2-represents-one').checked = !!ex.profileColor2RepresentsOne;
     vaRRI.clearSubsequenceHighlights();
+
+    const exampleHighlights = Array.isArray(ex.subsequenceHighlights)
+      ? ex.subsequenceHighlights
+      : [];
+    if (exampleHighlights.length > 0) {
+      const sequenceContext = getHighlightSequenceContext();
+      exampleHighlights.forEach(highlight => {
+        vaRRI.registerSubsequenceHighlight({
+          sequence: highlight.sequence,
+          range: highlight.range,
+          color: highlight.color,
+        }, sequenceContext);
+      });
+    }
+
     renderHighlightList();
     resetHighlightForm();
     runVisualization();
