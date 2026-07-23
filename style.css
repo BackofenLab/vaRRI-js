@@ -106,7 +106,7 @@ main {
   border: 1px solid #dbe6f0;
   border-radius: 8px;
   background: #fbfdff;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .control-group > summary {
@@ -194,7 +194,7 @@ label small {
 }
 
 .start-index-label-row > input[type="number"] {
-  width: 6.5rem;
+  width: 5rem;
   margin: 0;
   line-height: 1.2;
 }

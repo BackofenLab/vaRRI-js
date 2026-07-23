@@ -102,7 +102,7 @@
       <details class="control-group">
         <summary>Visualization Settings</summary>
         <div class="control-group-body">
-          <div class="label-dropdown-row">
+          <div class="row-2">
             <label for="coloring">Nucleotide color</label>
             <select id="coloring">
               <option value="strand" selected>by sequence</option>
@@ -133,13 +133,13 @@
                  title="Select background highlight colour" onchange="applyColors(); runVisualization();" />
           </div>
 
-          <div class="label-dropdown-row">
+            <div class="row-2">
             <label for="color-basepair"
               onmouseenter="this.title = document.getElementById('color-basepair')?.getAttribute('title') || '';"
               onclick="document.getElementById('color-basepair').click();">Base pair color</label>
             <input type="color" id="color-basepair" class="legend-color-rect"
                  title="Select base pair colour" onchange="applyColors(); runVisualization();" />
-          </div>
+            </div>
 
           <div class="checkbox-row">
             <input type="checkbox" id="guBasepairs" checked />
@@ -1000,7 +1000,8 @@
       const info = document.createElement('button');
       info.type = 'button';
       info.className = 'highlight-item-main';
-      info.textContent = `Seq ${highlight.sequence} | ${highlight.rangeText} | ${highlight.color}`;
+//      info.textContent = `Seq ${highlight.sequence} | ${highlight.rangeText} | ${highlight.color}`;
+      info.textContent = `Seq ${highlight.sequence} : ${highlight.rangeText}`;
       info.style.borderLeft = `10px solid ${highlight.color}`;
 
       const removeBtn = document.createElement('button');
@@ -1125,7 +1126,8 @@
       const info = document.createElement('button');
       info.type = 'button';
       info.className = 'highlight-item-main';
-      info.textContent = `Seq ${mutation.sequence} | ${mutation.labelText} | ${mutation.color}`;
+//      info.textContent = `Seq ${mutation.sequence} | ${mutation.labelText} | ${mutation.color}`;
+      info.textContent = `Seq ${mutation.sequence} : ${mutation.labelText}`;
       info.style.borderLeft = `10px solid ${mutation.color}`;
 
       const removeBtn = document.createElement('button');
