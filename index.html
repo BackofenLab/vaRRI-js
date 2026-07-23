@@ -605,6 +605,7 @@
     container.innerHTML = '';
     container.style.visibility = '';
     resetRotationControl();
+    resetCroppingControl();
     clearMsg();
     clearAllFieldErrors();
   }
@@ -613,6 +614,13 @@
     committedRotationDeg = 0;
     const slider = document.getElementById('rotation-slider');
     if (slider) slider.value = '0';
+  }
+
+  function resetCroppingControl() {
+    const croppingSlider = document.getElementById('cropping');
+    if (croppingSlider) croppingSlider.value = '-1';
+    const croppingValueEl = document.getElementById('cropping-value');
+    if (croppingValueEl) croppingValueEl.textContent = '-1';
   }
 
   function applySliderRotation() {
