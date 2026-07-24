@@ -147,7 +147,7 @@
           </div>
 
           <div class="checkbox-row">
-            <input type="checkbox" id="animation" />
+            <input type="checkbox" id="animation" checked />
             <label for="animation" style="margin:0">Enable Fornac force-layout animation</label>
           </div>
         </div>
@@ -1464,6 +1464,69 @@
     }
   }
 
+  // function to check whether an URL argument with a given name is present in the current page URL
+  // if so, the respective document input field is set to the value of the URL argument
+  function loadUrlArgumentToInputField(argName, inputFieldId) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has(argName)) {
+      const value = urlParams.get(argName) || '';
+      const inputField = document.getElementById(inputFieldId);
+      if (inputField) {
+        inputField.value = value;
+      }
+    }
+  } 
+
+  // function to check whether mutations are present in the URL parameters, and if so, load them into vaRRI
+  // expected encoding: "<seq>:<pos><character>", comma-separated for multiple entries
+  function loadUrlMutationsToVaRRI( argName) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has(argName)) {
+      const value = urlParams.get(argName) || '';
+      const mutations = value.split(',').map(m => m.trim()).filter(m => m.length > 0);
+      mutations.forEach(mutation => {
+        const match = mutation.match(/^([12]):(-?\d+)(.)$/i);
+        if (match) {
+          const sequence = match[1];
+          const position = parseInt(match[2], 10);
+          const replacement = match[3];
+          try {
+            vaRRI.registerPointMutation({ sequence, position, replacement, color: getDefaultMutationColor() }, getHighlightSequenceContext());
+          } catch (err) {
+            console.warn(`Failed to register mutation from URL parameter: ${mutation}. Error: ${err.message}`);
+          }
+        } else {
+          console.warn(`Invalid mutation format in URL parameter: ${mutation}`);
+        }
+      });
+    }
+  }
+
+  // function to check whether subsequence highlights are present in the URL parameters, and if so, load them into vaRRI
+  // expected encoding: "<seq>:<start>-<end>", comma-separated for multiple entries
+  function loadUrlSubsequenceHighlightsToVaRRI(argName) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has(argName)) {
+      const value = urlParams.get(argName) || '';
+      const highlights = value.split(',').map(h => h.trim()).filter(h => h.length > 0);
+      highlights.forEach(highlight => {
+        const match = highlight.match(/^([12]):(-?\d+)-(-?\d+)$/i);
+        if (match) {
+          const sequence = match[1];
+          const start = parseInt(match[2], 10);
+          const end = parseInt(match[3], 10);
+          try {
+            vaRRI.registerSubsequenceHighlight({ sequence, range: `${start}-${end}`, color : getDefaultSubsequenceHighlightColor() }, getHighlightSequenceContext());
+          } catch (err) {
+            console.warn(`Failed to register subsequence highlight from URL parameter: ${highlight}. Error: ${err.message}`);
+          }
+        } else {
+          console.warn(`Invalid subsequence highlight format in URL parameter: ${highlight}`);
+        }
+      });
+    }
+  }
+
   // -------------------------------------------------------------------------
   // -------------------------------------------------------------------------
   // Auto-load 2-molecule example on page load
@@ -1494,7 +1557,33 @@
       rotationSlider.addEventListener('input', applySliderRotation);
       rotationSlider.addEventListener('change', commitSliderRotation);
     }
-    loadExample('2mol');
+
+    // load URL parameters if present, otherwise load the 2-molecule example
+    const urlParams = new URLSearchParams(window.location.search);
+    // at least a sequence has to be present in the URL parameters for the visualization to be loaded
+    if (urlParams.has('sequence')) {
+      // iterate over all expected URL parameters and load them into the respective input fields if present
+      for (const argName of [
+          'structure', 'sequence', 'startIndex1', 'startIndex2', 
+          'cropping', 'coloring', 'highlighting', 'backgroundhighlighting'
+          ]) 
+      {
+        loadUrlArgumentToInputField(argName, argName);
+      }
+
+      // TODO: subsequence highlights and point mutations (coordinates only, not colors). encoding "<seq>:<start>-<end>" for highlights and "<seq>:<pos>=<base>" for mutations, comma-separated for multiple entries
+      loadUrlSubsequenceHighlightsToVaRRI('highlights');
+      loadUrlMutationsToVaRRI('mutations');
+
+      // trigger page rendering with the loaded URL parameters
+      renderHighlightList();
+      renderMutationList();
+      resetHighlightForm();
+      resetMutationForm();
+      runVisualization();
+    } else {
+      loadExample('2mol');
+    }
   });
 </script>
 

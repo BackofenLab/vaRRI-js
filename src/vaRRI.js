@@ -120,7 +120,7 @@
 
         const ranges = rangeInput.map((pair, idx) => {
             if (!Array.isArray(pair) || pair.length !== 2) {
-                throw new Error(`Invalid subsequence range at index ${idx}. Expected [start, end].`);
+                throw new Error(`Invalid subsequence range ${pair} at index ${idx}. Expected [start, end].`);
             }
             const start = Number(pair[0]);
             const end = Number(pair[1]);
@@ -671,8 +671,17 @@
         if (parseInt(cropping, 10) < 0) return -1;  
 
         // check if structure is only composed of dots (unpaired) and if so, disallow cropping
-        if( structure && !structure.match(/[^.&]/)) {
-            throw new Error('Cropping is not allowed for structures with only unpaired nucleotides.');
+        if( structure ) {
+            if (!structure.match(/[^.&]/)) {
+                throw new Error('Cropping is not allowed for structures with only unpaired nucleotides.');
+            }
+            if (structure.includes('&')) {
+                // check structure of the first molecule (before &) if present
+                const [struc1, struc2] = splitAtAmpersand(structure);
+                if (!struc1.match(/[^.]/) || !struc2.match(/[^.]/)) {
+                    throw new Error('Cropping is not allowed for structures with only unpaired nucleotides in either molecule.');
+                }
+            }
         }
         return cropping;
     }
