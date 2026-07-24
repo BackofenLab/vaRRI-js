@@ -595,6 +595,8 @@
     document.getElementById('sequence').value  = '';
     document.getElementById('profile-data-1').value = '';
     document.getElementById('profile-data-2').value = '';
+    document.getElementById('startIndex1').value = '1';
+    document.getElementById('startIndex2').value = '1';
     vaRRI.clearSubsequenceHighlights();
     vaRRI.clearPointMutations();
     renderHighlightList();
@@ -1532,6 +1534,8 @@
   // Auto-load 2-molecule example on page load
   // -------------------------------------------------------------------------
   window.addEventListener('load', () => {
+    // reset
+    clearAll();
     // Initialise colour pickers from the vaRRI.js defaults
     initColorPickers();
     resetHighlightForm();
@@ -1571,7 +1575,8 @@
         loadUrlArgumentToInputField(argName, argName);
       }
 
-      // TODO: subsequence highlights and point mutations (coordinates only, not colors). encoding "<seq>:<start>-<end>" for highlights and "<seq>:<pos>=<base>" for mutations, comma-separated for multiple entries
+      // subsequence highlights and point mutations (coordinates only, not colors). 
+      // encoding "<seq>:<start>-<end>" for highlights and "<seq>:<pos><base>" for mutations, comma-separated for multiple entries
       loadUrlSubsequenceHighlightsToVaRRI('highlights');
       loadUrlMutationsToVaRRI('mutations');
 
