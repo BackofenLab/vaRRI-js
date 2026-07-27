@@ -466,9 +466,9 @@ describe('point mutation registry', () => {
 
         expect(mutation.sequence).toBe('1');
         expect(mutation.position).toBe(2);
-        expect(mutation.replacement).toBe('G');
+        expect(mutation.replacement).toBe('g');
         expect(mutation.reference).toBe('C');
-        expect(mutation.labelText).toBe('C2G');
+        expect(mutation.labelText).toBe('C2g');
     });
 
     test('accepts any single letter replacement', () => {
@@ -477,8 +477,8 @@ describe('point mutation registry', () => {
             { '2': { offset: 110, sequence: 'ACG' } }
         );
 
-        expect(mutation.replacement).toBe('X');
-        expect(mutation.labelText).toBe('A110X');
+        expect(mutation.replacement).toBe('x');
+        expect(mutation.labelText).toBe('A110x');
     });
 
     test('registers, updates and removes mutations by id', () => {
@@ -921,7 +921,7 @@ function createIndexHtmlSandbox() {
         backgroundhighlighting: makeElement('backgroundhighlighting', { value: 'basepairs', tagName: 'SELECT' }),
         guBasepairs: makeElement('guBasepairs', { checked: true, type: 'checkbox' }),
         highlightSequence: makeElement('highlightSequence', { value: '1', tagName: 'SELECT' }),
-        highlightRange: makeElement('highlightRange'),
+        highlightRange: makeElement('highlightRange', { value: '', type: 'text' }),
         highlightColor: makeElement('highlightColor', { value: '#000000', type: 'color' }),
         highlightEditId: makeElement('highlightEditId', { value: '', type: 'hidden' }),
         highlightSubmitBtn: makeElement('highlightSubmitBtn', { tagName: 'BUTTON' }),
@@ -944,6 +944,10 @@ function createIndexHtmlSandbox() {
         'rotation-slider': makeElement('rotation-slider', { value: '0', type: 'range' }),
         rna_ss: makeElement('rna_ss', { tagName: 'DIV' }),
         msg: makeElement('msg', { tagName: 'DIV' }),
+        'profile-data-1': makeElement('profile-data-1', { tagName: 'TEXTAREA' }),
+        'profile-data-2': makeElement('profile-data-2', { tagName: 'TEXTAREA' }),
+        'profile-color-1-represents-one': makeElement('guBasepairs', { checked: true, type: 'checkbox' }),
+        'profile-color-2-represents-one': makeElement('guBasepairs', { checked: true, type: 'checkbox' })
     };
 
     const loadHandlers = [];
@@ -1256,7 +1260,7 @@ describe('index.html auto visualization UI', () => {
         expect(elements.mutationBase.value).toBe('A');
         expect(elements.mutationSubmitBtn.textContent).toBe('Add');
     });
-
+ 
     test('shows invalid range message on range input when parser mentions sequence indices', () => {
         const { elements, loadHandlers, vaRRIStub } = createIndexHtmlSandbox();
 
