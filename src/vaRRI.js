@@ -1578,6 +1578,7 @@
      * @param {string} color  Highlight color.
      */
     function highlightSubsequence(v, seq, ranges, color) {
+        const highlightDiameter = 14;
         const keyOffset = `offset${seq}`;
 
         // Map RNA index → Fornac web node id for the relevant sequence
@@ -1596,7 +1597,7 @@
             if (start === end) {
                 const webId = indexDict[start];
                 const [x, y] = getPositionOfNode(webId);
-                addElement('circle', { cx: String(x), cy: String(y), r: '7px', style: `fill:${color};opacity:0.3;` });
+                addElement('circle', { cx: String(x), cy: String(y), r: `${Math.ceil(highlightDiameter/2)}px`, style: `fill:${color};opacity:0.3;` });
                 continue;
             }
 
@@ -1612,8 +1613,8 @@
             for (let i = startNode; i <= endNode; i++) indices.push(i);
 
             polyline(indices,
-                `stroke:${color};stroke-width:10;opacity:0.3;fill:None;` +
-                'stroke-linejoin:miter;stroke-miterlimit:0.1;'
+                `stroke:${color};stroke-width:14;opacity:0.3;fill:None;` +
+                'stroke-linejoin:round;stroke-linecap:round'
             );
         }
     }
