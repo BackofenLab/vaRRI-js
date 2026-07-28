@@ -9,6 +9,8 @@
     "testEnvironment": "node"
   },
   "devDependencies": {
-    "jest": "^25.0.0"
+    "canvas": "^3.2.3",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1"
   }
 }
