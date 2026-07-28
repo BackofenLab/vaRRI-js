@@ -1087,6 +1087,55 @@ try {
 }
 }
 
+// -------------------------------------------------------------------------
+// Drag-and-drop file loading
+// -------------------------------------------------------------------------
+
+function setupFileDragAndDrop(textareaId) {
+const el = document.getElementById(textareaId);
+if (!el) return;
+
+['dragenter', 'dragover'].forEach(eventName => {
+    el.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    el.classList.add('drag-over');
+    });
+});
+
+['dragleave', 'dragend'].forEach(eventName => {
+    el.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    el.classList.remove('drag-over');
+    });
+});
+
+el.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    el.classList.remove('drag-over');
+
+    const files = e.dataTransfer && e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+    el.value = (event.target && event.target.result) || '';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    reader.readAsText(file);
+});
+}
+
+
+
+//  ------------------------------------------------------------------------
+//  URL parameter loading
+//  ------------------------------------------------------------------------
+
 // function to check whether an URL argument with a given name is present in the current page URL
 // if so, the respective document input field is set to the value of the URL argument
 function loadUrlArgumentToInputField(argName, inputFieldId) {
@@ -1176,6 +1225,9 @@ if (mutationCancelBtn) mutationCancelBtn.addEventListener('click', resetMutation
 if (profileApplyBtn) profileApplyBtn.addEventListener('click', () => runVisualization());
 
 attachAutoVisualizationListeners();
+
+setupFileDragAndDrop('profile-data-1');
+setupFileDragAndDrop('profile-data-2');
 
 const rotationSlider = document.getElementById('rotation-slider');
 if (rotationSlider) {
