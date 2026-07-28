@@ -226,6 +226,14 @@ textarea:focus, input:focus, select:focus {
 
 textarea { resize: vertical; }
 
+
+textarea.drag-over {
+  border-color: var(--brand-blue);
+  background-color: var(--brand-blue-soft);
+  box-shadow: 0 0 0 2px rgba(20, 90, 150, 0.25);
+}
+
+
 .row-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
