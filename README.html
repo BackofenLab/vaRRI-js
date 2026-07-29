@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>README</title>
+  
+  <!-- GitHub-ähnliches CSS für schönes Styling (optional) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css">
+  
+  <style>
+    .markdown-body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 45px;
+    }
+    @media (max-width: 767px) {
+      .markdown-body { padding: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+  <article id="content" class="markdown-body">
+    README wird geladen...
+  </article>
+
+  <!-- Marked.js um Markdown im Browser zu rendern -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    fetch('./README.md')
+      .then(response => {
+        if (!response.ok) throw new Error('README nicht gefunden');
+        return response.text();
+      })
+      .then(text => {
+        document.getElementById('content').innerHTML = marked.parse(text);
+      })
+      .catch(err => {
+        document.getElementById('content').innerText = 'Fehler beim Laden des READMEs.';
+      });
+  </script>
+</body>
+</html>
