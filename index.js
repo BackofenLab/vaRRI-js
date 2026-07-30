@@ -1287,6 +1287,12 @@ function generateShareableURL(btnElement) {
   const queryString = params.toString();
   if (!queryString) return;
 
+  // -------------------------------------------------------------------------
+  // FIX: Explicitly percent-encode '(' and ')' characters which URLSearchParams
+  // leaves raw by default according to RFC 3986.
+  // -------------------------------------------------------------------------
+  queryString = queryString.replace(/\(/g, '%28').replace(/\)/g, '%29');
+  
   // 5. Basis-URL bestimmen (http vs file://)
   let baseUrl;
   if (window.location.protocol === 'file:') {
