@@ -1085,6 +1085,56 @@ try {
 }
 }
 
+/**
+ * Generates a URL-encoded link for the specified input fields,
+ * handling both web server and local file:// execution.
+ * 
+ * @param {HTMLElement} btnElement - Optional button element for UI feedback
+ */
+function generateShareableURL(btnElement) {
+  // Array of input/textarea IDs to include in the URL parameters
+  const targetElementIds = ['sequence', 'structure', 'startIndex1', 'startIndex2'];
+  
+  // 1. Construct URL parameters dynamically via loop
+  const params = new URLSearchParams();
+  for (const id of targetElementIds) {
+    const el = document.getElementById(id);
+    if (el && el.value !== undefined && el.value !== '') {
+      params.append(id, el.value);
+    }
+  }
+
+  const queryString = params.toString();
+  if (!queryString) return;
+
+  // 2. Determine base URL depending on protocol (http vs. file)
+  let baseUrl;
+  if (window.location.protocol === 'file:') {
+    // Strips out any existing query parameters from the local file path
+    baseUrl = window.location.href.split('?')[0].split('#')[0];
+  } else {
+    // Standard webserver URL construction
+    baseUrl = `${window.location.origin}${window.location.pathname}`;
+  }
+
+  const shareableURL = `${baseUrl}?${queryString}`;
+
+  // 3. Copy to clipboard with UI feedback
+  navigator.clipboard.writeText(shareableURL)
+    .then(() => {
+      if (btnElement) {
+        const originalText = btnElement.innerHTML;
+        btnElement.innerHTML = '✓ Copied!';
+        setTimeout(() => { btnElement.innerHTML = originalText; }, 2000);
+      }
+    })
+    .catch(err => {
+      console.error('Could not copy link to clipboard:', err);
+      // Fallback prompt if clipboard access is blocked in local contexts
+      prompt('Copy your shareable URL below:', shareableURL);
+    });
+}
+
 // -------------------------------------------------------------------------
 // Drag-and-drop file loading
 // -------------------------------------------------------------------------
@@ -1196,6 +1246,9 @@ if (urlParams.has(argName)) {
     });
 }
 }
+
+
+
 
 // -------------------------------------------------------------------------
 // -------------------------------------------------------------------------

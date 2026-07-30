@@ -155,6 +155,11 @@ You can also use the respective button to load or unload the example input.
 | **RNA-RNA interaction** | An RNA-RNA interaction demonstrating all features of vaRRI-js. |
 | **X Clear** | Clears all input fields and resets the visualisation. |
 
+Here some example reproductions of figures from the literature:
+
+- [(Corcoran et al., 2012) Superfolder GFP reporters validate diverse new mRNA targets of the classic porin regulator, MicF RNA](https://doi.org/10.1111/j.1365-2958.2012.08031.x)
+  - reproduction: [vaRRI-js rendering](index.html?sequence=AUUCAGGGGUAAAAAGUGA%26UCUGUUUACCCCUAUUU&structure=....%28%28%28%28%28%28%28%28%28......%26....%29%29%29%29%29%29%29%29%29....&startIndex1=-15&startIndex2=47)  
+
 
 ### Visualisation Settings
 
