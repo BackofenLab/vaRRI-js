@@ -1498,19 +1498,22 @@
      */
     function highlightBasepairs(v) {
         const split = v.sequence1.length + 1;
-        document.querySelectorAll('[link_type="basepair"]').forEach(link => {
-            const nodes = [
-                parseInt(link.getAttribute('start'), 10),
-                parseInt(link.getAttribute('end'), 10),
-            ];
-            if (!(nodes[0] < split && nodes[1] > split)) return;
-            nodes.forEach(nodeNum => {
-                const node = document.querySelector(`circle[node_num="${nodeNum}"]`);
-                if (node) {
-                    node.setAttribute('style', (node.getAttribute('style') || '') + `stroke: ${COLORS.intermolecularHighlight};`);
-                }
+        // Highlight all nodes that are part of intermolecular basepairs of main layouting (basepair) or 2ndary layouting (pseudoknot)
+        for (const type of ["basepair", "pseudoknot"]) {
+            document.querySelectorAll(`[link_type="${type}"]`).forEach(link => {
+                const nodes = [
+                    parseInt(link.getAttribute('start'), 10),
+                    parseInt(link.getAttribute('end'), 10),
+                ];
+                if (!(nodes[0] < split && nodes[1] > split)) return;
+                nodes.forEach(nodeNum => {
+                    const node = document.querySelector(`circle[node_num="${nodeNum}"]`);
+                    if (node) {
+                        node.setAttribute('style', (node.getAttribute('style') || '') + `stroke: ${COLORS.intermolecularHighlight};`);
+                    }
+                });
             });
-        });
+        }
     }
 
     /**
