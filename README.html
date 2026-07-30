@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>README</title>
   
-  <!-- GitHub-ähnliches CSS für schönes Styling (optional) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css">
   
   <style>
@@ -16,6 +15,16 @@
       margin: 0 auto;
       padding: 45px;
     }
+    /* Styling für die Banner-Benachrichtigung */
+    .status-banner {
+      background-color: #fff8c5;
+      border: 1px solid rgba(212, 167, 44, 0.4);
+      padding: 8px 16px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #24292f;
+    }
     @media (max-width: 767px) {
       .markdown-body { padding: 15px; }
     }
@@ -24,22 +33,47 @@
 <body>
 
   <article id="content" class="markdown-body">
-    README wird geladen...
+    <div id="notice"></div>
+    <div id="markdown-text">README wird geladen...</div>
   </article>
 
-  <!-- Marked.js um Markdown im Browser zu rendern -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
-    fetch('./README.md')
+    // 1. URLs definieren
+    const localUrl = './README.md';
+    // Hier die Raw-URL deines Repos (z. B. GitHub, GitLab) eintragen:
+    const remoteUrl = 'https://raw.githubusercontent.com/BackofenLab/vaRRI-js/main/README.md';
+
+    // 2. Prüfen, ob die HTML-Datei lokal geöffnet wurde (file://)
+    const isLocalFile = window.location.protocol === 'file:';
+
+    // 3. Ziel-URL wählen
+    const targetUrl = isLocalFile ? remoteUrl : localUrl;
+
+    // Optional: Hinweis im UI anzeigen, wenn von der Online-Quelle geladen wird
+    if (isLocalFile) {
+      document.getElementById('notice').innerHTML = `
+        <div class="status-banner">
+          ⚠️ <strong>Hinweis:</strong> 
+          <blockquote style="margin: 8px;">
+            Die README.html wurde lokal geöffnet und kann nicht auf die lokale README.md zugreifen.<br>
+            Daher wurde die README aus dem <a href="${remoteUrl}">vaRRI-js Online-Repository</a> geladen.
+          </blockquote>
+        </div>
+      `;
+    }
+
+    // 4. Fetch ausführen
+    fetch(targetUrl)
       .then(response => {
-        if (!response.ok) throw new Error('README nicht gefunden');
+        if (!response.ok) throw new Error('README konnte nicht geladen werden');
         return response.text();
       })
       .then(text => {
-        document.getElementById('content').innerHTML = marked.parse(text);
+        document.getElementById('markdown-text').innerHTML = marked.parse(text);
       })
       .catch(err => {
-        document.getElementById('content').innerText = 'Fehler beim Laden des READMEs.';
+        document.getElementById('markdown-text').innerText = 'Fehler beim Laden des READMEs (' + err.message + ').';
       });
   </script>
 </body>
