@@ -47,15 +47,24 @@ Use cases include
 
 - production of publication-ready RRI figures,
 - interactive visualizations of RRI data, 
-  - e.g. forwarded from web applications via URL parameters, and
+  - e.g. forwarded from web applications via URL parameters,
+- embedding of RRI visualizations in external web pages, e.g. in documentation, blogs, or web tools, and
 - educational purposes, e.g. in online courses or tutorials.
 
-Given sequence and secondary-structure encodings in dot-bracket notation, renders
+Given two sequences and the RRI secondary-structure encoding in dot-bracket notation, vaRRI-js renders
 them with the [Fornac](https://github.com/ViennaRNA/fornac) library, and then
-applies all of vaRRI's post-processing (coloring, highlighting, index labeling,
-G-U basepair display, …).
+applies all of vaRRI's annotations and tweaks.
 
 [![vaRRI-js example visualization](doc/vaRRI-UI-example.png)](https://backofenlab.github.io/vaRRI-js/)
+
+
+<iframe 
+  src="[https://backofenlab.github.io/vaRRI-js/index.html?sequence=ACGAUCAGAGAUUAGAGCAUACGACAGCAG%26ACGAAAAGAGCAUACGACAGUAG&structure=..(((((....)))))(((....)))..%26..(((......)))..&showRendingOnly=true](https://your-domain.com/index.html?sequence=ACGAUCAGAGAUUAGAGCAUACGACAGCAG%26ACGAAAAGAGCAUACGACAGUAG&structure=..(((((....)))))(((....)))..%26..(((......)))..&showRendingOnly=true)" 
+  width="100%" 
+  height="600" 
+  style="border: none;"
+  title="vaRRI-js Visualization">
+</iframe>
 
 
 ---
@@ -274,6 +283,35 @@ After rendering, use the buttons in the export bar below the visualisation:
 | **🔗 Share Link** | Generate URL encoding of the input for sharing or embedding in other web applications; copied to clipboard. | 
 
 ---
+
+## 🔗 Embedding / Web Integration
+
+You can embed the visualization directly into external web pages (e.g., in documentation, blogs, or web tools) using an `<iframe>`.
+
+### Query Parameter
+
+Use the `showRendingOnly=true` URL parameter to hide all surrounding UI elements (header, controls panel, footer) and display only the visualization result panel.
+
+```text
+[https://backofenlab.github.io/vaRRI-js/index.html?sequence=ACGAUCAG...&structure=..(((((...&showRendingOnly=true](https://your-domain.com/index.html?sequence=ACGAUCAG...&structure=..(((((...&showRendingOnly=true)
+```
+
+### HTML Example
+
+```html
+<iframe 
+  src="[https://backofenlab.github.io/vaRRI-js/index.html?sequence=ACGAUCAGAGAUUAGAGCAUACGACAGCAG%26ACGAAAAGAGCAUACGACAGUAG&structure=..(((((....)))))(((....)))..%26..(((......)))..&showRendingOnly=true](https://your-domain.com/index.html?sequence=ACGAUCAGAGAUUAGAGCAUACGACAGCAG%26ACGAAAAGAGCAUACGACAGUAG&structure=..(((((....)))))(((....)))..%26..(((......)))..&showRendingOnly=true)" 
+  width="100%" 
+  height="600" 
+  style="border: none;"
+  title="vaRRI-js Visualization">
+</iframe>
+```
+
+> **Note:** Ensure special characters in URL parameters (such as `&` separating two RNA strands) are properly URL-encoded as `%26` when constructing embedding links manually. Full example links can be generated using the "🔗 Share Link" button in the vaRRI-js interface.
+
+
+
 
 ## Input Format Reference
 

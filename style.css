@@ -750,3 +750,31 @@ input[type="radio"] {
     height: 57px;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Layout-Anpassung, wenn showRendingOnly aktiv ist */
+/* ------------------------------------------------------------------ */
+
+body.rendering-only header,
+body.rendering-only footer,
+body.rendering-only .controls-column {
+  display: none !important;
+}
+
+body.rendering-only main {
+  display: block;
+  padding: 0;
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+body.rendering-only .result-panel {
+  width: 100%;
+  height: 100%;
+}
+
+/* transparent background for rendering-only mode to allow for transparent SVG export and page embedding */
+body.rendering-only {
+  background: transparent;
+}

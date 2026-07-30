@@ -1434,10 +1434,15 @@ function loadAllUrlParameters() {
   const urlParams = new URLSearchParams(window.location.search);
   let hasProfileData = false;
 
+  // 0. Check for "showRendingOnly" parameter to hide UI elements
+  if (urlParams.has('showRendingOnly') && urlParams.get('showRendingOnly') !== 'false') {
+    document.body.classList.add('rendering-only');
+  }
+
   // 1. Hydrate ALL matching DOM elements from URL parameters
   urlParams.forEach((_, paramKey) => {
-    // Exclude special dynamic list keys handled separately
-    if (paramKey === 'mutations' || paramKey === 'highlights') return;
+    // Exclude special dynamic list keys and rendering flags handled separately
+    if (paramKey === 'mutations' || paramKey === 'highlights' || paramKey === 'showRendingOnly') return;
 
     const loaded = loadUrlArgumentToInputField(paramKey, paramKey);
 
