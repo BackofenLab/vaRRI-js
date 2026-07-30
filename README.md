@@ -302,6 +302,7 @@ https://backofenlab.github.io/vaRRI-js/index.html?showRenderingOnly=true&<remain
 > **Note:** Ensure special characters in URL parameters (such as `&` separating two RNA strands) are properly URL-encoded as `%26` when constructing embedding links manually. Also `()` have to be encoded using `%28` and `%29` respectively, as they are not encoded by default by URL encoders following RFC 3986.
 Valid embedding links can be generated using the "🔗 Share Link" button in the vaRRI-js interface but have to extended with `&showRenderingOnly=true`.
 
+----
 
 <iframe 
   src="https://backofenlab.github.io/vaRRI-js/?sequence=ACGAUCAUGGAUUAGAGCAUUCGACAGCAG%26ACGAAAAAAAGAGCAUACGACAGUAG&color-seq1=%23add8e6&startIndex1=-6&color-seq2=%23f4bb44&startIndex2=100&structure=..%3C%3C%3C%3C...%3E%3E%3E%3E...%28%28..%28%28%28...%28%28..%26............%29%29...%29%29%29..%29%29..&coloring=strand&highlighting=region&color-intermol=%23ff0000&backgroundhighlighting=basepairs&color-bg=%23ff0000&color-basepair=%23ff0000&guBasepairs=on&animation=on&profile-color-1=%23800080&profile-color-1-represents-one=on&profile-color-2=%23ff0000&profile-data-1=%23+unpaired+probabilities%0A1+0.9%0A2+0.7%0A3+0.3%0A4+0.1%0A7+0.3%0A8+0.7%0A9+0.6&profile-idx-ref-1=1&profile-idx-ref-2=1&cropping=2&mutations=1%3A16G%3A338a29%2C2%3A118C%3A338a29&highlights=1%3A18-20%3A338a29%2C2%3A114-116%3A338a29&showRenderingOnly=true" 
@@ -311,7 +312,10 @@ Valid embedding links can be generated using the "🔗 Share Link" button in the
   title="vaRRI-js Visualization">
 </iframe>
 
+----
 
+> **Note:** GitHub repository preview strips embedded `<iframe>` elements as above for security reasons. 
+> * If you are viewing this page on **GitHub Pages**, the live widget will render directly below.
 
 ## Input Format Reference
 
