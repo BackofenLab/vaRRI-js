@@ -254,7 +254,7 @@ Selecting a listed mutation will populate the input fields with its values for e
 
 ### Additional Features
 
-- **Zooming**: Use the mouse wheel in combination with the Ctrl key (or Cmd key on macOS) to zoom in and out.
+- **Zooming**: Use the mouse wheel to zoom in and out.
 - **Panning**: Click and drag the visualisation to pan around. This is useful when zoomed in to focus on a certain region of the structure.
 - **Rotation**: Use the *Rotation* slider below the visualisation to rotate the structure. Rotation preserves text orientation and is useful to align the structure for better visibility or to match a certain orientation in a publication figure.
 - **Cropping**: Use the *Crop* slider to reduce the unpaired nucleotides at the ends of each sequence to the given number. This is useful to focus on the interaction region and reduce the size of the visualisation. A value of `-1` disables cropping and shows the full sequences.
