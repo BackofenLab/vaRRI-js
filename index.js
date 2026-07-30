@@ -26,7 +26,8 @@ const EXAMPLES = {
 4 0.1
 7 0.3
 8 0.7
-9 0.6`
+9 0.6`,
+    profileIndexReference1: '1',
 },
 '1mol': {
     profileData2: '',
@@ -70,7 +71,9 @@ document.getElementById('highlighting').value      = ex.highlighting;
 document.getElementById('backgroundhighlighting').value = ex.backgroundhighlighting;
 document.getElementById('guBasepairs').checked     = ex.guBasepairs;
 document.getElementById('profile-data-1').value    = ex.profileData1 || '';
+document.getElementById('profile-idx-ref-1').value = ex.profileIndexReference1 || '1';
 document.getElementById('profile-data-2').value    = ex.profileData2 || '';
+document.getElementById('profile-idx-ref-2').value = ex.profileIndexReference2 || '1';
 document.getElementById('profile-color-1-represents-one').checked = !!ex.profileColor1RepresentsOne;
 document.getElementById('profile-color-2-represents-one').checked = !!ex.profileColor2RepresentsOne;
 vaRRI.clearSubsequenceHighlights();
@@ -215,7 +218,9 @@ function clearAll() {
 document.getElementById('structure').value = '';
 document.getElementById('sequence').value  = '';
 document.getElementById('profile-data-1').value = '';
+document.getElementById('profile-idx-ref-1').value = '1';
 document.getElementById('profile-data-2').value = '';
+document.getElementById('profile-idx-ref-2').value = '1';
 document.getElementById('startIndex1').value = '1';
 document.getElementById('startIndex2').value = '1';
 vaRRI.clearSubsequenceHighlights();
@@ -359,26 +364,26 @@ return {
     backgroundhighlighting: document.getElementById('backgroundhighlighting').value,
     guBasepairs:            document.getElementById('guBasepairs').checked,
     pointMutations:         vaRRI.getPointMutations().map(mutation => ({
-    sequence: mutation.sequence,
-    position: mutation.position,
-    replacement: mutation.replacement,
-    color: mutation.color,
-    })),
+                                sequence: mutation.sequence,
+                                position: mutation.position,
+                                replacement: mutation.replacement,
+                                color: mutation.color,
+                                })),
 };
 }
 
 function getHighlightSequenceContext() {
-const baseArgs = getBaseVisualizationArgs();
-const v = vaRRI.validate(baseArgs);
-return {
-    '1': { offset: v.offset1, length: (v.sequence1 == null ? 0 : v.sequence1.length ), sequence: v.sequence1 },
-    '2': { offset: v.offset2, length: (v.sequence2 == null ? 0 : v.sequence2.length ), sequence: v.sequence2 },
-};
+    const baseArgs = getBaseVisualizationArgs();
+    const v = vaRRI.validate(baseArgs);
+    return {
+        '1': { offset: v.offset1, length: (v.sequence1 == null ? 0 : v.sequence1.length ), sequence: v.sequence1 },
+        '2': { offset: v.offset2, length: (v.sequence2 == null ? 0 : v.sequence2.length ), sequence: v.sequence2 },
+    };
 }
 
 function getProfileIndexReference(seq) {
-const selected = document.querySelector(`input[name="profile-idx-ref-${seq}"]:checked`);
-return selected ? selected.value : '1';
+    const selected = document.getElementById(`profile-idx-ref-${seq}`);
+    return selected ? selected.value : '1';
 }
 
 function parseProfileLines(profileText, fieldId) {
@@ -481,19 +486,15 @@ return accessData;
 
 function parseProfileAccessData(v, args) {
 const vUncropped = vaRRI.validate({ ...args, cropping: '-1' });
-const profile1Raw = document.getElementById('profile-data-1').value;
-const profile2Raw = document.getElementById('profile-data-2').value;
-
-const seq1Data = parseProfileLines(profile1Raw, 'profile-data-1');
-const seq2Data = parseProfileLines(profile2Raw, 'profile-data-2');
-
-const ref1 = getProfileIndexReference('1');
-const ref2 = getProfileIndexReference('2');
-
-return {
-    ...mapProfileDataToAccessData(seq1Data, '1', ref1, v, vUncropped),
-    ...mapProfileDataToAccessData(seq2Data, '2', ref2, v, vUncropped),
-};
+let accessData = {};
+for (const seqId of ['1', '2']) {
+    const profileRaw = document.getElementById(`profile-data-${seqId}`).value;
+    const seqData = parseProfileLines(profileRaw, `profile-data-${seqId}`);
+    const refMode = getProfileIndexReference(seqId);
+    // append the access data for this sequence to the overall access data object
+    accessData = { ...accessData, ...mapProfileDataToAccessData(seqData, seqId, refMode, v, vUncropped) };
+}
+return accessData;
 }
 
 function getCompatibilityValidationContext(v) {
@@ -631,7 +632,6 @@ highlights.forEach(highlight => {
     const info = document.createElement('button');
     info.type = 'button';
     info.className = 'highlight-item-main';
-//      info.textContent = `Seq ${highlight.sequence} | ${highlight.rangeText} | ${highlight.color}`;
     info.textContent = `Seq ${highlight.sequence} : ${highlight.rangeText}`;
     info.style.borderLeft = `10px solid ${highlight.color}`;
 
@@ -1023,10 +1023,8 @@ const listenerConfig = {
     mutationSequence: { eventName: 'change' },
     mutationBase: { eventName: 'change' },
     mutationColor: { eventName: 'change' },
-    'profile-idx-ref-1.1': { eventName: 'change' },
-    'profile-idx-ref-1.start': { eventName: 'change' },
-    'profile-idx-ref-2.1': { eventName: 'change' },
-    'profile-idx-ref-2.start': { eventName: 'change' },
+    'profile-idx-ref-1': { eventName: 'change' },
+    'profile-idx-ref-2': { eventName: 'change' },
 };
 
 committedFieldIds.forEach(id => {
