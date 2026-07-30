@@ -88,11 +88,12 @@ vaRRI-js/
 
 ## Quick Start
 
-The easiest way to use vaRRI-js is via the GitHub pages website: 
+The easiest way to [**use vaRRI-js is via the GitHub pages website**](https://BackofenLab.github.io/vaRRI-js): 
 
 - [https://BackofenLab.github.io/vaRRI-js](https://BackofenLab.github.io/vaRRI-js)
 
-If you want to run the website locally or use the library in your own HTML page, clone the repository and open `index.html` directly in a browser — no build step or server needed:
+If you want to run the website locally or use the library in your own HTML page, clone the repository or download a ZIP of the project via the [Releases](https://github.com/BackofenLab/vaRRI-js/releases) section.
+Afterwards, open `index.html` directly in a browser — no build step or server needed:
 
 ```bash
 git clone https://github.com/BackofenLab/vaRRI-js.git
@@ -353,8 +354,7 @@ The `src` directory provides a [detailed vaRRI-js Library API documentation](src
 
 ## License
 
-This project is a port of [vaRRI](https://github.com/BackofenLab/vaRRI).
-See [LICENSE](LICENSE) for the licence terms.
+This project is provided under the MIT License, see [LICENSE](LICENSE) for the licence terms.
 
-The bundled Fornac library (`fornac/`) is © 2014 Peter Kerpedjiev and is
-distributed under its own [licence](fornac/LICENSE).
+The bundled Fornac library ([`fornac/`](fornac/)) is © 2014 Peter Kerpedjiev and is
+distributed under its own [licence](fornac/fornac.LICENSE.txt).
