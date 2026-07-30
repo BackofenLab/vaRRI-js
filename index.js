@@ -1134,56 +1134,6 @@ try {
 }
 }
 
-/**
- * Generates a URL-encoded link for the specified input fields,
- * handling both web server and local file:// execution.
- * 
- * @param {HTMLElement} btnElement - Optional button element for UI feedback
- */
-function generateShareableURL(btnElement) {
-  // Array of input/textarea IDs to include in the URL parameters
-  const targetElementIds = ['sequence', 'structure', 'startIndex1', 'startIndex2'];
-  
-  // 1. Construct URL parameters dynamically via loop
-  const params = new URLSearchParams();
-  for (const id of targetElementIds) {
-    const el = document.getElementById(id);
-    if (el && el.value !== undefined && el.value !== '') {
-      params.append(id, el.value);
-    }
-  }
-
-  const queryString = params.toString();
-  if (!queryString) return;
-
-  // 2. Determine base URL depending on protocol (http vs. file)
-  let baseUrl;
-  if (window.location.protocol === 'file:') {
-    // Strips out any existing query parameters from the local file path
-    baseUrl = window.location.href.split('?')[0].split('#')[0];
-  } else {
-    // Standard webserver URL construction
-    baseUrl = `${window.location.origin}${window.location.pathname}`;
-  }
-
-  const shareableURL = `${baseUrl}?${queryString}`;
-
-  // 3. Copy to clipboard with UI feedback
-  navigator.clipboard.writeText(shareableURL)
-    .then(() => {
-      if (btnElement) {
-        const originalText = btnElement.innerHTML;
-        btnElement.innerHTML = '✓ Copied!';
-        setTimeout(() => { btnElement.innerHTML = originalText; }, 2000);
-      }
-    })
-    .catch(err => {
-      console.error('Could not copy link to clipboard:', err);
-      // Fallback prompt if clipboard access is blocked in local contexts
-      prompt('Copy your shareable URL below:', shareableURL);
-    });
-}
-
 // -------------------------------------------------------------------------
 // Drag-and-drop file loading
 // -------------------------------------------------------------------------
@@ -1230,74 +1180,293 @@ el.addEventListener('drop', (e) => {
 
 
 //  ------------------------------------------------------------------------
-//  URL parameter loading
+//  URL parameter generation
 //  ------------------------------------------------------------------------
+/**
+ * Generiert einen Share-Link vollautomatisch durch Scannen aller Formularelemente im DOM.
+ * Verwendet eine Blacklist, um bestimmte Elemente von der URL-Codierung auszuschließen.
+ * 
+ * @param {HTMLElement} btnElement - Optionales Button-Element für Feedback im UI
+ */
+function generateShareableURL(btnElement) {
+  const params = new URLSearchParams();
 
-// function to check whether an URL argument with a given name is present in the current page URL
-// if so, the respective document input field is set to the value of the URL argument
-function loadUrlArgumentToInputField(argName, inputFieldId) {
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.has(argName)) {
-    const value = urlParams.get(argName) || '';
-    const inputField = document.getElementById(inputFieldId);
-    if (inputField) {
-    inputField.value = value;
+  // 1. Blacklist: IDs von Elementen, die NIEMALS in die URL sollen
+  const blacklist = new Set([
+    'highlightEditId',
+    'mutationEditId',
+    // sequence highlight input/update form fields
+    'highlightSequence',
+    'highlightRange',
+    'highlightColor',
+    // mutation input/update form fields
+    'mutationSequence',
+    'mutationPosition',
+    'mutationBase',
+    'mutationColor',
+    // rotation control & slider
+    'rotation-slider'
+  ]);
+
+  // 2. Automatisch ALLE verarbeitbaren Formular-Elemente im DOM finden
+  const formElements = document.querySelectorAll('input, textarea, select');
+
+  formElements.forEach(el => {
+    const id = el.id;
+
+    // Nur Elemente mit ID berücksichtigen, die nicht auf der Blacklist stehen
+    if (!id || blacklist.has(id)) return;
+
+    // Unrelevante Input-Typen überspringen
+    if (['button', 'submit', 'reset', 'file'].includes(el.type)) return;
+
+    // Behandlung von Checkboxen und Radio-Buttons
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      if (el.checked) {
+        params.append(id, el.value || 'true');
+      }
+      return;
     }
-}
-} 
 
-// function to check whether mutations are present in the URL parameters, and if so, load them into vaRRI
-// expected encoding: "<seq>:<pos><character>", comma-separated for multiple entries
-function loadUrlMutationsToVaRRI( argName) {
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.has(argName)) {
+    // Behandlung aller Standard-Textinputs, Selects und Textareas
+    if (typeof el.value === 'string') {
+      const val = el.value.trim();
+      if (val !== '') {
+        params.append(id, val);
+      }
+    }
+  });
+
+  // 3. Mutationen aus vaRRI auslesen (Encoding: "<seq>:<pos><replacement>[:<color>]")
+  const mutations = (typeof vaRRI !== 'undefined' && vaRRI.getPointMutations) ? vaRRI.getPointMutations() : [];
+  if (mutations && mutations.length > 0) {
+    const encodedMutations = mutations.map(m => {
+      const colorClean = m.color ? m.color.replace('#', '') : '';
+      return `${m.sequence}:${m.position}${m.replacement}${colorClean ? ':' + colorClean : ''}`;
+    }).join(',');
+
+    params.append('mutations', encodedMutations);
+  }
+
+  // 4. Subsequence Highlights aus vaRRI auslesen (Encoding: "<seq>:<start>-<end>[:<color>]")
+  const highlights = (typeof vaRRI !== 'undefined' && vaRRI.getSubsequenceHighlights) ? vaRRI.getSubsequenceHighlights() : [];
+  if (highlights && highlights.length > 0) {
+    const encodedHighlights = highlights
+      .map(h => {
+        const colorClean = h.color ? h.color.replace('#', '') : '';
+        const sequence = h.sequence || '1';
+
+        // 1. Prefer explicit rangeText if available (e.g., "18-20")
+        if (typeof h.rangeText === 'string' && h.rangeText && h.rangeText !== 'undefined') {
+          return `${sequence}:${h.rangeText}${colorClean ? ':' + colorClean : ''}`;
+        }
+
+        // 2. Fall back to nested ranges array (e.g., [[18, 20]])
+        if (Array.isArray(h.ranges) && h.ranges.length > 0) {
+          return h.ranges.map(r => {
+            const rangeStr = Array.isArray(r) ? `${r[0]}-${r[1]}` : r;
+            return `${sequence}:${rangeStr}${colorClean ? ':' + colorClean : ''}`;
+          }).join(',');
+        }
+
+        // 3. Fall back to single range property
+        if (typeof h.range === 'string' && h.range !== 'undefined') {
+          return `${sequence}:${h.range}${colorClean ? ':' + colorClean : ''}`;
+        }
+
+        return null;
+      })
+      .filter(Boolean)
+      .join(',');
+
+    if (encodedHighlights) {
+      params.append('highlights', encodedHighlights);
+    }
+  }
+
+  const queryString = params.toString();
+  if (!queryString) return;
+
+  // 5. Basis-URL bestimmen (http vs file://)
+  let baseUrl;
+  if (window.location.protocol === 'file:') {
+    baseUrl = window.location.href.split('?')[0].split('#')[0];
+  } else {
+    baseUrl = `${window.location.origin}${window.location.pathname}`;
+  }
+
+  const shareableURL = `${baseUrl}?${queryString}`;
+
+  // 6. In die Zwischenablage kopieren & UI-Feedback
+  navigator.clipboard.writeText(shareableURL)
+    .then(() => {
+      if (btnElement) {
+        const originalText = btnElement.innerHTML;
+        btnElement.innerHTML = '✓ Copied!';
+        setTimeout(() => { btnElement.innerHTML = originalText; }, 2000);
+      }
+    })
+    .catch(err => {
+      console.error('Could not copy link to clipboard:', err);
+      prompt('Copy your shareable URL below:', shareableURL);
+    });
+}
+
+// ------------------------------------------------------------------------
+// URL parameter loading
+// ------------------------------------------------------------------------
+
+/**
+ * Helper to parse hex colors cleanly (restores '#' if missing).
+ */
+function parseUrlColor(colorStr, defaultColor) {
+  if (!colorStr) return defaultColor;
+  const clean = colorStr.trim().replace('#', '');
+  return /^[0-9A-F]{3,8}$/i.test(clean) ? `#${clean}` : defaultColor;
+}
+
+/**
+ * Checks whether point mutations are present in the URL parameters and loads them into vaRRI.
+ * Expected encoding: "<seq>:<pos><character>[:<color>]", comma-separated.
+ */
+function loadUrlMutationsToVaRRI(argName = 'mutations') {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has(argName)) {
     const value = urlParams.get(argName) || '';
     const mutations = value.split(',').map(m => m.trim()).filter(m => m.length > 0);
+
     mutations.forEach(mutation => {
-    const match = mutation.match(/^([12]):(-?\d+)(.)$/i);
-    if (match) {
+      const match = mutation.match(/^([12]):(-?\d+)(.)(?::([0-9a-fA-F]{3,8}))?$/i);
+      if (match) {
         const sequence = match[1];
         const position = parseInt(match[2], 10);
         const replacement = match[3];
+        const color = parseUrlColor(match[4], getDefaultMutationColor());
+
         try {
-        vaRRI.registerPointMutation({ sequence, position, replacement, color: getDefaultMutationColor() }, getHighlightSequenceContext());
+          vaRRI.registerPointMutation(
+            { sequence, position, replacement, color }, 
+            getHighlightSequenceContext()
+          );
         } catch (err) {
-        console.warn(`Failed to register mutation from URL parameter: ${mutation}. Error: ${err.message}`);
+          console.warn(`Failed to register mutation from URL parameter: ${mutation}. Error: ${err.message}`);
         }
-    } else {
+      } else {
         console.warn(`Invalid mutation format in URL parameter: ${mutation}`);
-    }
+      }
     });
-}
+  }
 }
 
-// function to check whether subsequence highlights are present in the URL parameters, and if so, load them into vaRRI
-// expected encoding: "<seq>:<start>-<end>", comma-separated for multiple entries
-function loadUrlSubsequenceHighlightsToVaRRI(argName) {
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.has(argName)) {
+/**
+ * Checks whether subsequence highlights are present in the URL parameters and loads them into vaRRI.
+ * Expected encoding: "<seq>:<start>-<end>[:<color>]", comma-separated.
+ */
+function loadUrlSubsequenceHighlightsToVaRRI(argName = 'highlights') {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has(argName)) {
     const value = urlParams.get(argName) || '';
     const highlights = value.split(',').map(h => h.trim()).filter(h => h.length > 0);
+
     highlights.forEach(highlight => {
-    const match = highlight.match(/^([12]):(-?\d+)-(-?\d+)$/i);
-    if (match) {
+      const match = highlight.match(/^([12]):(-?\d+)-(-?\d+)(?::([0-9a-fA-F]{3,8}))?$/i);
+      if (match) {
         const sequence = match[1];
         const start = parseInt(match[2], 10);
         const end = parseInt(match[3], 10);
+        const color = parseUrlColor(match[4], getDefaultSubsequenceHighlightColor());
+
         try {
-        vaRRI.registerSubsequenceHighlight({ sequence, range: `${start}-${end}`, color : getDefaultSubsequenceHighlightColor() }, getHighlightSequenceContext());
+          vaRRI.registerSubsequenceHighlight(
+            { sequence, range: `${start}-${end}`, color }, 
+            getHighlightSequenceContext()
+          );
         } catch (err) {
-        console.warn(`Failed to register subsequence highlight from URL parameter: ${highlight}. Error: ${err.message}`);
+          console.warn(`Failed to register subsequence highlight from URL parameter: ${highlight}. Error: ${err.message}`);
         }
-    } else {
+      } else {
         console.warn(`Invalid subsequence highlight format in URL parameter: ${highlight}`);
-    }
+      }
     });
+  }
 }
+
+/**
+ * Helper to populate any DOM element from a URL parameter by ID.
+ * Handles text inputs, textareas, checkboxes, select dropdowns, and color inputs.
+ */
+function loadUrlArgumentToInputField(argName, inputFieldId = argName) {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (!urlParams.has(argName)) return false;
+
+  const value = urlParams.get(argName);
+  const el = document.getElementById(inputFieldId);
+
+  if (!el) {
+    console.warn(`URL param found for '${argName}', but no DOM element with ID '${inputFieldId}' exists.`);
+    return false;
+  }
+
+  // 1. Handle Checkboxes
+  if (el.type === 'checkbox') {
+    el.checked = (value === 'on' || value === 'true' || value === '1');
+  } 
+  // 2. Handle Color Pickers (Ensure leading #)
+  else if (el.type === 'color') {
+    el.value = parseUrlColor(value, el.value);
+  } 
+  // 3. Handle Textarea, Select, Text, Number
+  else {
+    el.value = value;
+  }
+
+  // Dispatch events so UI listeners update
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+
+  return true;
 }
 
+/**
+ * Master initialization function to execute on page load.
+ */
+function loadAllUrlParameters() {
+  const urlParams = new URLSearchParams(window.location.search);
+  let hasProfileData = false;
 
+  // 1. Hydrate ALL matching DOM elements from URL parameters
+  urlParams.forEach((_, paramKey) => {
+    // Exclude special dynamic list keys handled separately
+    if (paramKey === 'mutations' || paramKey === 'highlights') return;
 
+    const loaded = loadUrlArgumentToInputField(paramKey, paramKey);
+
+    if (loaded && (paramKey.startsWith('profile-data') || paramKey.startsWith('profile-color') || paramKey.startsWith('profile-idx'))) {
+      hasProfileData = true;
+    }
+  });
+
+  // 2. Load vaRRI point mutations & subsequence highlights
+  loadUrlMutationsToVaRRI('mutations');
+  loadUrlSubsequenceHighlightsToVaRRI('highlights');
+
+  // 3. Auto-apply probability profiles if profile data was populated
+  if (hasProfileData) {
+    // Open the probability profile details accordion so it's visible
+    const profileDetails = document.getElementById('profile-data-1')?.closest('details');
+    if (profileDetails) {
+      profileDetails.open = true;
+    }
+
+    // Trigger profile application after a micro-task tick
+    setTimeout(() => {
+      const profileBtn = document.getElementById('profileApplyBtn');
+      if (profileBtn) {
+        profileBtn.click();
+      }
+    }, 50);
+  }
+}
 
 // -------------------------------------------------------------------------
 // -------------------------------------------------------------------------
@@ -1353,19 +1522,8 @@ profileInputIds.forEach(id => {
 const urlParams = new URLSearchParams(window.location.search);
 // at least a sequence has to be present in the URL parameters for the visualization to be loaded
 if (urlParams.has('sequence')) {
-    // iterate over all expected URL parameters and load them into the respective input fields if present
-    for (const argName of [
-        'structure', 'sequence', 'startIndex1', 'startIndex2', 
-        'cropping', 'coloring', 'highlighting', 'backgroundhighlighting'
-        ]) 
-    {
-    loadUrlArgumentToInputField(argName, argName);
-    }
-
-    // subsequence highlights and point mutations (coordinates only, not colors). 
-    // encoding "<seq>:<start>-<end>" for highlights and "<seq>:<pos><base>" for mutations, comma-separated for multiple entries
-    loadUrlSubsequenceHighlightsToVaRRI('highlights');
-    loadUrlMutationsToVaRRI('mutations');
+    // load all URL parameters into the form fields and vaRRI state
+    loadAllUrlParameters();
 
     // trigger page rendering with the loaded URL parameters
     renderHighlightList();
