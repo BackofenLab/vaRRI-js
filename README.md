@@ -55,7 +55,7 @@ them with the [Fornac](https://github.com/ViennaRNA/fornac) library, and then
 applies all of vaRRI's post-processing (coloring, highlighting, index labeling,
 G-U basepair display, …).
 
-![vaRRI-js example visualization](doc/vaRRI_example_output.png)
+[![vaRRI-js example visualization](doc/vaRRI-UI-example.png)](https://backofenlab.github.io/vaRRI-js/)
 
 
 ---
