@@ -19,7 +19,7 @@ Visualise and annotate RNA–RNA interactions directly in the browser — no ser
    - [Sequence and Structure Input Fields](#sequence-and-structure-input-fields)
    - [Example Input](#example-input)
    - [Visualisation Settings](#visualisation-settings)
-   - [Highlighting of Subsequences](#highlighting-of-subsequences)
+   - [Subsequence Highlights](#subsequence-highlights)
    - [Probability Profiles](#probability-profiles)
    - [Point Mutations](#point-mutations)
    - [Additional Features](#additional-features)
@@ -175,7 +175,7 @@ Here some example reproductions of figures from the literature:
 | **G-U basepairs dashed** | When checked, G-U basepairs are drawn with a dashed stroke. |
 | **Forac force-layout** | When checked, the rendered structure is shown in an interactive force-directed layout. When unchecked, the structure is drawn in a fixed layout. |
 
-### Highlighting of Subsequences
+### Subsequence Highlights
 
 Add colored highlightings to subsequences of the input sequences via the following fields and use the "Add" button to register them.
 All registered highlightings are shown in a list above the input fields, and can be removed by clicking the "🗑️" icon.

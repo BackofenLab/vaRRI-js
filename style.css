@@ -164,6 +164,12 @@ label small {
   color: var(--text-muted);
 }
 
+list-counter {
+  color: #57606a; 
+  font-size: 0.9em; 
+  font-weight: normal;
+}
+
 .start-index-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

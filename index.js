@@ -494,6 +494,9 @@ for (const seqId of ['1', '2']) {
     // append the access data for this sequence to the overall access data object
     accessData = { ...accessData, ...mapProfileDataToAccessData(seqData, seqId, refMode, v, vUncropped) };
 }
+// update UI counters for profile data fields
+updateInputCounter(['profile-data-1', 'profile-data-2'], 'profile-counter');
+// return the combined access data for both sequences
 return accessData;
 }
 
@@ -602,6 +605,48 @@ try {
 return { ok: true };
 }
 
+/**
+ * Updates a UI counter element based on the number of non-empty input/textarea fields.
+ * 
+ * @param {string[]} inputIds - Array of element IDs to inspect (e.g. ['profile-data-1', 'profile-data-2']).
+ * @param {string} counterId - ID of the <span> element displaying the counter.
+ */
+function updateInputCounter(inputIds, counterId) {
+  const counter = document.getElementById(counterId);
+  if (!counter || !Array.isArray(inputIds)) return;
+
+  // Count how many listed input fields contain non-empty values after trim()
+  const activeCount = inputIds.reduce((count, id) => {
+    const el = document.getElementById(id);
+    if (el && typeof el.value === 'string' && el.value.trim() !== '') {
+      return count + 1;
+    }
+    return count;
+  }, 0);
+
+  // Set counter text, e.g. "(2)". Hide if 0.
+  counter.textContent = activeCount > 0 ? `(${activeCount})` : '';
+}
+
+/**
+ * Aktualisiert einen Zähler in der UI basierend auf der Anzahl der <li> Elemente in einer Liste.
+ * 
+ * @param {string} listId - Die ID des <ul> oder <ol> Elements.
+ * @param {string} counterId - Die ID des <span> Elements, das die Zahl anzeigen soll.
+ */
+function updateListCounter(listId, counterId) {
+  const list = document.getElementById(listId);
+  const counter = document.getElementById(counterId);
+
+  if (list && counter) {
+    // Zählt alle Listen-Elemente innerhalb der Liste
+    const count = list.querySelectorAll('li').length;
+    
+    // Setzt den Text. Zeigt z.B. "(2)" an. Wenn die Liste leer ist, wird der Text geleert.
+    counter.textContent = count > 0 ? `(${count})` : '';
+  }
+}
+
 function resetHighlightForm() {
 document.getElementById('highlightEditId').value = '';
 document.getElementById('highlightSequence').value = '1';
@@ -669,6 +714,8 @@ highlights.forEach(highlight => {
     item.appendChild(removeBtn);
     listEl.appendChild(item);
 });
+// update counter in UI section
+updateListCounter('highlight-list', 'highlight-counter');
 }
 
 function submitHighlightForm(event) {
@@ -797,6 +844,8 @@ mutations.forEach(mutation => {
     item.appendChild(removeBtn);
     listEl.appendChild(item);
 });
+// update counter in UI section
+updateListCounter('mutation-list', 'mutation-counter');
 }
 
 function submitMutationForm(event) {
@@ -1285,6 +1334,20 @@ if (rotationSlider) {
     rotationSlider.addEventListener('input', applySliderRotation);
     rotationSlider.addEventListener('change', commitSliderRotation);
 }
+
+// register input event listeners for profile data textareas to update the counter in the UI
+const profileInputIds = ['profile-data-1', 'profile-data-2'];
+profileInputIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('input', () => {
+      updateInputCounter(profileInputIds, 'profile-counter');
+    });
+    el.addEventListener('change', () => {
+      updateInputCounter(profileInputIds, 'profile-counter');
+    });
+  }
+});
 
 // load URL parameters if present, otherwise load the 2-molecule example
 const urlParams = new URLSearchParams(window.location.search);

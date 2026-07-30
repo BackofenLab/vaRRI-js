@@ -307,7 +307,6 @@
         if (positionInput === undefined || positionInput === null || positionInput === '') {
              throw new Error('Mutation position must not be empty.');
         }
-        console.log(`normaliseMutationPosition: positionInput=${positionInput}, context=${JSON.stringify(context)}`);
         const position = validateOffset(String(positionInput));
 
         if (context) {
