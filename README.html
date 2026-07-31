@@ -37,7 +37,6 @@
     .markdown-body h1, h2, h3, h4, h5, h6 {
         margin-left: -70px;
     }
-    /* Styling für die Banner-Benachrichtigung */
     .status-banner {
       background-color: #fff8c5;
       border: 1px solid rgba(212, 167, 44, 0.4);
@@ -59,100 +58,98 @@
     <div id="markdown-text">README wird geladen...</div>
   </article>
 
+  <!-- Marked synchron laden -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
   <script>
-    // 0. Setup des Marked-Renderers, um Links in neuen Tabs zu öffnen
-      // ✅ Define your own slugify function
-    const slugify = (text) => {
-      return text
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-');
-    };
+  // 0. Marked renderer setup
+  const slugify = (text) => {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+  };
 
-    const renderer = new marked.Renderer();
+  const renderer = new marked.Renderer();
 
-    renderer.heading = function(text, level) {
-      // ✅ Validate and sanitize `level`
-      let headerLevel = level;
+  renderer.heading = function(text, level) {
+    let headerLevel = level;
+    if (typeof headerLevel === 'string') headerLevel = parseInt(headerLevel, 10);
+    if (typeof headerLevel !== 'number' || isNaN(headerLevel) || headerLevel < 1 || headerLevel > 6) headerLevel = 1;
 
-      if (typeof headerLevel === 'string') {
-        headerLevel = parseInt(headerLevel, 10);
-      }
-
-      if (typeof headerLevel !== 'number' || isNaN(headerLevel) || headerLevel < 1 || headerLevel > 6) {
-        headerLevel = 1; // Fallback to h1
-      }
-
-      // ✅ Extract text safely
-      let headingText = text;
-
-      if (typeof text === 'object') {
-        if (text.text) {
-          headingText = text.text;
-        } else if (text.tokens) {
-          headingText = text.tokens.map(t => t.text || t.raw || '').join('');
-        } else {
-          headingText = String(text);
-        }
-      } else if (typeof text !== 'string') {
-        headingText = String(text);
-      }
-
-      // ✅ Generate ID
-      const id = slugify(headingText);
-
-      // ✅ Render header with valid level
-      return `<h${headerLevel} id="${id}">
-        <a href="#${id}" class="anchor-link">#</a>
-        ${headingText}
-      </h${headerLevel}>`;
-    };
-
-    // Apply options
-    marked.use({
-      headerIds: true,
-      renderer: renderer
-    });
-
-    // 1. URLs definieren
-    const localUrl = './README.md';
-    // Hier die Raw-URL deines Repos (z. B. GitHub, GitLab) eintragen:
-    const remoteUrl = 'https://raw.githubusercontent.com/BackofenLab/vaRRI-js/main/README.md';
-
-    // 2. Prüfen, ob die HTML-Datei lokal geöffnet wurde (file://)
-    const isLocalFile = window.location.protocol === 'file:';
-
-    // 3. Ziel-URL wählen
-    const targetUrl = isLocalFile ? remoteUrl : localUrl;
-
-    // Optional: Hinweis im UI anzeigen, wenn von der Online-Quelle geladen wird
-    if (isLocalFile) {
-      document.getElementById('notice').innerHTML = `
-        <div class="status-banner">
-          ⚠️ <strong>Hinweis:</strong> 
-          <blockquote style="margin: 8px;">
-            Die README.html wurde lokal geöffnet und kann nicht auf die lokale README.md zugreifen.<br>
-            Daher wurde die README aus dem <a href="${remoteUrl}">vaRRI-js Online-Repository</a> geladen.
-          </blockquote>
-        </div>
-      `;
+    let headingText = text;
+    if (typeof text === 'object') {
+      headingText = text.text || (text.tokens ? text.tokens.map(t => t.text || t.raw || '').join('') : String(text));
+    } else if (typeof text !== 'string') {
+      headingText = String(text);
     }
 
-    // 4. Fetch ausführen
-    fetch(targetUrl)
-      .then(response => {
-        if (!response.ok) throw new Error('README konnte nicht geladen werden');
-        return response.text();
-      })
-      .then(text => {
-        document.getElementById('markdown-text').innerHTML = marked.parse(text);
-      })
-      .catch(err => {
-        document.getElementById('markdown-text').innerText = 'Fehler beim Laden des READMEs (' + err.message + ').';
-      });
-  </script>
+    const id = slugify(headingText);
+
+    return `<h${headerLevel} id="${id}">
+      <a href="#${id}" class="anchor-link">#</a>
+      ${headingText}
+    </h${headerLevel}>`;
+  };
+
+  // 1. Check if the HTML file was opened locally (file://)
+  const isLocalFile = window.location.protocol === 'file:';
+
+  // 2. Configure Marked
+  marked.use({
+    headerIds: true,
+    renderer: renderer,
+    walkTokens(token) {
+      // Replace the iframe with a note only in local mode (file://)
+      if (isLocalFile && token.type === 'html' && typeof token.text === 'string' && token.text.includes('<iframe')) {
+        // Optionally extract the URL from the iframe if present
+        const srcMatch = token.text.match(/src=["']([^"']+)["']/);
+        const iframeUrl = srcMatch ? srcMatch[1] : 'https://backofenlab.github.io/vaRRI-js/index.html';
+
+        token.text = `
+          <div class="status-banner" style="margin: 16px 0;">
+            ℹ️ <strong>Interactive preview disabled in local mode:</strong><br>
+            Loading embedded iFrames is blocked by browsers for locally opened HTML files (<code>file://</code>) for security reasons.<br>
+            <a href="${iframeUrl}" target="_blank" rel="noopener noreferrer">👉 Click here to open the preview directly in a new tab</a>
+          </div>
+        `;
+      }
+    }
+  });
+
+  // 3. Define URLs
+  const localUrl = './README.md';
+  const remoteUrl = 'https://raw.githubusercontent.com/BackofenLab/vaRRI-js/main/README.md';
+
+  // 4. Choose target URL
+  const targetUrl = isLocalFile ? remoteUrl : localUrl;
+
+  if (isLocalFile) {
+    document.getElementById('notice').innerHTML = `
+      <div class="status-banner">
+        ⚠️ <strong>Note:</strong> 
+        <blockquote style="margin: 8px;">
+          README.html was opened locally and cannot access the local README.md.<br>
+          Therefore, the README was loaded from the <a href="${remoteUrl}">vaRRI-js online repository</a>.
+        </blockquote>
+      </div>
+    `;
+  }
+
+  // 5. Execute fetch
+  fetch(targetUrl)
+    .then(response => {
+      if (!response.ok) throw new Error('Failed to load README');
+      return response.text();
+    })
+    .then(text => {
+      document.getElementById('markdown-text').innerHTML = marked.parse(text);
+    })
+    .catch(err => {
+      document.getElementById('markdown-text').innerText = 'Error loading the README (' + err.message + ').';
+    });
+</script>
 </body>
 </html>
