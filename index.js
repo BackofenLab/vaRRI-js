@@ -1134,44 +1134,6 @@ try {
 }
 }
 
-function exportBIB(event, url) {
-  event.preventDefault();
-
-  // 1. Neues Fenster sofort öffnen (verhindert Pop-up-Blocker)
-  const newTab = window.open('about:blank', '_blank');
-
-  fetch(url)
-    .then(res => res.text())
-    .then(text => {
-      // 2. HTML-Dokument im Speicher mit der Standard-DOMParser API erstellen
-      const parser = new DOMParser();
-      const htmlString = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>varri-js.bib</title>
-            <style>
-              body { font-family: monospace; padding: 20px; white-space: pre-wrap; word-wrap: break-word; }
-            </style>
-          </head>
-          <body><pre></pre></body>
-        </html>
-      `;
-      
-      const doc = parser.parseFromString(htmlString, 'text/html');
-      
-      // 3. Text sicher ohne Escaping in das <pre>-Tag einfügen
-      doc.querySelector('pre').textContent = text;
-
-      // 4. In das neue Fenster schreiben und schließen
-      newTab.document.write(doc.documentElement.outerHTML);
-      newTab.document.close();
-    })
-    .catch(err => {
-      console.error('Fehler beim Laden:', err);
-      if (newTab) newTab.close();
-    });
-}
 
 // -------------------------------------------------------------------------
 // Drag-and-drop file loading
