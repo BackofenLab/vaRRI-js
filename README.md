@@ -7,6 +7,9 @@ Visualise and annotate RNA–RNA interactions directly in the browser — no ser
 > may contain errors or inaccuracies. It is recommended to review and test the code thoroughly
 > before using it in a production environment.
 
+If you like it, [please cite it!](citation.html)
+
+
 ---
 
 ## Table of Contents
