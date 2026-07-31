@@ -1134,7 +1134,7 @@ try {
 }
 }
 
-function exportBib(event, url) {
+function exportBIB(event, url) {
   event.preventDefault();
 
   // 1. Neues Fenster sofort öffnen (verhindert Pop-up-Blocker)
