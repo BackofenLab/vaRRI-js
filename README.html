@@ -8,12 +8,34 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css">
   
   <style>
+    .anchor-link {
+      color: #999;
+      text-decoration: none;
+      margin-left: 0.3em;
+      font-size: 0.8em;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    h1:hover .anchor-link,
+    h2:hover .anchor-link,
+    h3:hover .anchor-link,
+    h4:hover .anchor-link,
+    h5:hover .anchor-link,
+    h6:hover .anchor-link {
+      opacity: 1;
+    }
+    .anchor-link::before {
+      content: "🔗";
+    }
     .markdown-body {
       box-sizing: border-box;
       min-width: 200px;
       max-width: 980px;
       margin: 0 auto;
       padding: 45px;
+    }
+    .markdown-body h1, h2, h3, h4, h5, h6 {
+        margin-left: -70px;
     }
     /* Styling für die Banner-Benachrichtigung */
     .status-banner {
@@ -39,6 +61,62 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
+    // 0. Setup des Marked-Renderers, um Links in neuen Tabs zu öffnen
+      // ✅ Define your own slugify function
+    const slugify = (text) => {
+      return text
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+    };
+
+    const renderer = new marked.Renderer();
+
+    renderer.heading = function(text, level) {
+      // ✅ Validate and sanitize `level`
+      let headerLevel = level;
+
+      if (typeof headerLevel === 'string') {
+        headerLevel = parseInt(headerLevel, 10);
+      }
+
+      if (typeof headerLevel !== 'number' || isNaN(headerLevel) || headerLevel < 1 || headerLevel > 6) {
+        headerLevel = 1; // Fallback to h1
+      }
+
+      // ✅ Extract text safely
+      let headingText = text;
+
+      if (typeof text === 'object') {
+        if (text.text) {
+          headingText = text.text;
+        } else if (text.tokens) {
+          headingText = text.tokens.map(t => t.text || t.raw || '').join('');
+        } else {
+          headingText = String(text);
+        }
+      } else if (typeof text !== 'string') {
+        headingText = String(text);
+      }
+
+      // ✅ Generate ID
+      const id = slugify(headingText);
+
+      // ✅ Render header with valid level
+      return `<h${headerLevel} id="${id}">
+        <a href="#${id}" class="anchor-link">#</a>
+        ${headingText}
+      </h${headerLevel}>`;
+    };
+
+    // Apply options
+    marked.use({
+      headerIds: true,
+      renderer: renderer
+    });
+
     // 1. URLs definieren
     const localUrl = './README.md';
     // Hier die Raw-URL deines Repos (z. B. GitHub, GitLab) eintragen:
