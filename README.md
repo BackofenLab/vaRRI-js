@@ -24,7 +24,7 @@ Visualise and annotate RNA–RNA interactions directly in the browser — no ser
    - [Point Mutations](#point-mutations)
    - [Additional Features](#additional-features)
    - [Export](#export)
-5. [Embedding / Web Integration](#embedding--web-integration)
+5. [Embedding / Web Integration](#-embedding--web-integration)
    - [Query Parameter](#query-parameter)
    - [HTML Example](#html-example)
 6. [Input Format Reference](#input-format-reference)
