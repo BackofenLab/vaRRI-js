@@ -1134,6 +1134,23 @@ try {
 }
 }
 
+function exportBIB(event, url) {
+  event.preventDefault(); // Stoppt den Standard-Download-Link
+  
+  fetch(url)
+    .then(res => res.text())
+    .then(text => {
+      // Erstellt eine Data-URL, die Firefox explizit als Text/Plain rendert
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+    })
+    .catch(() => {
+      // Fallback: Falls Fetch fehlschlägt, den normalen Link öffnen
+      window.open(url, '_blank');
+    });
+}
+
 // -------------------------------------------------------------------------
 // Drag-and-drop file loading
 // -------------------------------------------------------------------------
