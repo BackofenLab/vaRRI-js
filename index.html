@@ -377,7 +377,9 @@
       <!-- right-aligned note to cite varri-->
       <span class="cite-note" style="text-align:right; font-size:0.8em; color:#666; margin-left:auto;"
       >Please 
-      <a href="CITATION.bib" target="_blank" class="btn btn-cite btn-sm" onclick="exportBIB(event, this.href)">🔖 cite vaRRI-js</a>
+      <a href="CITATION.bib" target="_blank" class="btn btn-cite btn-sm" 
+        <!-- avoid download dialog when running online, but still allow download when running locally -->
+        onclick="if (window.location.protocol !== 'file:') { exportBIB(event, this.href); event.preventDefault(); return false; }">🔖 cite vaRRI-js</a>
       when using it!</span>
     </div>
 
