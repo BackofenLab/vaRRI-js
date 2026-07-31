@@ -1327,7 +1327,7 @@ function generateShareableURL(btnElement) {
  */
 function parseUrlColor(colorStr, defaultColor) {
   if (!colorStr) return defaultColor;
-  const clean = colorStr.trim().replace('#', '');
+  const clean = colorStr.trim().replace('#', '').toUpperCase();
   return /^[0-9A-F]{3,8}$/i.test(clean) ? `#${clean}` : defaultColor;
 }
 
