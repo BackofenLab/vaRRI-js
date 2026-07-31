@@ -329,7 +329,7 @@ vaRRI-js accepts standard dot-bracket secondary structure notation with the foll
 | Character | Meaning |
 |---|---|
 | `.` | Unpaired nucleotide |
-| `(` `)` | Basepair (parantheses) |
+| `(` `)` | Basepair (parentheses) |
 | `[` `]` | Basepair (square brackets) |
 | `{` `}` | Basepair (curly brackets) |
 | `<` `>` | Basepair (angled brackets) |
