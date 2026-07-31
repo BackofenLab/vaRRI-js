@@ -367,7 +367,9 @@ textarea.drag-over {
 .btn-success:hover { background: #236b43; }
 .btn-info    { background: #1d7fa4; color: #fff; }
 .btn-info:hover { background: #16617d; }
-.btn-sm { padding: .35rem .8rem; font-size: .8rem; }
+.btn-cite    { background: #d65413; color: #fff; }
+.btn-cite:hover { background: #b13f0f; }
+.btn-sm { padding: .35rem .5rem; font-size: .8rem; }
 
 .action-row {
   display: flex;
