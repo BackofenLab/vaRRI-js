@@ -1134,7 +1134,7 @@ try {
 }
 }
 
-function openBibInNewTab(event, url) {
+function exportBib(event, url) {
   event.preventDefault();
 
   // 1. Neues Fenster sofort öffnen (verhindert Pop-up-Blocker)
@@ -1149,7 +1149,7 @@ function openBibInNewTab(event, url) {
         <!DOCTYPE html>
         <html>
           <head>
-            <title>CITATION.bib</title>
+            <title>varri-js.bib</title>
             <style>
               body { font-family: monospace; padding: 20px; white-space: pre-wrap; word-wrap: break-word; }
             </style>
