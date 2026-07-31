@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Citation — vaRRI-js</title>
+
+  <!-- External Stylesheets (matching index.html) -->
+  <link rel="stylesheet" href="fornac/fornac.css" />
+  <link rel="stylesheet" href="style.css" />
+
+  <style>
+    /* Tab Buttons & Layout overrides */
+    .tab-header {
+      display: flex;
+      gap: 0.25rem;
+      border-bottom: 2px solid #e9ecef;
+      margin-bottom: 1rem;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      padding: 0.6rem 1.2rem;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      font-weight: 600;
+      color: #6c757d;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover { 
+      color: #1d7fa4; 
+    }
+    
+    .tab-btn.active {
+      color: #1d7fa4;
+      border-bottom-color: #1d7fa4;
+    }
+
+    /* Content Area */
+    .tab-content { 
+      display: none; 
+    }
+    
+    .tab-content.active { 
+      display: block; 
+    }
+
+    .action-bar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 0.5rem;
+    }
+
+    pre.citation-pre {
+      background: #f8f9fa;
+      padding: 1.25rem;
+      border-radius: 6px;
+      border: 1px solid #e9ecef;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      color: #212529;
+    }
+  </style>
+
+  <!-- Citation.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/citation-js@0.7.14/build/citation.min.js"></script>
+</head>
+<body>
+
+<header>
+  <a class="group-logo-link" href="https://www.bioinf.uni-freiburg.de" target="_blank" rel="noopener noreferrer" aria-label="Visit the Bioinformatics Group Freiburg website">
+    <img class="group-logo" src="https://www.bioinf.uni-freiburg.de/assets/images/bioinf-fr-logo-blau.png" alt="Bioinformatics Group Freiburg logo" />
+  </a>
+  <div class="header-title">
+    <h1>vaRRI-js</h1>
+    <p>Visual Annotation of RNA–RNA Interactions</p>
+  </div>
+  <div class="uni-logo-wrap">
+    <a class="uni-logo-link" href="https://www.bioinf.uni-freiburg.de" target="_blank" rel="noopener noreferrer" aria-label="Open the University Freiburg Bioinformatics website in a new tab">
+      <span class="uni-logo-text">Bioinformatics -</span>
+      <img src="https://www.bioinf.uni-freiburg.de/assets/images/logo-uni-freiburg.png" alt="University Freiburg logo" class="img-fluid uni-logo" />
+    </a>
+  </div>
+</header>
+
+<main>
+  <div class="controls-column" style="grid-column: 1 / -1; max-width: 1000px; margin: 0 auto; width: 100%;">
+    
+    <aside class="panel control-panel">
+      <details class="control-group" open>
+        <summary>Citation & Export</summary>
+        <div class="control-group-body">
+          <p style="margin-top:0; color:#6c757d;">
+            Choose a format to copy or download the citation data.</p>
+
+          <!-- Tab Navigationsleiste -->
+          <div class="tab-header" id="tab-header">
+            <button class="tab-btn active" onclick="switchTab('bibtex')">BibTeX</button>
+            <button class="tab-btn" onclick="switchTab('cff')">CFF</button>
+            <button class="tab-btn" onclick="switchTab('apa')">APA</button>
+            <button class="tab-btn" onclick="switchTab('ieee')">IEEE</button>
+            <button class="tab-btn" onclick="switchTab('ris')">RIS (EndNote/Zotero)</button>
+          </div>
+
+          <!-- Inhaltsbereich -->
+          <div id="tab-contents"></div>
+        </div>
+      </details>
+    </aside>
+
+    <!-- Link zurück zur Hauptanwendung -->
+    <aside class="panel control-panel">
+      <details class="control-group">
+        <summary>
+          <a href="index.html">
+            ← Back to Visualization
+          </a>
+        </summary>
+      </details>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="site-footer" aria-label="Service information">
+  <div class="footer-content">
+    <p>
+      Disclaimer: This service is provided "as is" without any warranties or guarantees.
+    </p>
+    <p>
+      For comments or feedback, please contact 
+      <a href="https://www.bioinf.uni-freiburg.de/" target="_blank" rel="noopener noreferrer">Freiburg Bioinformatics Group of the University of Freiburg</a>.
+    </p>
+    <p>
+      The source code for this service is freely available on
+      <a href="https://github.com/BackofenLab/vaRRI-js" target="_blank" rel="noopener noreferrer">GitHub</a>.
+    </p>
+  </div>
+</footer>
+
+<!-- JavaScript Logik -->
+<script>
+  const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/BackofenLab/vaRRI-js/main/';
+
+  const TABS_CONFIG = {
+    bibtex: { label: 'BibTeX', filename: 'CITATION.bib', mime: 'text/plain', source: 'CITATION.bib', type: 'raw' },
+    cff:    { label: 'CFF',    filename: 'CITATION.cff', mime: 'text/yaml',  source: 'CITATION.cff', type: 'raw' },
+    apa:    { label: 'APA',    filename: 'citation.txt', mime: 'text/plain', source: 'CITATION.bib', type: 'parsed', style: 'apa' },
+    ieee:   { label: 'IEEE',   filename: 'citation.txt', mime: 'text/plain', source: 'CITATION.bib', type: 'parsed', style: 'ieee' },
+    ris:    { label: 'RIS',    filename: 'citation.ris', mime: 'application/x-research-info-systems', source: 'CITATION.bib', type: 'parsed', style: 'ris' }
+  };
+
+  const dataStore = {};
+  let currentTab = 'bibtex';
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    buildTabStructure();
+    await Promise.all([
+      loadFileWithFallback('CITATION.bib'),
+      loadFileWithFallback('CITATION.cff')
+    ]);
+    renderTabContent(currentTab);
+  });
+
+  async function loadFileWithFallback(filename) {
+    try {
+      const response = await fetch(filename);
+      if (!response.ok) throw new Error(`Status ${response.status}`);
+      dataStore[filename] = await response.text();
+      return;
+    } catch (localErr) {
+      console.warn(`Lokaler Aufruf für "${filename}" fehlgeschlagen. Versuche Fallback...`);
+    }
+
+    try {
+      const response = await fetch(GITHUB_RAW_BASE + filename);
+      if (!response.ok) throw new Error(`GitHub Status ${response.status}`);
+      dataStore[filename] = await response.text();
+    } catch (githubErr) {
+      dataStore[filename] = `[Fehler: Datei "${filename}" konnte nicht geladen werden.]`;
+    }
+  }
+
+  function buildTabStructure() {
+    const container = document.getElementById('tab-contents');
+    container.innerHTML = '';
+    Object.keys(TABS_CONFIG).forEach(key => {
+      const conf = TABS_CONFIG[key];
+      const tabDiv = document.createElement('div');
+      tabDiv.id = `content-${key}`;
+      tabDiv.className = `tab-content ${key === currentTab ? 'active' : ''}`;
+      tabDiv.innerHTML = `
+        <div class="action-bar">
+          <button class="btn btn-sm" onclick="downloadTabContent('${key}')" style="background:#1d7fa4; color:#fff;">
+            💾 ${conf.label} herunterladen
+          </button>
+        </div>
+        <pre id="pre-${key}" class="citation-pre">Wird geladen...</pre>
+      `;
+      container.appendChild(tabDiv);
+    });
+  }
+
+  function parseBibTeX(bibText) {
+    const fields = {};
+    const matches = bibText.matchAll(/(\w+)\s*=\s*[{"]([^}"]+)[}"]/g);
+    for (const match of matches) {
+      fields[match[1].toLowerCase()] = match[2].trim();
+    }
+    return fields;
+  }
+
+  function formatCitation(bibText, style) {
+    const b = parseBibTeX(bibText);
+    const authors = b.author || 'Unknown Author';
+    const title = b.title || 'Untitled';
+    const year = b.year || 'n.d.';
+    const journal = b.journal || b.booktitle || '';
+    const volume = b.volume ? `, ${b.volume}` : '';
+    const number = b.number ? `(${b.number})` : '';
+    const pages = b.pages ? `, ${b.pages}` : '';
+    const doi = b.doi ? ` https://doi.org/${b.doi}` : '';
+    const url = b.url ? ` ${b.url}` : '';
+    const link = doi || url;
+    const note = b.note ? ` (${b.note})` : '';
+    const RIS_type = journal == '' ? 'COMP' : 'JOUR';
+
+    if (style === 'apa') {
+      return `${authors} (${year}). ${title}. ${journal}${volume}${number}${pages}.${note}${link}`;
+    }
+    
+    if (style === 'ieee') {
+      return `${authors}, "${title}," ${journal}${volume}${number}${pages}, ${year}.${note}${link}`;
+    }
+    
+    if (style === 'ris') {
+      const risLines = [
+        `TY  - ${RIS_type}`,
+        `AU  - ${authors}`,
+        `TI  - ${title}`,
+        `JO  - ${journal}`,
+        `PY  - ${year}`,
+        `VL  - ${b.volume || ''}`,
+        `IS  - ${b.number || ''}`,
+        `SP  - ${b.pages || ''}`,
+        `DO  - ${b.doi || ''}`,
+        `UR  - ${b.url || ''}`,
+        `AB  - ${b.abstract || ''}`,
+        `N1  - ${b.note || ''}`
+      ];
+
+      if (b.keywords) {
+        b.keywords.split(/[,;]/).forEach(kw => {
+          if (kw.trim()) risLines.push(`KW  - ${kw.trim()}`);
+        });
+      }
+
+      risLines.push('ER  -');
+      return risLines.filter(line => !line.endsWith('  - ')).join('\n');
+    }
+
+    return bibText;
+  }
+
+  async function renderTabContent(tabKey) {
+    const conf = TABS_CONFIG[tabKey];
+    const preElem = document.getElementById(`pre-${tabKey}`);
+    
+    if (conf.type === 'raw') {
+      preElem.textContent = dataStore[conf.source] || 'Kein Inhalt verfügbar.';
+    } else if (conf.type === 'parsed') {
+      const rawBib = dataStore[conf.source];
+      if (!rawBib || rawBib.startsWith('[Fehler')) {
+        preElem.textContent = 'Zitationsdaten konnten nicht geladen werden.';
+        return;
+      }
+      preElem.textContent = formatCitation(rawBib, conf.style);
+    }
+  }
+
+  function switchTab(tabKey) {
+    currentTab = tabKey;
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${tabKey}'`));
+    });
+    document.querySelectorAll('.tab-content').forEach(content => {
+      content.classList.toggle('active', content.id === `content-${tabKey}`);
+    });
+    renderTabContent(tabKey);
+  }
+
+  function downloadTabContent(tabKey) {
+    const conf = TABS_CONFIG[tabKey];
+    const text = document.getElementById(`pre-${tabKey}`).textContent;
+    const blob = new Blob([text], { type: `${conf.mime};charset=utf-8` });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = conf.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+</script>
+</body>
+</html>

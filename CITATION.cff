@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+title: vaRRI-js - Visual annotation of RNA-RNA interactions
+message: >-
+  If you use this software in a publication, please cite it using the metadata
+  in this file.
+type: software
+authors:
+  - given-names: Martin
+    family-names: Raden
+    affiliation: University of Freiburg, Germany
+    orcid: 'https://orcid.org/0000-0002-7926-5911'
+  - given-names: Fabian
+    family-names: Ganter
+    affiliation: University of Freiburg, Germany
+  - name: Bioinformatics Lab, University of Freiburg
+    affiliation: Department of Computer Science, University of Freiburg
+    website: 'https://www.bioinformatics.uni-freiburg.de/'
+version: 1.0.0
+date-released: '2026-07-31'
+repository-code: 'https://github.com/BackofenLab/vaRRI-js'
+url: 'https://backofenlab.github.io/vaRRI-js/'
+abstract: >-
+  vaRRI-js is a browser-based JavaScript library for visualizing RNA-RNA
+  interactions (RRIs) as 2D diagrams with annotations such as base-pair
+  highlights, probability profiles, subsequence highlights, and point mutation
+  annotations.
+keywords:
+  - RNA
+  - RNA-RNA interaction
+  - visualization
+  - JavaScript
+  - bioinformatics
+license: MIT
