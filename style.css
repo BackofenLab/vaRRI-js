@@ -378,6 +378,24 @@ textarea.drag-over {
   margin-top: .5rem;
 }
 
+/* --- pseudo-buttons via <a> elements --- */
+
+/* Links mit der Klasse .btn wie echte Buttons stylen */
+a.btn {
+  text-decoration: none;  /* Entfernt die typische Unterstreichung von Links */
+  color: inherit;          /* Verhindert lila/blaue Standard-Linkfarben */
+  box-sizing: border-box; /* Stellt sicher, dass Padding & Border wie beim Button berechnet werden */
+  user-select: none;      /* Verhindert versehentliches Markieren des Textes beim Klicken */
+  color: #fff;
+}
+
+/* Verhindert Unterstreichungen im Hover/Focus-Zustand */
+a.btn:hover,
+a.btn:focus,
+a.btn:active {
+  text-decoration: none;
+}
+
 /* ------------------------------------------------------------------ */
 /* Example buttons                                                      */
 /* ------------------------------------------------------------------ */
