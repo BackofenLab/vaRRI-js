@@ -293,15 +293,18 @@ Hier ist ein prägnanter, informativer Entwurf für deine `README.md`:
 In the following, the most important URL parameters are listed with their expected values. 
 See descriptions above and the [Input Format Reference](#input-format-reference) section for details on valid input values.
 
-- **`sequence`** – IUPAC nucleotide sequence. Use `&` as a separator for two interacting molecules (*e.g., `GCAUGGCGGGCAA&CCCGCAU`).
-- **`structure`** – Secondary structure in dot-bracket notation. Separate two molecules with `&` (*e.g.,   `((...))..<<..&...>>..`).
-- **`startIndex1` / `startIndex2`** – Starting sequence indices for strand 1 and strand 2 (default: `1`).
-- **`color-seq1` / `color-seq2`** – Custom color hex codes for sequence strands 1 and 2 (*e.g., `%23ff0000` for `#ff0000*`).
-- **`coloring`** – Nucleotide color scheme (`strand` or `loop`).
-- **`highlighting` / `backgroundhighlighting`** – RRI highlight targets (`region`, `basepairs`, or `nothing`).
-- **`color-intermol` / `color-bg` / `color-basepair`** – Hex color codes for nucleotide highlights, background highlights, and base pairs.
-- **`guBasepairs`** – Toggle display of G-U Wobble base pairs as dashed lines (`true` / `false`).
-- **`animation`** – Enable or disable Fornac force-layout physics simulation (`true` / `false`).
+| Parameter | Description |
+| --- | --- |
+| **`sequence`** | IUPAC nucleotide sequence. Use `&` as a separator for two interacting molecules (*e.g., `GCAUGGCGGGCAA&CCCGCAU*`). |
+| **`structure`** | Secondary structure in dot-bracket notation. Separate two molecules with `&` (*e.g., `((...))..<<..&...>>..*`). |
+| **`startIndex1` / `startIndex2`** | Starting sequence indices for strand 1 and strand 2 (default: `1`). |
+| **`color-seq1` / `color-seq2`** | Custom color hex codes for sequence strands 1 and 2 (*e.g., `%23ff0000` for `#ff0000*`). |
+| **`coloring`** | Nucleotide color scheme (`strand` or `loop`). |
+| **`highlighting` / `backgroundhighlighting`** | RRI highlight targets (`region`, `basepairs`, or `nothing`). |
+| **`color-intermol` / `color-bg` / `color-basepair`** | Hex color codes for nucleotide highlights, background highlights, and base pairs. |
+| **`guBasepairs`** | Toggle display of G-U Wobble base pairs as dashed lines (`true` / `false`). |
+| **`animation`** | Enable or disable Fornac force-layout physics simulation (`true` / `false`). |
+
 
 > **NOTE:** 
 > - All URL parameters are case-sensitive. 
