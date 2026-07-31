@@ -222,6 +222,8 @@ As separator, either space and tab is supported, and lines starting with `#` are
 23 0.2
 ```
 
+**Note:** For convenience, respective text *files can be dragged and dropped* into the input fields to load the probability profiles.
+
 Finally, the following fields are available to define the visualization of the probability profiles:
 
 | Field | Description |
