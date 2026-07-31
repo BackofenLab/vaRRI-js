@@ -7,7 +7,8 @@ Visualise and annotate RNA–RNA interactions directly in the browser — no ser
 > may contain errors or inaccuracies. It is recommended to review and test the code thoroughly
 > before using it in a production environment.
 
-If you like it, [please cite it!](citation.html)
+> [!IMPORTANT]
+> If you like it, [please cite it!](citation.html)
 
 
 ---
@@ -122,8 +123,9 @@ To use the library in your own HTML page, include the dependencies in the follow
 ```
 
 
-**NOTE:** The repository does not track `node_modules/`. If you want to run tests locally, create
-it after cloning within the project directory using:
+> [!NOTE]
+> The repository does not track `node_modules/`. If you want to run tests locally, create
+> it after cloning within the project directory using:
 
 ```bash
 npm install
@@ -225,7 +227,8 @@ As separator, either space and tab is supported, and lines starting with `#` are
 23 0.2
 ```
 
-**Note:** For convenience, respective text *files can be dragged and dropped* into the input fields to load the probability profiles.
+> [!TIP]
+> For convenience, respective text *files can be dragged and dropped* into the input fields to load the probability profiles.
 
 Finally, the following fields are available to define the visualization of the probability profiles:
 
@@ -235,7 +238,8 @@ Finally, the following fields are available to define the visualization of the p
 | **=1** | When checked, a value of 1 is mapped to the selected color, and a value of 0 is mapped to white. Otherwise, vice versa. |
 | **Index wrt.** | `1st nt` — the nucleotide indices in the probability profile are interpreted as relative indices w.r.t. the first nucleotide of the molecule's sequence. `Start` — the nucleotide indices in the probability profile are absolute indices following the indexing defined by the start index of the molecule's sequence. |
 
-*Note:* The indices of the given probability profile are validated against the sequence and start index of the respective molecule, and a warning is shown if any indices are invalid.
+> [!IMPORTANT] 
+> The indices of the given probability profile are validated against the sequence and start index of the respective molecule, and a warning is shown if any indices are invalid.
 
 ### Point Mutations
 
@@ -251,8 +255,9 @@ This information is provided in the following fields, and the "Add" button regis
 | **To** | The new nucleotide (or letter) to use for the mutation annotation. |
 | **Color** | The color to use for highlighting the mutated nucleotide. |
 
-*Note:* vaRRI-js allows to define arbitrary letters as mutations, i.e. the mutated nucleotide does not need to be a valid IUPAC character.
-That way, any kind of annotation can be added to the sequence, e.g. a letter representing a chemical modification, symbols for a certain type of mutation, or even a short word.
+> [!TIP]  
+> vaRRI-js allows to define arbitrary letters as mutations, i.e. the mutated nucleotide does not need to be a valid IUPAC character.
+> That way, any kind of annotation can be added to the sequence, e.g. a letter representing a chemical modification, symbols for a certain type of mutation, or even a short word.
 
 All registered mutations are shown in a list above the input fields, and can be removed by clicking the "🗑️" icon.
 The list shows the mutations in the standard mutation notation, e.g. `A23G` for a mutation from A to G at position 23, extracting the original nucleotide from the input sequence to avoid mistakes.
@@ -311,7 +316,7 @@ See descriptions above and the [Input Format Reference](#input-format-reference)
 | **`animation`** | Enable or disable Fornac force-layout physics simulation (`true` / `false`). |
 
 
-> **NOTE:** 
+> [!IMPORTANT]
 > - All URL parameters are case-sensitive. 
 > - Use proper URL encoding for special characters (e.g., `&` as `%26`, parentheses as `%28` and `%29`) when encoding yourself.
 
@@ -342,7 +347,9 @@ https://backofenlab.github.io/vaRRI-js/index.html?showRenderingOnly=true&<remain
 </iframe>
 ```
 
-> **Note:** Ensure special characters in URL parameters (such as `&` separating two RNA strands) are properly URL-encoded as `%26` when constructing embedding links manually. Also `()` have to be encoded using `%28` and `%29` respectively, as they are not encoded by default by URL encoders following RFC 3986.
+> [!IMPORTANT] 
+> Ensure special characters in URL parameters (such as `&` separating two RNA strands) are properly URL-encoded as `%26` when constructing embedding links manually. Also `()` have to be encoded using `%28` and `%29` respectively, as they are not encoded by default by URL encoders following RFC 3986.
+
 Valid embedding links can be generated using the "🔗 Share Link" button in the vaRRI-js interface but have to extended with `&showRenderingOnly=true`.
 
 ----
@@ -357,7 +364,8 @@ Valid embedding links can be generated using the "🔗 Share Link" button in the
 
 ----
 
-> **Note:** GitHub repository preview strips embedded `<iframe>` elements as above for security reasons. 
+> [!NOTE] 
+> GitHub repository preview strips embedded `<iframe>` elements as above for security reasons. 
 > * If you are viewing this page on **GitHub Pages**, the live widget will render directly below.
 
 ## Input Format Reference
@@ -378,9 +386,10 @@ vaRRI-js accepts standard dot-bracket secondary structure notation with the foll
 You can use any of the four bracket types to represent basepairs, and they can be nested arbitrarily.  
 The only restriction is that the brackets must be balanced, i.e. every opening bracket must have a corresponding closing bracket of the same type.
 
-*Note:* Since vaRRI-js is based on the fornac library, its underlying layout algorithm does not support pseudoknots, i.e. basepairs that cross each other.
-In that case, the primary layout will be based on a reduced set of basepairs that do not cross each other, and the remaining basepairs are added subsequently.
-Therefore, the layout of pseudoknotted structures may not be optimal, and the visualisation may be less clear than for non-pseudoknotted structures.
+> [!IMPORTANT] 
+> Since vaRRI-js is based on the fornac library, its underlying layout algorithm does not support pseudoknots, i.e. basepairs that cross each other.
+> In that case, the primary layout will be based on a reduced set of basepairs that do not cross each other, and the remaining basepairs are added subsequently.
+> Therefore, the layout of pseudoknotted structures may not be optimal, and the visualisation may be less clear than for non-pseudoknotted structures.
 
 ### Two-Molecule Input
 
@@ -426,7 +435,8 @@ Accepted characters (case-insensitive):
 | `V` | A, C or G |
 | `N` | Any nucleotide |
 
-*Note:* Using upper- and lower-case letters is supported and can be used to encode and annote certain regions of the sequence, e.g. to distinguish between coding and non-coding regions, or to highlight certain motifs.
+> [!TIP] 
+> Using upper- and lower-case letters is supported and can be used to encode and annote certain regions of the sequence, e.g. to distinguish between coding and non-coding regions, or to highlight certain motifs.
 
 
 ### Start Index
