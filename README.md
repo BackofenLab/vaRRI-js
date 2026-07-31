@@ -24,12 +24,14 @@ Visualise and annotate RNA–RNA interactions directly in the browser — no ser
    - [Point Mutations](#point-mutations)
    - [Additional Features](#additional-features)
    - [Export](#export)
-5. [Embedding / Web Integration](#-embedding--web-integration)
+5. [URL Parameters & Sharing](#url-parameters--sharing)
+   - [Key Parameters](#key-parameters)
+6. [Embedding / Web Integration](#-embedding--web-integration)
    - [Query Parameter](#query-parameter)
    - [HTML Example](#html-example)
-6. [Input Format Reference](#input-format-reference)
-7. [JavaScript Library API](#javascript-library-api)
-8. [License](#license)
+7. [Input Format Reference](#input-format-reference)
+8. [JavaScript Library API](#javascript-library-api)
+9. [License](#license)
 
 ---
 
@@ -275,6 +277,36 @@ After rendering, use the buttons in the export bar below the visualisation:
 | **⬇ SVG** | Downloads a self-contained SVG file with embedded Fornac CSS. |
 | **⬇ PNG** | Rasterises the SVG to a canvas (2× resolution) and downloads a PNG. |
 | **🔗 Share Link** | Generate URL encoding of the input for sharing or embedding in other web applications; copied to clipboard. | 
+
+---
+
+Hier ist ein prägnanter, informativer Entwurf für deine `README.md`:
+
+---
+
+## URL Parameters & Sharing
+
+**vaRRI-js** supports state persistence directly via URL parameters, allowing you to pre-fill inputs or share specific visualization configurations using the **🔗 Share Link** button in the export panel. Most parameter names map directly to their corresponding HTML element IDs.
+
+### Key Parameters
+
+In the following, the most important URL parameters are listed with their expected values. 
+See descriptions above and the [Input Format Reference](#input-format-reference) section for details on valid input values.
+
+- **`sequence`** – IUPAC nucleotide sequence. Use `&` as a separator for two interacting molecules (*e.g., `GCAUGGCGGGCAA&CCCGCAU`).
+- **`structure`** – Secondary structure in dot-bracket notation. Separate two molecules with `&` (*e.g.,   `((...))..<<..&...>>..`).
+- **`startIndex1` / `startIndex2**` – Starting sequence indices for strand 1 and strand 2 (default: `1`).
+- **`color-seq1` / `color-seq2**` – Custom color hex codes for sequence strands 1 and 2 (*e.g., `%23ff0000` for `#ff0000*`).
+- **`coloring`** – Nucleotide color scheme (`strand` or `loop`).
+- **`highlighting` / `backgroundhighlighting**` – RRI highlight targets (`region`, `basepairs`, or `nothing`).
+- **`color-intermol` / `color-bg` / `color-basepair**` – Hex color codes for nucleotide highlights, background highlights, and base pairs.
+- **`guBasepairs`** – Toggle display of G-U Wobble base pairs as dashed lines (`true` / `false`).
+- **`animation`** – Enable or disable Fornac force-layout physics simulation (`true` / `false`).
+
+> **NOTE:** 
+> - All URL parameters are case-sensitive. 
+> - Use proper URL encoding for special characters (e.g., `&` as `%26`, parentheses as `%28` and `%29`) when encoding yourself.
+
 
 ---
 
