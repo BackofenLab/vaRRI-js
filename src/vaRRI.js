@@ -1801,7 +1801,13 @@
             if (start === end) {
                 const webId = indexDict[start];
                 const [x, y] = getPositionOfNode(webId);
-                addElement('circle', { cx: String(x), cy: String(y), r: `${Math.ceil(highlightDiameter/2)}px`, style: `fill:${color};opacity:0.3;` });
+                addElement('circle', {
+                    cx: String(x),
+                    cy: String(y),
+                    r: `${Math.ceil(highlightDiameter/2)}px`,
+                    style: `fill:${color};opacity:0.3;`,
+                    'data-varri-subseq': 'true',
+                });
                 continue;
             }
 
@@ -1818,7 +1824,8 @@
 
             polyline(indices,
                 `stroke:${color};stroke-width:14;opacity:0.3;fill:None;` +
-                'stroke-linejoin:round;stroke-linecap:round'
+                'stroke-linejoin:round;stroke-linecap:round',
+                { 'data-varri-subseq': 'true' }
             );
         }
     }
@@ -2284,15 +2291,17 @@
 
             // When animation is on, keep the background-highlight polygon in sync
             // with the force-layout by redrawing it on every animation frame.
-            if (animation && v.molecules === '2' &&
-                    (v.backgroundhighlighting === 'basepairs' || v.backgroundhighlighting === 'region')) {
-                function bgHighlightLoop() {
-                    document.querySelectorAll('[data-varri-bg]').forEach(el => el.remove());
-                    if (v.backgroundhighlighting === 'region') backgroundhighlightRegion(v);
-                    if (v.backgroundhighlighting === 'basepairs') backgroundhighlightBasepairs(v);
-                    _animFrameId = requestAnimationFrame(bgHighlightLoop);
+            if (animation) {
+                function highlightSyncLoop() {
+                    document.querySelectorAll('[data-varri-region]').forEach(el => el.remove());
+                    document.querySelectorAll('[data-varri-subseq]').forEach(el => el.remove());
+
+                    applyRegionHighlights(v);
+                    applySubsequenceHighlights(v);
+
+                    _animFrameId = requestAnimationFrame(highlightSyncLoop);
                 }
-                _animFrameId = requestAnimationFrame(bgHighlightLoop);
+                _animFrameId = requestAnimationFrame(highlightSyncLoop);
             }
         }
 
