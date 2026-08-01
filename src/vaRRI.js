@@ -2213,86 +2213,99 @@
     }
 
     /**
-     * Identify the force-graph nodes that implement Fornac's external-loop
-     * circularisation: the two synthetic "closure" nodes and the specific
-     * hub node that was created for the external loop.
+     * Identify the force-graph nodes that implement Fornac's "free-form"
+     * loop circularisation: the two synthetic closure nodes plus every hub
+     * whose loop is exterior-flavoured, along with the full member set of
+     * each such hub.
      *
      * Fornac's `reinforceLoops()` gives every loop of the structure (stems
      * excluded) its own fake "middle" hub node via `addFakeNode()`, which
      * pulls that loop's member nucleotides toward one shared point (keeping
-     * the loop visually rounded). For the external loop specifically — and
-     * only when Fornac's `circularizeExternal` option is enabled, which is
-     * the default — two extra synthetic "closure" middle nodes (`num: -2`
-     * and `num: -3`), positioned at the RNA's very first and very last
-     * nucleotide, are additionally appended to that loop's member list
-     * before its hub is created. Freeing only the two closure nodes removes
-     * the sequence-ends-together link, but the external loop's own hub
-     * still pulls every exterior nucleotide toward a shared centre, which
-     * keeps the free ends visually "circular". Both must be removed.
+     * the loop visually rounded). For the true top-level external loop
+     * specifically — and only when Fornac's `circularizeExternal` option is
+     * enabled, which is the default — two extra synthetic "closure" middle
+     * nodes (`num: -2` and `num: -3`), positioned at the RNA's very first
+     * and very last nucleotide, are additionally appended to that loop's
+     * member list before its hub is created. This is exactly the
+     * constraint that pulls the two sequence ends together.
      *
-     * The external loop's hub cannot be found reliably via link adjacency:
-     * `addFakeNode()` skips creating any link (hub spoke *and* the two
-     * "chord" links to nearby members) for member-list entries whose index
+     * That hub cannot be found reliably via link adjacency: `addFakeNode()`
+     * skips creating any link (hub spoke *and* the two "chord" links to
+     * nearby members — see below) for member-list entries whose index
      * exceeds the sequence length, which is exactly what the closure nodes'
-     * synthetic indices are — so the closure nodes are never linked to the
+     * synthetic indices are. So the closure nodes are never linked to the
      * hub directly, only incidentally chord-linked to a couple of nearby
-     * real nucleotide members (chasing that adjacency previously caused
-     * those nucleotides to be misidentified as the hub and deleted).
+     * real nucleotide members. Instead, each hub's own `nucs` array — a
+     * snapshot of the 1-based `graph.nodes` array indices of every member
+     * of that loop, recorded when the hub was created — is used: for the
+     * true external loop only, it includes the closure nodes' own array
+     * indices, which identifies that hub precisely.
      *
-     * Instead, each hub's own `nucs` array is used: it is a snapshot of the
-     * 1-based `graph.nodes` array indices of every member of that loop,
-     * recorded at the exact moment the hub was created — which, for the
-     * external loop only, includes the closure nodes' own array indices.
-     * Locating the hub whose `nucs` contains a closure node's array index
-     * identifies the external loop's hub precisely, without disturbing any
-     * other loop's hub or constraint.
+     * vaRRI additionally inserts extra unpaired "gap" characters between two
+     * molecules to work around a Fornac rendering bug. Fornac's own
+     * `breakNodesToFakeNodes()` marks every member of *any* loop that
+     * touches that gap as `elemType: "e"` (the same label used for the true
+     * exterior loop), regardless of that loop's real type — this is exactly
+     * the "trailing ends around the & spacer" that should also be freed.
+     * Any hub whose resolved members include an `elemType: "e"` nucleotide
+     * is therefore treated the same way as the true external-loop hub.
      *
-     * The hub's `nucs` array also lists every other member of the external
-     * loop (real nucleotides and closure nodes alike). That full member set
-     * is returned too, because `addFakeNode()` additionally links members
-     * directly to each other with two kinds of "chord" links (skipping the
-     * hub entirely) to keep the loop's ring shape from collapsing — e.g. a
-     * member is linked straight to the member roughly opposite it in the
-     * loop. Those direct member-to-member links must also be removed to
-     * fully free the external loop's nucleotides; removing only the hub and
-     * closure nodes leaves them in place, which still visibly pulls
-     * opposite sides of the loop together.
+     * Each qualifying hub's `nucs` array also lists every other member of
+     * its loop (real nucleotides, and closure nodes for the true external
+     * hub). Those member sets are returned too, because `addFakeNode()`
+     * additionally links members directly to each other with two kinds of
+     * "chord" links (skipping the hub entirely) to keep the loop's ring
+     * shape from collapsing — e.g. a member is linked straight to the
+     * member roughly opposite it in the loop. Those direct member-to-member
+     * links must also be removed to fully free the loop's nucleotides;
+     * removing only the hub and closure nodes leaves them in place, which
+     * still visibly pulls opposite sides of the loop together. Loops that
+     * don't qualify (i.e. every other stem/hairpin/interior/multi loop) are
+     * left completely untouched.
      *
      * @param {Object} graph
-     * @returns {{closureUids: Set<string>, hubUid: string|null, memberUids: Set<string>}|null}
+     * @returns {{closureUids: Set<string>, hubUids: Set<string>, memberUids: Set<string>}|null}
      */
-    function getExternalLoopScaffoldUids(graph) {
+    function getFreeableLoopScaffoldUids(graph) {
         if (!graph || !Array.isArray(graph.nodes)) return null;
 
         const closureNodes = graph.nodes.filter(node =>
             node && node.nodeType === 'middle' && (node.num === -2 || node.num === -3)
         );
-        if (closureNodes.length === 0) return null;
-
         const closureUids = new Set(closureNodes.map(node => node.uid).filter(Boolean));
         const closureIndices = new Set(closureNodes.map(node => graph.nodes.indexOf(node) + 1));
 
-        const hub = graph.nodes.find(node =>
-            node && node.nodeType === 'middle' && node.num === -1 && Array.isArray(node.nucs) &&
-            node.nucs.some(idx => closureIndices.has(idx))
+        const hubs = graph.nodes.filter(node =>
+            node && node.nodeType === 'middle' && node.num === -1 && Array.isArray(node.nucs)
         );
 
+        const hubUids = new Set();
         const memberUids = new Set(closureUids);
-        if (hub && Array.isArray(hub.nucs)) {
-            hub.nucs.forEach(idx => {
-                const member = graph.nodes[idx - 1];
-                if (member && member.uid) memberUids.add(member.uid);
-            });
-        }
 
-        return { closureUids, hubUid: hub ? hub.uid : null, memberUids };
+        hubs.forEach(hub => {
+            const members = hub.nucs.map(idx => graph.nodes[idx - 1]).filter(Boolean);
+            const touchesClosure = hub.nucs.some(idx => closureIndices.has(idx));
+            const touchesExternalElemType = members.some(member => member.elemType === 'e');
+
+            if (!touchesClosure && !touchesExternalElemType) return;
+
+            hubUids.add(hub.uid);
+            members.forEach(member => {
+                if (member.uid) memberUids.add(member.uid);
+            });
+        });
+
+        if (closureUids.size === 0 && hubUids.size === 0) return null;
+
+        return { closureUids, hubUids, memberUids };
     }
 
     /**
-     * Remove Fornac's external-loop circularisation scaffold — the two
-     * closure nodes and the external loop's own hub — from the force graph
-     * and rerun the layout. Every other loop's own hub and circular
-     * constraint is left untouched.
+     * Remove Fornac's exterior-flavoured loop circularisation scaffolds —
+     * the closure nodes and every hub whose loop is exterior-flavoured
+     * (the true top-level external loop, plus any loop touching vaRRI's
+     * inter-molecule gap) — from the force graph and rerun the layout.
+     * Every other loop's own hub and circular constraint is left untouched.
      *
      * @param {Object} container
      * @param {Object} v
@@ -2300,11 +2313,11 @@
      */
     function relaxForceGraphScaffold(container, v) {
         const graph = container && container.graph;
-        const scaffold = getExternalLoopScaffoldUids(graph);
+        const scaffold = getFreeableLoopScaffoldUids(graph);
         if (!scaffold) return false;
 
         const removableNodeUids = new Set(scaffold.closureUids);
-        if (scaffold.hubUid) removableNodeUids.add(scaffold.hubUid);
+        scaffold.hubUids.forEach(uid => removableNodeUids.add(uid));
 
         graph.links = graph.links.filter(link => {
             const linkType = String(link && link.linkType);
@@ -2315,7 +2328,7 @@
             const sourceUid = sourceNode && sourceNode.uid;
             const targetUid = targetNode && targetNode.uid;
 
-            // Drop anything touching the hub or the closure nodes themselves.
+            // Drop anything touching a freed hub or the closure nodes themselves.
             if ((sourceUid && removableNodeUids.has(sourceUid)) || (targetUid && removableNodeUids.has(targetUid))) {
                 return false;
             }
@@ -2344,6 +2357,30 @@
         return true;
     }
 
+    /**
+     * Override Fornac's "pseudoknot" link force strength on a live container.
+     *
+     * Fornac's `FornaContainer` sets `container.linkStrengths.pseudoknot = 0`
+     * by default, meaning pseudoknot basepair links exert no pull in the
+     * force simulation. `container.linkStrengths` is read by the link-force
+     * accessor function on every `force.start()` call (which rebuilds the
+     * internal per-link strength array), but *not* by `force.resume()`
+     * (which only restarts ticking without rebuilding that array). So the
+     * new strength must be set before calling `force.start()` specifically.
+     *
+     * @param {Object} container
+     * @param {boolean} enabled  When true, sets pseudoknot strength to 10.
+     */
+    function applyPseudoknotLinkStrength(container, enabled) {
+        if (!container || !container.linkStrengths) return;
+
+        container.linkStrengths.pseudoknot = enabled ? 10 : 0;
+
+        if (container.force && typeof container.force.start === 'function') {
+            container.force.start();
+        }
+    }
+
     // -----------------------------------------------------------------------
     // Main render function
     // -----------------------------------------------------------------------
@@ -2359,6 +2396,7 @@
      * @param {Object} [options]
      * @param {boolean} [options.animation=false]  Enable Fornac force-layout animation.
     * @param {boolean} [options.freeTrailingEnds=false]  Remove Fornac's external-loop circularisation constraint (the "closure" scaffold linking the sequence ends) from the force graph, leaving all other loop constraints intact.
+    * @param {boolean} [options.pullPseudoknotBasepairs=false]  Set Fornac's pseudoknot link force strength to 10 (default 0), pulling pseudoknot basepairs together in the force layout.
      * @param {boolean} [options.legend=false]  Whether to also render the legend.
      * @param {Object.<number,number>|null} [options.accessData=null]  Accessibility data map.
      * @param {{sequence1?: string, sequence2?: string}|null} [options.accessColors=null]  Optional accessibility-overlay colors.
@@ -2385,6 +2423,7 @@
         const {
             animation = false,
             freeTrailingEnds = false,
+            pullPseudoknotBasepairs = false,
             accessData = null,
             accessColors = null,
             accessColorMode = null,
@@ -2399,6 +2438,10 @@
 
         if (animation && freeTrailingEnds) {
             relaxForceGraphScaffold(container, v);
+        }
+
+        if (animation && pullPseudoknotBasepairs) {
+            applyPseudoknotLinkStrength(container, true);
         }
 
         function applyModifications() {

@@ -1247,6 +1247,7 @@ resetRotationControl();
 
 const animation = document.getElementById('animation').checked;
 const freeTrailingEnds = animation && !!document.getElementById('free-trailing-ends')?.checked;
+const pullPseudoknotBasepairs = animation && !!document.getElementById('pull-pseudoknot-basepairs')?.checked;
 const accessColors = getProfileAccessibilityColors();
 const accessColorMode = getProfileAccessibilityMode();
 
@@ -1254,6 +1255,7 @@ try {
   const renderState = await vaRRI.render(currentContainerId, v, {
   animation,
   freeTrailingEnds,
+  pullPseudoknotBasepairs,
   accessData,
   accessColors,
   accessColorMode,
@@ -1287,14 +1289,20 @@ autoVisualizationTimeoutId = setTimeout(() => {
 }, delay);
 }
 
-function syncFreeTrailingEndsControl() {
+function syncAnimationDependentControls() {
 const animationCheckbox = document.getElementById('animation');
-const freeTrailingEndsCheckbox = document.getElementById('free-trailing-ends');
-if (!animationCheckbox || !freeTrailingEndsCheckbox) return;
+if (!animationCheckbox) return;
 
 const enabled = !!animationCheckbox.checked;
-freeTrailingEndsCheckbox.disabled = !enabled;
-if (!enabled) freeTrailingEndsCheckbox.checked = false;
+
+[
+    document.getElementById('free-trailing-ends'),
+    document.getElementById('pull-pseudoknot-basepairs'),
+].forEach(checkbox => {
+    if (!checkbox) return;
+    checkbox.disabled = !enabled;
+    if (!enabled) checkbox.checked = false;
+});
 }
 
 function attachAutoVisualizationListeners() {
@@ -1315,6 +1323,7 @@ const listenerConfig = {
     guBasepairs: { eventName: 'change' },
     animation: { eventName: 'change' },
     'free-trailing-ends': { eventName: 'change' },
+    'pull-pseudoknot-basepairs': { eventName: 'change' },
     'profile-color-1': { eventName: 'change' },
     'profile-color-2': { eventName: 'change' },
     'profile-color-1-represents-one': { eventName: 'change' },
@@ -1359,7 +1368,7 @@ Object.entries(listenerConfig).forEach(([id, config]) => {
     if (!el) return;
 
     el.addEventListener(config.eventName, () => {
-    if (id === 'animation') syncFreeTrailingEndsControl();
+    if (id === 'animation') syncAnimationDependentControls();
     clearFieldError(id);
     queueVisualization();
     });
@@ -1881,7 +1890,7 @@ if (mutationSubmitBtn) mutationSubmitBtn.addEventListener('click', submitMutatio
 if (mutationCancelBtn) mutationCancelBtn.addEventListener('click', resetMutationForm);
 if (profileApplyBtn) profileApplyBtn.addEventListener('click', () => runVisualization());
 
-syncFreeTrailingEndsControl();
+syncAnimationDependentControls();
 
 attachAutoVisualizationListeners();
 

@@ -23,6 +23,7 @@ Visualise and annotate RNA–RNA interactions directly in the browser — no ser
    - [Sequence and Structure Input Fields](#sequence-and-structure-input-fields)
    - [Example Input](#example-input)
    - [Visualisation Settings](#visualisation-settings)
+  - [Region Highlights](#region-highlights)
    - [Subsequence Highlights](#subsequence-highlights)
    - [Probability Profiles](#probability-profiles)
    - [Point Mutations](#point-mutations)
@@ -179,11 +180,37 @@ Here some example reproductions of figures from the literature:
 | **Nucleotide color** | `by sequence` — use the defined colors. `by loop type` — Fornac default loop-type coloring. |
 | **Highlighting ..** |  |
 | **.. RRI Nucleotides** | `region` — highlight all nodes in the entire intermolecular region. `basepairs` — highlight only RRI-basepair nucleotides. `nothing` — no nucleotide highlighting. |
-| **.. RRI Background** | `basepairs` — translucent background behind basepairs. `region` — translucent background covering the whole RRI region. `nothing` — no background highlighting. |
 | **Base pair color** | Chose the color used for all base pairs (intra- and intermolecular). |
 | **Color Choice** | Use the color pickers to customize the highlighting colors. |
 | **G-U basepairs dashed** | When checked, G-U basepairs are drawn with a dashed stroke. |
-| **Forac force-layout** | When checked, the rendered structure is shown in an interactive force-directed layout. When unchecked, the structure is drawn in a fixed layout. |
+| **Fornac force-layout** | When checked, the rendered structure is shown in an interactive force-directed layout. When unchecked, the structure is drawn in a fixed layout. |
+| - **Free trailing ends** | When checked, the trailing ends of the sequences are not fixed in the force-directed layout and can move freely. |
+| - **Pull Pseudoknot Basepairs** | When checked, pseudoknot basepairs are pulled together in the force-directed layout. |
+
+### Region Highlights
+
+Add colored highlightings to paired regions of the two input sequences via the following fields and use the "Add" button to register them.
+All registered region highlightings are shown in a list above the input fields.
+User-created entries can be removed by clicking the "🗑️" icon, and selecting a listed entry will populate the input fields with its values for editing.
+
+In addition to manually added entries, the **RRI Background** control can create an automatically generated region entry that represents the currently selected global background-highlighting mode.
+These generated entries are shown in the same list but are **not removable or editable directly**, because they are derived from the current visualisation settings and updated automatically whenever the structure or highlighting mode changes.
+
+| Field | Description |
+|---|---|
+| **RRI Background** | `basepairs` — translucent background behind stacked intermolecular basepairs. `region` — translucent background covering the whole intermolecular region. `nothing` — no automatically generated background region highlight. |
+| **Region 1** | The start and end indices of the highlighted region in sequence 1, in the form `start-end`. |
+| **Region 2** | The start and end indices of the highlighted region in sequence 2, in the form `start-end`. |
+| **Color** | The color to use for the highlighted region pair. |
+
+Behaviour of generated list entries:
+
+- When **RRI Background** is set to `nothing`, no generated region entry is shown.
+- When set to `region`, vaRRI-js computes the overall intermolecular interaction region and displays it as a generated, non-removable region entry.
+- When set to `basepairs`, vaRRI-js computes one or more generated region entries that correspond to intermolecular basepair stacks and displays them as non-removable entries.
+- Generated entries are refreshed automatically from the current structure and settings; they are not exported as user-defined region highlights in share links.
+
+
 
 ### Subsequence Highlights
 
