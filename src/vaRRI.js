@@ -2190,6 +2190,160 @@
         }
     }
 
+    /**
+     * Resolve a force-graph link endpoint to a node object when possible.
+     *
+     * @param {Object} graph
+     * @param {Object|number|string|null|undefined} endpoint
+     * @returns {Object|null}
+     */
+    function resolveGraphNodeFromEndpoint(graph, endpoint) {
+        if (endpoint && typeof endpoint === 'object') return endpoint;
+
+        const idx = parseInt(String(endpoint), 10);
+        if (!Number.isFinite(idx)) return null;
+
+        if (Array.isArray(graph?.nodes) && graph.nodes[idx]) return graph.nodes[idx];
+        if (Array.isArray(graph?.nodes)) {
+            const byNumber = graph.nodes.find(node => node && node.num === idx);
+            if (byNumber) return byNumber;
+        }
+
+        return null;
+    }
+
+    /**
+     * Identify the force-graph nodes that implement Fornac's external-loop
+     * circularisation: the two synthetic "closure" nodes and the specific
+     * hub node that was created for the external loop.
+     *
+     * Fornac's `reinforceLoops()` gives every loop of the structure (stems
+     * excluded) its own fake "middle" hub node via `addFakeNode()`, which
+     * pulls that loop's member nucleotides toward one shared point (keeping
+     * the loop visually rounded). For the external loop specifically — and
+     * only when Fornac's `circularizeExternal` option is enabled, which is
+     * the default — two extra synthetic "closure" middle nodes (`num: -2`
+     * and `num: -3`), positioned at the RNA's very first and very last
+     * nucleotide, are additionally appended to that loop's member list
+     * before its hub is created. Freeing only the two closure nodes removes
+     * the sequence-ends-together link, but the external loop's own hub
+     * still pulls every exterior nucleotide toward a shared centre, which
+     * keeps the free ends visually "circular". Both must be removed.
+     *
+     * The external loop's hub cannot be found reliably via link adjacency:
+     * `addFakeNode()` skips creating any link (hub spoke *and* the two
+     * "chord" links to nearby members) for member-list entries whose index
+     * exceeds the sequence length, which is exactly what the closure nodes'
+     * synthetic indices are — so the closure nodes are never linked to the
+     * hub directly, only incidentally chord-linked to a couple of nearby
+     * real nucleotide members (chasing that adjacency previously caused
+     * those nucleotides to be misidentified as the hub and deleted).
+     *
+     * Instead, each hub's own `nucs` array is used: it is a snapshot of the
+     * 1-based `graph.nodes` array indices of every member of that loop,
+     * recorded at the exact moment the hub was created — which, for the
+     * external loop only, includes the closure nodes' own array indices.
+     * Locating the hub whose `nucs` contains a closure node's array index
+     * identifies the external loop's hub precisely, without disturbing any
+     * other loop's hub or constraint.
+     *
+     * The hub's `nucs` array also lists every other member of the external
+     * loop (real nucleotides and closure nodes alike). That full member set
+     * is returned too, because `addFakeNode()` additionally links members
+     * directly to each other with two kinds of "chord" links (skipping the
+     * hub entirely) to keep the loop's ring shape from collapsing — e.g. a
+     * member is linked straight to the member roughly opposite it in the
+     * loop. Those direct member-to-member links must also be removed to
+     * fully free the external loop's nucleotides; removing only the hub and
+     * closure nodes leaves them in place, which still visibly pulls
+     * opposite sides of the loop together.
+     *
+     * @param {Object} graph
+     * @returns {{closureUids: Set<string>, hubUid: string|null, memberUids: Set<string>}|null}
+     */
+    function getExternalLoopScaffoldUids(graph) {
+        if (!graph || !Array.isArray(graph.nodes)) return null;
+
+        const closureNodes = graph.nodes.filter(node =>
+            node && node.nodeType === 'middle' && (node.num === -2 || node.num === -3)
+        );
+        if (closureNodes.length === 0) return null;
+
+        const closureUids = new Set(closureNodes.map(node => node.uid).filter(Boolean));
+        const closureIndices = new Set(closureNodes.map(node => graph.nodes.indexOf(node) + 1));
+
+        const hub = graph.nodes.find(node =>
+            node && node.nodeType === 'middle' && node.num === -1 && Array.isArray(node.nucs) &&
+            node.nucs.some(idx => closureIndices.has(idx))
+        );
+
+        const memberUids = new Set(closureUids);
+        if (hub && Array.isArray(hub.nucs)) {
+            hub.nucs.forEach(idx => {
+                const member = graph.nodes[idx - 1];
+                if (member && member.uid) memberUids.add(member.uid);
+            });
+        }
+
+        return { closureUids, hubUid: hub ? hub.uid : null, memberUids };
+    }
+
+    /**
+     * Remove Fornac's external-loop circularisation scaffold — the two
+     * closure nodes and the external loop's own hub — from the force graph
+     * and rerun the layout. Every other loop's own hub and circular
+     * constraint is left untouched.
+     *
+     * @param {Object} container
+     * @param {Object} v
+     * @returns {boolean}
+     */
+    function relaxForceGraphScaffold(container, v) {
+        const graph = container && container.graph;
+        const scaffold = getExternalLoopScaffoldUids(graph);
+        if (!scaffold) return false;
+
+        const removableNodeUids = new Set(scaffold.closureUids);
+        if (scaffold.hubUid) removableNodeUids.add(scaffold.hubUid);
+
+        graph.links = graph.links.filter(link => {
+            const linkType = String(link && link.linkType);
+            if (linkType !== 'fake' && linkType !== 'fake_fake') return true;
+
+            const sourceNode = resolveGraphNodeFromEndpoint(graph, link.source);
+            const targetNode = resolveGraphNodeFromEndpoint(graph, link.target);
+            const sourceUid = sourceNode && sourceNode.uid;
+            const targetUid = targetNode && targetNode.uid;
+
+            // Drop anything touching the hub or the closure nodes themselves.
+            if ((sourceUid && removableNodeUids.has(sourceUid)) || (targetUid && removableNodeUids.has(targetUid))) {
+                return false;
+            }
+
+            // Drop direct member-to-member "chord" links that bypass the hub
+            // entirely but still connect two nucleotides of the external loop.
+            if (sourceUid && targetUid && scaffold.memberUids.has(sourceUid) && scaffold.memberUids.has(targetUid)) {
+                return false;
+            }
+
+            return true;
+        });
+
+        graph.nodes = graph.nodes.filter(node => !(node && node.uid && removableNodeUids.has(node.uid)));
+
+        if (typeof container.update === 'function') {
+            container.update();
+        }
+
+        if (container.force && typeof container.force.resume === 'function') {
+            container.force.resume();
+        } else if (container.force && typeof container.force.start === 'function') {
+            container.force.start();
+        }
+
+        return true;
+    }
+
     // -----------------------------------------------------------------------
     // Main render function
     // -----------------------------------------------------------------------
@@ -2204,6 +2358,7 @@
      * @param {Object} v  Validated parameter dictionary (from `validate()`).
      * @param {Object} [options]
      * @param {boolean} [options.animation=false]  Enable Fornac force-layout animation.
+    * @param {boolean} [options.freeTrailingEnds=false]  Remove Fornac's external-loop circularisation constraint (the "closure" scaffold linking the sequence ends) from the force graph, leaving all other loop constraints intact.
      * @param {boolean} [options.legend=false]  Whether to also render the legend.
      * @param {Object.<number,number>|null} [options.accessData=null]  Accessibility data map.
      * @param {{sequence1?: string, sequence2?: string}|null} [options.accessColors=null]  Optional accessibility-overlay colors.
@@ -2229,6 +2384,7 @@
 
         const {
             animation = false,
+            freeTrailingEnds = false,
             accessData = null,
             accessColors = null,
             accessColorMode = null,
@@ -2240,6 +2396,10 @@
             { animation: animation, labelInterval: 1 }
         );
         container.addRNA(v.structure, { structure: v.structure, sequence: v.sequence });
+
+        if (animation && freeTrailingEnds) {
+            relaxForceGraphScaffold(container, v);
+        }
 
         function applyModifications() {
             // Set IDs for DOM querying

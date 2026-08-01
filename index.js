@@ -1246,11 +1246,18 @@ container.style.visibility = 'hidden';
 resetRotationControl();
 
 const animation = document.getElementById('animation').checked;
+const freeTrailingEnds = animation && !!document.getElementById('free-trailing-ends')?.checked;
 const accessColors = getProfileAccessibilityColors();
 const accessColorMode = getProfileAccessibilityMode();
 
 try {
-    const renderState = await vaRRI.render(currentContainerId, v, { animation, accessData, accessColors, accessColorMode });
+  const renderState = await vaRRI.render(currentContainerId, v, {
+  animation,
+  freeTrailingEnds,
+  accessData,
+  accessColors,
+  accessColorMode,
+  });
     if (runId !== latestVisualizationRunId || renderState?.cancelled) return;
     container.style.visibility = '';
     renderRegionList();
@@ -1280,6 +1287,16 @@ autoVisualizationTimeoutId = setTimeout(() => {
 }, delay);
 }
 
+function syncFreeTrailingEndsControl() {
+const animationCheckbox = document.getElementById('animation');
+const freeTrailingEndsCheckbox = document.getElementById('free-trailing-ends');
+if (!animationCheckbox || !freeTrailingEndsCheckbox) return;
+
+const enabled = !!animationCheckbox.checked;
+freeTrailingEndsCheckbox.disabled = !enabled;
+if (!enabled) freeTrailingEndsCheckbox.checked = false;
+}
+
 function attachAutoVisualizationListeners() {
 const committedFieldIds = [
     'structure',
@@ -1297,6 +1314,7 @@ const listenerConfig = {
     backgroundhighlighting: { eventName: 'change' },
     guBasepairs: { eventName: 'change' },
     animation: { eventName: 'change' },
+    'free-trailing-ends': { eventName: 'change' },
     'profile-color-1': { eventName: 'change' },
     'profile-color-2': { eventName: 'change' },
     'profile-color-1-represents-one': { eventName: 'change' },
@@ -1341,6 +1359,7 @@ Object.entries(listenerConfig).forEach(([id, config]) => {
     if (!el) return;
 
     el.addEventListener(config.eventName, () => {
+    if (id === 'animation') syncFreeTrailingEndsControl();
     clearFieldError(id);
     queueVisualization();
     });
@@ -1861,6 +1880,8 @@ if (regionCancelBtn) regionCancelBtn.addEventListener('click', resetRegionForm);
 if (mutationSubmitBtn) mutationSubmitBtn.addEventListener('click', submitMutationForm);
 if (mutationCancelBtn) mutationCancelBtn.addEventListener('click', resetMutationForm);
 if (profileApplyBtn) profileApplyBtn.addEventListener('click', () => runVisualization());
+
+syncFreeTrailingEndsControl();
 
 attachAutoVisualizationListeners();
 
