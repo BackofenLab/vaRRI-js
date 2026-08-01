@@ -1051,15 +1051,9 @@ describe('validate', () => {
         expect(v.molecules).toBe('1');
     });
 
-    test('null highlightSubseq when not provided', () => {
+    test('sets empty subsequenceHighlights when not provided', () => {
         const v = vaRRI.validate(base2mol);
-        expect(v.highlightSubseq1).toBeNull();
-        expect(v.highlightSubseq2).toBeNull();
-    });
-
-    test('parses highlightSubseq ranges', () => {
-        const v = vaRRI.validate({ ...base2mol, highlightSubseq1: '2-4' });
-        expect(v.highlightSubseq1).toEqual([[2, 4]]);
+        expect(v.subsequenceHighlights).toEqual([]);
     });
 
     test('accepts generic subsequenceHighlights objects', () => {
@@ -1091,13 +1085,21 @@ describe('validate', () => {
         expect(v.pointMutations[0].nodeId).toBeGreaterThan(0);
     });
 
-    test('parses negative highlightSubseq ranges with negative sequence start index', () => {
-        const v = vaRRI.validate({ ...base2mol, startIndex1: '-2', highlightSubseq1: '-2-2' });
-        expect(v.highlightSubseq1).toEqual([[-2, 2]]);
+    test('accepts negative subsequence ranges with negative sequence start index', () => {
+        const v = vaRRI.validate({
+            ...base2mol,
+            startIndex1: '-2',
+            subsequenceHighlights: [{ sequence: '1', range: '-2-2', color: '#123456' }],
+        });
+        expect(v.subsequenceHighlights[0].ranges).toEqual([[-2, 2]]);
     });
 
-    test('throws when highlightSubseq range endpoints are outside valid sequence indices', () => {
-        expect(() => vaRRI.validate({ ...base2mol, startIndex1: '-2', highlightSubseq1: '-2-3' })).toThrow(/valid sequence indices/);
+    test('throws when subsequenceHighlights range endpoints are outside valid sequence indices', () => {
+        expect(() => vaRRI.validate({
+            ...base2mol,
+            startIndex1: '-2',
+            subsequenceHighlights: [{ sequence: '1', range: '-2-3', color: '#123456' }],
+        })).toThrow(/valid sequence indices/);
     });
 
     test('throws on empty sequence', () => {

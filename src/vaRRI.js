@@ -1103,8 +1103,6 @@
      * @param {string} [args.highlighting="region"]  Highlighting option: `"nothing"`, `"basepairs"`, `"region"`.
      * @param {string} [args.backgroundhighlighting="basepairs"]  Background-highlighting option.
      * @param {boolean} [args.guBasepairs=true]  Whether to display G-U basepairs as dashed lines.
-    * @param {string|null} [args.highlightSubseq1=null]  Legacy subsequence range for sequence 1 `"start-end"` or null.
-    * @param {string|null} [args.highlightSubseq2=null]  Legacy subsequence range for sequence 2 `"start-end"` or null.
     * @param {Array<{sequence:string|number, range:string|Array<[number, number]>, color?:string}>} [args.subsequenceHighlights=[]]
     *     Generic subsequence-highlight definitions.
      * @returns {Object}  Validated parameter dictionary.
@@ -1153,10 +1151,10 @@
         v.guBasepairs = args.guBasepairs !== false; // default true
         v.labelInterval = parseInt(String(args.labelInterval || '10'), 10) || 10;
 
-        // Subsequence highlights (generic framework + legacy compatibility)
+        // Subsequence highlights
         const sequenceContext = {
-            '1': { offset: v.offset1, sequence: v.sequence1 },
-            '2': { offset: v.offset2, sequence: v.sequence2 },
+            '1': { offset: v.offset1, length: v.sequence1.length, sequence: v.sequence1 },
+            '2': { offset: v.offset2, length: v.sequence2.length, sequence: v.sequence2 },
         };
 
         if (Array.isArray(args.subsequenceHighlights)) {
@@ -1164,27 +1162,7 @@
                 createSubsequenceHighlight(h, sequenceContext)
             );
         } else {
-            const legacyHighlights = [];
-            const parsedSeq1 = parseSubsequences(args.highlightSubseq1, v.offset1, v.sequence1.length);
-            const parsedSeq2 = parseSubsequences(args.highlightSubseq2, v.offset2, v.sequence2.length);
-
-            if (parsedSeq1 !== null) {
-                legacyHighlights.push(createSubsequenceHighlight({
-                    sequence: '1',
-                    range: parsedSeq1,
-                    color: COLORS.subsequenceHighlight,
-                }, sequenceContext));
-            }
-
-            if (parsedSeq2 !== null) {
-                legacyHighlights.push(createSubsequenceHighlight({
-                    sequence: '2',
-                    range: parsedSeq2,
-                    color: COLORS.subsequenceHighlight,
-                }, sequenceContext));
-            }
-
-            v.subsequenceHighlights = legacyHighlights;
+            v.subsequenceHighlights = [];
         }
 
         if (Array.isArray(args.regionHighlights)) {
@@ -1217,10 +1195,6 @@
         } else {
             v.pointMutations = [];
         }
-
-        // Legacy fields are still exported for callers that rely on them.
-        v.highlightSubseq1 = (v.subsequenceHighlights.find(h => h.sequence === '1') || {}).ranges || null;
-        v.highlightSubseq2 = (v.subsequenceHighlights.find(h => h.sequence === '2') || {}).ranges || null;
 
         return v;
     }

@@ -27,8 +27,6 @@ Validates all user-supplied input parameters and returns a normalised
 | `highlighting` | `string` | `"region"` | `"nothing"`, `"basepairs"`, or `"region"`. |
 | `backgroundhighlighting` | `string` | `"basepairs"` | `"nothing"`, `"basepairs"`, or `"region"`. |
 | `guBasepairs` | `boolean` | `true` | Show G-U basepairs as dashed lines. |
-| `highlightSubseq1` | `string\|null` | `null` | Comma-separated `start-end` range(s) for molecule 1. |
-| `highlightSubseq2` | `string\|null` | `null` | Comma-separated `start-end` range(s) for molecule 2. |
 
 **Returns:** A validated parameter object.  
 **Throws:** `Error` on any invalid input.
