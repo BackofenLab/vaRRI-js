@@ -104,8 +104,17 @@
       <details class="control-group">
         <summary>Visualization Settings</summary>
         <div class="control-group-body">
+
           <div class="row-2">
-            <label for="coloring">Nucleotide color</label>
+            <label for="color-basepair"
+            onmouseenter="this.title = document.getElementById('color-basepair')?.getAttribute('title') || '';"
+            onclick="document.getElementById('color-basepair').click();">Base pair color</label>
+            <input type="color" id="color-basepair" class="legend-color-rect"
+            title="Select base pair colour" onchange="applyColors(); runVisualization();" />
+          </div>
+
+          <div class="row-2">
+              <label for="coloring">Nucleotide color</label>
             <select id="coloring">
               <option value="strand" selected>by sequence</option>
               <option value="loop">by loop type</option>
@@ -114,35 +123,15 @@
 
           <label for="highlighting">Highlighting</label>
           <div class="label-dropdown-col-row">
-            <label for="highlighting">&thinsp;&thinsp;&thinsp;of RRI Nucleotide</label>
+            <label for="highlighting">of RRI Nucleotide</label>
             <select id="highlighting">
               <option value="region" selected>region</option>
               <option value="basepairs">basepairs</option>
               <option value="nothing">nothing</option>
-            </select>
+            </select>  
             <input type="color" id="color-intermol" class="legend-color"
                  title="Select nucleotide highlight colour" onchange="applyColors(); runVisualization();" />
-          </div>
-
-          <div class="label-dropdown-col-row">
-            <label for="backgroundhighlighting">&thinsp;&thinsp;&thinsp;of RRI Background</label>
-            <select id="backgroundhighlighting">
-              <option value="basepairs" selected>basepairs</option>
-              <option value="region">region</option>
-              <option value="nothing">nothing</option>
-            </select>
-            <input type="color" id="color-bg" class="legend-color-rect"
-                 title="Select background highlight colour" onchange="applyColors(); runVisualization();" />
-          </div>
-
-            <div class="row-2">
-            <label for="color-basepair"
-              onmouseenter="this.title = document.getElementById('color-basepair')?.getAttribute('title') || '';"
-              onclick="document.getElementById('color-basepair').click();">Base pair color</label>
-            <input type="color" id="color-basepair" class="legend-color-rect"
-                 title="Select base pair colour" onchange="applyColors(); runVisualization();" />
-            </div>
-
+          </div>                 
           <div class="checkbox-row">
             <input type="checkbox" id="guBasepairs" checked />
             <label for="guBasepairs" style="margin:0">Show G-U basepairs as dashed lines</label>
@@ -157,7 +146,67 @@
     </aside>
 
     <!-- ================================================================== -->
-    <!-- Highlighting panel                                                  -->
+    <!-- Region highlighting panel                                                  -->
+    <!-- ================================================================== -->
+    <aside class="panel control-panel">
+      <details class="control-group">
+        <summary>
+          Region Highlights
+          <span id="region-counter" class="list-counter"></span>
+        </summary>
+        <div class="control-group-body">
+          
+                    <div class="label-dropdown-col-row">
+                      <label for="backgroundhighlighting">&thinsp;of RRI Background</label>
+                      <select id="backgroundhighlighting">
+                        <option value="basepairs" selected>basepairs</option>
+                        <option value="region">region</option>
+                        <option value="nothing">nothing</option>
+                      </select>
+                      <input type="color" id="color-bg" class="legend-color-rect"
+                           title="Select background highlight colour" onchange="applyColors(); runVisualization();" />
+                    </div>
+
+          <ul id="region-list" class="highlight-list" aria-label="Registered region highlights"></ul>
+
+          <input type="hidden" id="regionEditId" value="" />          
+
+          <div class="regionInput">
+            <div>
+              <label for="region1">Region 1</label>
+              <div class="input-wrap">
+                <input type="text" id="region1" placeholder="e.g. 2-4" />
+                <span class="field-tooltip"></span>
+              </div>
+            </div>
+            <div>
+              <label for="region2">Region 2</label>
+              <div class="input-wrap">
+                <input type="text" id="region2" placeholder="e.g. 5-7" />
+                <span class="field-tooltip"></span>
+              </div>
+            </div>
+            <div>
+              <label for="regionColor">Color</label>
+              <div class="input-wrap">
+                <input type="color" id="regionColor" />
+                <span class="field-tooltip"></span>
+              </div>
+            </div>
+            
+          </div>
+
+          <div class="action-row">
+            <button id="regionSubmitBtn" class="btn btn-primary btn-sm" type="button">Add</button>
+            <button id="regionCancelBtn" class="btn btn-sm" type="button" style="background:#d8e5f1;color:#1c2b39">Cancel</button>
+          </div>
+        </div>
+      </details>
+    </aside>
+
+
+    <!-- ================================================================== -->
+    <!-- Subsequence highlighting panel                                                  -->
     <!-- ================================================================== -->
     <aside class="panel control-panel">
       <details class="control-group">

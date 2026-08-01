@@ -496,7 +496,56 @@ a.btn:active {
   align-items: end;
 }
 
+.regionInput {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 1.5em;
+  gap: .45rem;
+  align-items: start;
+}
+
+.regionInput > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.regionInput label {
+  margin: 0 0 .25rem;
+}
+
+.regionInput .input-wrap {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+}
+
+.regionInput input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.regionInput .region-color-picker {
+  width: 2.25rem;
+  height: 34px;
+  padding: 2px;
+  min-width: 2.25rem;
+  margin: 0;
+  display: block;
+  box-sizing: border-box;
+}
+
 #highlightColor {
+  width: 100%;
+  height: 34px;
+  padding: 2px;
+  margin-bottom: .75rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  background: #fcfdff;
+}
+
+#regionColor {
   width: 100%;
   height: 34px;
   padding: 2px;

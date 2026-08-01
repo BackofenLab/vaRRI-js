@@ -25,16 +25,7 @@ const path = require('path');
 const vm = require('vm');
 const vaRRI = require('../src/vaRRI.js');
 const vaRRISource = fs.readFileSync(path.join(__dirname, '../src/vaRRI.js'), 'utf8');
-const indexHTMLSource = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
-const indexInlineScriptMatch = indexHTMLSource.match(
-    /<!-- ====================================================================== -->\s*<!-- Scripts[\s\S]*?-->\s*<script>\s*([\s\S]*?)\s*<\/script>\s*<\/body>/
-);
-
-if (!indexInlineScriptMatch) {
-    throw new Error('Could not locate the inline script block in index.html');
-}
-
-const indexInlineScript = indexInlineScriptMatch[1];
+const indexScriptSource = fs.readFileSync(path.join(__dirname, '../index.js'), 'utf8');
 
 describe('browser global export', () => {
     test('attaches vaRRI to window even when module.exports is present', () => {
@@ -45,6 +36,250 @@ describe('browser global export', () => {
         expect(sandbox.window.vaRRI).toBeDefined();
         expect(typeof sandbox.window.vaRRI.getColors).toBe('function');
         expect(sandbox.module.exports).toBe(sandbox.window.vaRRI);
+    });
+});
+
+describe('region input helpers', () => {
+    test('normalizes region range strings by removing whitespace', () => {
+        const sandbox = {
+            window: {
+                location: {
+                    protocol: 'https:',
+                    origin: 'https://example.test',
+                    pathname: '/index.html',
+                    search: '',
+                    href: 'https://example.test/index.html',
+                },
+                addEventListener: () => {},
+                document: {
+                    getElementById: () => ({ value: '', checked: false, type: '', dispatchEvent() {}, closest: () => null, querySelector: () => null }),
+                    querySelectorAll: () => [],
+                },
+                navigator: {},
+                console,
+                URLSearchParams,
+                setTimeout,
+                clearTimeout,
+            },
+            document: {},
+            navigator: {},
+            console,
+            URLSearchParams,
+            setTimeout,
+            clearTimeout,
+            module: { exports: {} },
+        };
+        sandbox.document = sandbox.window.document;
+        sandbox.navigator = sandbox.window.navigator;
+        sandbox.window.window = sandbox.window;
+        sandbox.window.document = sandbox.window.document;
+        sandbox.window.navigator = sandbox.window.navigator;
+        sandbox.window.console = console;
+        sandbox.window.URLSearchParams = URLSearchParams;
+        sandbox.window.setTimeout = setTimeout;
+        sandbox.window.clearTimeout = clearTimeout;
+
+        vm.createContext(sandbox);
+        vm.runInContext(indexScriptSource, sandbox);
+
+        expect(sandbox.normalizeRegionInput(' 2 - 4 ')).toBe('2-4');
+        expect(sandbox.normalizeRegionInput('')).toBe('');
+    });
+});
+
+describe('region highlight URL helpers', () => {
+    test('serializes and loads region highlights through the browser script helpers', () => {
+        let clipboardText = '';
+        const registeredRegionHighlights = [];
+        const stubbedRegionHighlights = [{
+            id: 1,
+            sequence1Range: [2, 4],
+            sequence2Range: [5, 7],
+            color: '#123456',
+            rangeText: '2-4&5-7',
+            generated: false,
+        }];
+
+        const sandbox = {
+            window: {
+                location: {
+                    protocol: 'https:',
+                    origin: 'https://example.test',
+                    pathname: '/index.html',
+                    search: '',
+                    href: 'https://example.test/index.html',
+                },
+                addEventListener: () => {},
+                document: {
+                    getElementById: () => ({ value: '', checked: false, type: '', dispatchEvent() {}, closest: () => null, querySelector: () => null }),
+                    querySelectorAll: () => [],
+                },
+                navigator: {
+                    clipboard: {
+                        writeText: async (value) => {
+                            clipboardText = value;
+                        },
+                    },
+                },
+                console,
+                URLSearchParams,
+                setTimeout,
+                clearTimeout,
+            },
+            document: {},
+            navigator: {},
+            console,
+            URLSearchParams,
+            setTimeout,
+            clearTimeout,
+            module: { exports: {} },
+        };
+        sandbox.document = sandbox.window.document;
+        sandbox.navigator = sandbox.window.navigator;
+        sandbox.window.window = sandbox.window;
+        sandbox.window.document = sandbox.window.document;
+        sandbox.window.navigator = sandbox.window.navigator;
+        sandbox.window.console = console;
+        sandbox.window.URLSearchParams = URLSearchParams;
+        sandbox.window.setTimeout = setTimeout;
+        sandbox.window.clearTimeout = clearTimeout;
+
+        sandbox.vaRRI = {
+            ...vaRRI,
+            getPointMutations: () => [],
+            getSubsequenceHighlights: () => [],
+            getRegionHighlights: () => stubbedRegionHighlights,
+            registerRegionHighlight: (input) => {
+                registeredRegionHighlights.push(input);
+                return { id: 1, ...input };
+            },
+            validate: () => ({
+                offset1: 1,
+                offset2: 1,
+                sequence1: 'ACGU',
+                sequence2: 'ACGU',
+            }),
+        };
+        sandbox.window.vaRRI = sandbox.vaRRI;
+
+        vm.createContext(sandbox);
+        vm.runInContext(vaRRISource, sandbox);
+        vm.runInContext(indexScriptSource, sandbox);
+
+        sandbox.getHighlightSequenceContext = () => ({
+            '1': { offset: 1, length: 4 },
+            '2': { offset: 1, length: 4 },
+        });
+        sandbox.getDefaultSubsequenceHighlightColor = () => '#ff0000';
+        sandbox.getDefaultRegionHighlightColor = () => '#ff0000';
+        sandbox.getDefaultMutationColor = () => '#ff0000';
+
+        sandbox.generateShareableURL();
+        expect(clipboardText).toContain('regionHighlights=');
+
+        const shareUrl = new URL(clipboardText);
+        const encodedRegionHighlights = encodeURIComponent(shareUrl.searchParams.get('regionHighlights') || '');
+        sandbox.window.location.search = `?regionHighlights=${encodedRegionHighlights}`;
+        sandbox.loadUrlRegionHighlightsToVaRRI('regionHighlights');
+
+        expect(registeredRegionHighlights).toHaveLength(1);
+        expect(registeredRegionHighlights[0]).toMatchObject({
+            sequence1Range: [2, 4],
+            sequence2Range: [5, 7],
+            color: '#123456',
+        });
+    });
+
+    test('does not serialize generated region highlights into the share URL', () => {
+        let clipboardText = '';
+        const stubbedRegionHighlights = [
+            {
+                id: 1,
+                sequence1Range: [2, 4],
+                sequence2Range: [5, 7],
+                color: '#123456',
+                rangeText: '2-4&5-7',
+                generated: false,
+            },
+            {
+                id: 2,
+                sequence1Range: [8, 9],
+                sequence2Range: [10, 11],
+                color: '#654321',
+                rangeText: '8-9&10-11',
+                generated: true,
+            },
+        ];
+
+        const sandbox = {
+            window: {
+                location: {
+                    protocol: 'https:',
+                    origin: 'https://example.test',
+                    pathname: '/index.html',
+                    search: '',
+                    href: 'https://example.test/index.html',
+                },
+                addEventListener: () => {},
+                document: {
+                    getElementById: () => ({ value: '', checked: false, type: '', dispatchEvent() {}, closest: () => null, querySelector: () => null }),
+                    querySelectorAll: () => [],
+                },
+                navigator: {
+                    clipboard: {
+                        writeText: async (value) => {
+                            clipboardText = value;
+                        },
+                    },
+                },
+                console,
+                URLSearchParams,
+                setTimeout,
+                clearTimeout,
+            },
+            document: {},
+            navigator: {},
+            console,
+            URLSearchParams,
+            setTimeout,
+            clearTimeout,
+            module: { exports: {} },
+        };
+        sandbox.document = sandbox.window.document;
+        sandbox.navigator = sandbox.window.navigator;
+        sandbox.window.window = sandbox.window;
+        sandbox.window.document = sandbox.window.document;
+        sandbox.window.navigator = sandbox.window.navigator;
+        sandbox.window.console = console;
+        sandbox.window.URLSearchParams = URLSearchParams;
+        sandbox.window.setTimeout = setTimeout;
+        sandbox.window.clearTimeout = clearTimeout;
+
+        sandbox.vaRRI = {
+            ...vaRRI,
+            getPointMutations: () => [],
+            getSubsequenceHighlights: () => [],
+            getRegionHighlights: () => stubbedRegionHighlights,
+        };
+        sandbox.window.vaRRI = sandbox.vaRRI;
+
+        vm.createContext(sandbox);
+        vm.runInContext(vaRRISource, sandbox);
+        vm.runInContext(indexScriptSource, sandbox);
+
+        sandbox.getHighlightSequenceContext = () => ({
+            '1': { offset: 1, length: 4 },
+            '2': { offset: 1, length: 4 },
+        });
+        sandbox.getDefaultSubsequenceHighlightColor = () => '#ff0000';
+        sandbox.getDefaultRegionHighlightColor = () => '#ff0000';
+        sandbox.getDefaultMutationColor = () => '#ff0000';
+
+        sandbox.generateShareableURL();
+
+        const shareUrl = new URL(clipboardText);
+        expect(shareUrl.searchParams.get('regionHighlights')).toBe('2-4&5-7:123456');
+        expect(shareUrl.searchParams.get('regionHighlights')).not.toContain('8-9&10-11');
     });
 });
 
@@ -463,6 +698,141 @@ describe('subsequence highlight registry', () => {
             { sequence: '1', range: '-2-3', color: '#000000' },
             { '1': { offset: -2, length: 4 } }
         )).toThrow(/valid sequence indices/);
+    });
+});
+
+describe('region highlight registry', () => {
+    beforeEach(() => {
+        vaRRI.clearRegionHighlights();
+    });
+
+    test('creates a normalized region highlight object from string input', () => {
+        const highlight = vaRRI.createRegionHighlight({
+            sequence1Range: '3-8',
+            sequence2Range: '10-12',
+            color: '#123456',
+            generated: true,
+        });
+
+        expect(highlight.sequence1Range).toEqual([3, 8]);
+        expect(highlight.sequence2Range).toEqual([10, 12]);
+        expect(highlight.rangeText).toBe('3-8&10-12');
+        expect(highlight.color).toBe('#123456');
+        expect(highlight.generated).toBe(true);
+    });
+
+    test('computes generated background region ranges as true sequence positions, not raw node ids', () => {
+        const v = vaRRI.validate({
+            structure: '((..&..))',
+            sequence: 'ACGU&CGUC',
+            startIndex1: '-2',
+            startIndex2: '100',
+            labelInterval: '10',
+            coloring: 'strand',
+            highlighting: 'region',
+            backgroundhighlighting: 'region',
+            guBasepairs: true,
+        });
+
+        const ranges = vaRRI.computeBackgroundRegionRanges(v);
+        expect(ranges.sequence1Range).toEqual([-2, -1]);
+        expect(ranges.sequence2Range).toEqual([102, 103]);
+    });
+
+    test('registers generated region highlights using true sequence positions', () => {
+        const v = vaRRI.validate({
+            structure: '((..&..))',
+            sequence: 'ACGU&CGUC',
+            startIndex1: '-2',
+            startIndex2: '100',
+            labelInterval: '10',
+            coloring: 'strand',
+            highlighting: 'region',
+            backgroundhighlighting: 'region',
+            guBasepairs: true,
+        });
+
+        vaRRI.backgroundhighlightRegion(v);
+        const generated = vaRRI.getRegionHighlights().find(h => h.generated);
+        expect(generated.sequence1Range).toEqual([-2, -1]);
+        expect(generated.sequence2Range).toEqual([102, 103]);
+    });
+
+    test('registers generated basepair-stack highlights using true sequence positions', () => {
+        const v = vaRRI.validate({
+            structure: '((..&..))',
+            sequence: 'ACGU&CGUC',
+            startIndex1: '-2',
+            startIndex2: '100',
+            labelInterval: '10',
+            coloring: 'strand',
+            highlighting: 'region',
+            backgroundhighlighting: 'basepairs',
+            guBasepairs: true,
+        });
+
+        vaRRI.backgroundhighlightBasepairs(v);
+        const generated = vaRRI.getRegionHighlights().find(h => h.generated);
+        expect(generated.sequence1Range).toEqual([-2, -1]);
+        expect(generated.sequence2Range).toEqual([102, 103]);
+    });
+
+    test('registers, updates and removes region highlights by id', () => {
+        const added = vaRRI.registerRegionHighlight({
+            sequence1Range: '2-4',
+            sequence2Range: '5-7',
+            color: '#abcdef',
+        });
+
+        expect(added.id).toBe(1);
+        expect(vaRRI.getRegionHighlights()).toHaveLength(1);
+
+        const updated = vaRRI.updateRegionHighlight(added.id, {
+            sequence1Range: '6-8',
+            sequence2Range: '9-10',
+            color: '#111111',
+            generated: true,
+        });
+
+        expect(updated.sequence1Range).toEqual([6, 8]);
+        expect(updated.sequence2Range).toEqual([9, 10]);
+        expect(updated.generated).toBe(true);
+        expect(updated.color).toBe('#111111');
+
+        expect(vaRRI.removeRegionHighlight(added.id)).toBe(true);
+        expect(vaRRI.getRegionHighlights()).toHaveLength(0);
+    });
+
+    test('validates region ranges against sequence context', () => {
+        expect(() => vaRRI.registerRegionHighlight(
+            { sequence1Range: '-2-3', sequence2Range: '1-2', color: '#000000' },
+            { '1': { offset: -2, length: 4 }, '2': { offset: 1, length: 4 } }
+        )).toThrow(/valid sequence indices/);
+    });
+});
+
+describe('polygon helpers', () => {
+    test('closes point lists for filled polygons', () => {
+        expect(vaRRI.closePolygonPoints([[10, 20], [30, 40], [50, 60]])).toEqual([
+            '10,20',
+            '30,40',
+            '50,60',
+            '10,20',
+        ]);
+    });
+
+    test('resolves region node paths from true sequence positions', () => {
+        const v = {
+            offset1: 1,
+            offset2: 1,
+            sequence1: 'AC',
+            sequence2: 'GU',
+        };
+
+        expect(vaRRI.getRegionHighlightNodePath(v, {
+            sequence1Range: [1, 2],
+            sequence2Range: [1, 2],
+        })).toEqual([1, 2, 6, 7]);
     });
 });
 

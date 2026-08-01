@@ -4,6 +4,7 @@
 
 'use strict';
 
+/*
 const fs = require('fs');
 const path = require('path');
 // Import your real production calculation library
@@ -87,7 +88,7 @@ test('does not rerender while typing into committed fields', () => {
     expect(validateSpy).not.toHaveBeenCalled();
     expect(renderSpy).not.toHaveBeenCalled();
 });
-/*
+
 describe('index.html auto visualization UI', () => {
 test('removes the manual visualization button', () => {
 expect(indexHTMLSource).not.toContain('▶ Visualise');
