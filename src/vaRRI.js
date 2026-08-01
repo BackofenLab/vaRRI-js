@@ -60,6 +60,10 @@
     const SUBSEQUENCE_HIGHLIGHTS = [];
     let _nextHighlightId = 1;
 
+    /** In-memory registry of user-defined region highlight objects. */
+    const REGION_HIGHLIGHTS = [];
+    let _nextRegionHighlightId = 1;
+
     /** In-memory registry of user-defined point mutation objects. */
     const POINT_MUTATIONS = [];
     let _nextMutationId = 1;
@@ -243,6 +247,173 @@
      */
     function getSubsequenceHighlights() {
         return SUBSEQUENCE_HIGHLIGHTS.map(cloneSubsequenceHighlight);
+    }
+
+    /**
+     * Return a deep-enough clone of a region-highlight object for external consumers.
+     *
+     * @param {Object} highlight
+     * @returns {Object}
+     */
+    function cloneRegionHighlight(highlight) {
+        return {
+            id: highlight.id,
+            sequence1Range: [highlight.sequence1Range[0], highlight.sequence1Range[1]],
+            sequence2Range: [highlight.sequence2Range[0], highlight.sequence2Range[1]],
+            color: highlight.color,
+            rangeText: highlight.rangeText,
+            generated: !!highlight.generated,
+        };
+    }
+
+    /**
+     * Normalize a range input for region highlighting.
+     *
+     * @param {string|Array<number|[number, number]>} rangeInput
+     * @param {{offset:number, length:number}=} context
+     * @returns {{range:[number, number], rangeText:string}}
+     */
+    function normaliseRegionRange(rangeInput, context = {}) {
+        if (typeof rangeInput === 'string') {
+            const ranges = parseSubsequences(rangeInput, context.offset, context.length);
+            if (!ranges || ranges.length === 0) {
+                throw new Error('Region range must not be empty.');
+            }
+            if (ranges.length > 1) {
+                throw new Error('Region highlighting supports a single range per sequence.');
+            }
+            const [start, end] = ranges[0];
+            return { range: [start, end], rangeText: rangeInput.trim() };
+        }
+
+        if (!Array.isArray(rangeInput) || rangeInput.length === 0) {
+            throw new Error('Region range must not be empty.');
+        }
+
+        const pair = rangeInput;
+        if (!Array.isArray(pair) || pair.length !== 2) {
+            throw new Error('Invalid region range. Expected [start, end].');
+        }
+
+        const start = Number(pair[0]);
+        const end = Number(pair[1]);
+        if (!Number.isInteger(start) || !Number.isInteger(end)) {
+            throw new Error('Invalid region range. Range bounds must be integers.');
+        }
+        if (start === 0 || end === 0) {
+            throw new Error('Invalid region range. Index 0 is not valid.');
+        }
+        if (start > end) {
+            throw new Error('Invalid region range. Start index must be <= end index.');
+        }
+
+        if (context) {
+            parseSubsequences(`${start}-${end}`, context.offset, context.length);
+        }
+
+        return {
+            range: [start, end],
+            rangeText: `${start}-${end}`,
+        };
+    }
+
+    /**
+     * Build a normalized region-highlight object from user input.
+     *
+     * @param {{sequence1Range:string|[number, number], sequence2Range:string|[number, number], color?:string, generated?:boolean, id?:number}} input
+     * @param {{'1'?:{offset:number, length:number}, '2'?:{offset:number, length:number}}=} sequenceContext
+     * @returns {{id:number, sequence1Range:[number, number], sequence2Range:[number, number], color:string, rangeText:string, generated:boolean}}
+     */
+    function createRegionHighlight(input, sequenceContext = {}) {
+        const context1 = sequenceContext['1'];
+        const context2 = sequenceContext['2'];
+        const seq1Range = normaliseRegionRange(input.sequence1Range, context1);
+        const seq2Range = normaliseRegionRange(input.sequence2Range, context2);
+        const color = (input.color || '').trim() || COLORS.backgroundHighlight;
+
+        return {
+            id: Number.isInteger(input.id) ? input.id : 0,
+            sequence1Range: seq1Range.range,
+            sequence2Range: seq2Range.range,
+            color,
+            rangeText: `${seq1Range.rangeText}&${seq2Range.rangeText}`,
+            generated: !!input.generated,
+        };
+    }
+
+    /**
+     * Register a new region highlight object.
+     *
+     * @param {{sequence1Range:string|[number, number], sequence2Range:string|[number, number], color?:string, generated?:boolean}} input
+     * @param {{'1'?:{offset:number, length:number}, '2'?:{offset:number, length:number}}=} sequenceContext
+     * @returns {Object}
+     */
+    function registerRegionHighlight(input, sequenceContext = {}) {
+        const normalized = createRegionHighlight(input, sequenceContext);
+        normalized.id = _nextRegionHighlightId++;
+        REGION_HIGHLIGHTS.push(normalized);
+        return cloneRegionHighlight(normalized);
+    }
+
+    /**
+     * Update an existing region highlight object.
+     *
+     * @param {number} id
+     * @param {{sequence1Range?:string|[number, number], sequence2Range?:string|[number, number], color?:string, generated?:boolean}} patch
+     * @param {{'1'?:{offset:number, length:number}, '2'?:{offset:number, length:number}}=} sequenceContext
+     * @returns {Object}
+     */
+    function updateRegionHighlight(id, patch, sequenceContext = {}) {
+        const target = REGION_HIGHLIGHTS.find(h => h.id === id);
+        if (!target) {
+            throw new Error(`Region highlight with id ${id} not found.`);
+        }
+
+        const normalized = createRegionHighlight({
+            id,
+            sequence1Range: patch.sequence1Range !== undefined ? patch.sequence1Range : target.sequence1Range,
+            sequence2Range: patch.sequence2Range !== undefined ? patch.sequence2Range : target.sequence2Range,
+            color: patch.color !== undefined ? patch.color : target.color,
+            generated: patch.generated !== undefined ? patch.generated : target.generated,
+        }, sequenceContext);
+
+        target.sequence1Range = normalized.sequence1Range;
+        target.sequence2Range = normalized.sequence2Range;
+        target.color = normalized.color;
+        target.rangeText = normalized.rangeText;
+        target.generated = normalized.generated;
+
+        return cloneRegionHighlight(target);
+    }
+
+    /**
+     * Remove a region highlight object by id.
+     *
+     * @param {number} id
+     * @returns {boolean}
+     */
+    function removeRegionHighlight(id) {
+        const idx = REGION_HIGHLIGHTS.findIndex(h => h.id === id);
+        if (idx === -1) return false;
+        REGION_HIGHLIGHTS.splice(idx, 1);
+        return true;
+    }
+
+    /**
+     * Remove all registered region highlights.
+     */
+    function clearRegionHighlights() {
+        REGION_HIGHLIGHTS.length = 0;
+        _nextRegionHighlightId = 1;
+    }
+
+    /**
+     * Read registered region highlights.
+     *
+     * @returns {Array<Object>}
+     */
+    function getRegionHighlights() {
+        return REGION_HIGHLIGHTS.map(cloneRegionHighlight);
     }
 
     /**
@@ -1016,6 +1187,14 @@
             v.subsequenceHighlights = legacyHighlights;
         }
 
+        if (Array.isArray(args.regionHighlights)) {
+            v.regionHighlights = args.regionHighlights.map(highlight =>
+                createRegionHighlight(highlight, sequenceContext)
+            );
+        } else {
+            v.regionHighlights = [];
+        }
+
         if (Array.isArray(args.pointMutations)) {
             v.pointMutations = args.pointMutations.map(mutation =>
                 createPointMutation(mutation, sequenceContext)
@@ -1430,25 +1609,70 @@
     }
 
     /**
+     * Resolve the x/y coordinates of a list of Fornac node IDs.
+     *
+     * @param {number[]} indices  Fornac node IDs to resolve.
+     * @returns {Array<[number, number]>}
+     */
+    function getNodePointPairs(indices) {
+        const points = [];
+        indices.forEach(index => {
+            document.querySelectorAll(`g[num="n${index}"]`).forEach(node => {
+                const transform = node.getAttribute('transform') || '';
+                const match = [...transform.matchAll(/-?\d+(?:\.\d+)?/g)];
+                if (match.length >= 2) {
+                    points.push([parseFloat(match[0][0]), parseFloat(match[1][0])]);
+                }
+            });
+        });
+        return points;
+    }
+
+    /**
+     * Close a polygon point list by appending the first point at the end.
+     *
+     * @param {Array<[number, number]>} points
+     * @returns {string[]}
+     */
+    function closePolygonPoints(points) {
+        if (!Array.isArray(points) || points.length === 0) return [];
+        const pointStrings = points.map(([x, y]) => `${x},${y}`);
+        if (pointStrings.length < 2) return pointStrings;
+        return [...pointStrings, pointStrings[0]];
+    }
+
+    /**
      * Draw a polyline connecting a list of Fornac node positions.
      *
      * @param {number[]} indices  Fornac node IDs to connect.
      * @param {string} style  CSS style string for the polyline.
      */
     function polyline(indices, style, extraAttrs = {}) {
-        let posString = '';
-        indices.forEach(index => {
-            document.querySelectorAll(`g[num="n${index}"]`).forEach(node => {
-                const transform = node.getAttribute('transform') || '';
-                const match = [...transform.matchAll(/-?\d+(?:\.\d+)?/g)];
-                if (match.length >= 2) {
-                    posString += `${match[0][0]},${match[1][0]} `;
-                }
-            });
-        });
+        const points = getNodePointPairs(indices);
+        const pointString = points.map(([x, y]) => `${x},${y}`).join(' ');
 
         const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        poly.setAttribute('points', posString);
+        poly.setAttribute('points', pointString);
+        poly.setAttribute('style', style);
+        for (const [k, val] of Object.entries(extraAttrs)) {
+            poly.setAttribute(k, val);
+        }
+        const insertRoot = getPlotInsertRoot();
+        if (insertRoot) insertRoot.insertBefore(poly, insertRoot.firstChild);
+    }
+
+    /**
+     * Draw a closed polygon connecting a list of Fornac node positions.
+     *
+     * @param {number[]} indices  Fornac node IDs to connect.
+     * @param {string} style  CSS style string for the polygon.
+     */
+    function polygon(indices, style, extraAttrs = {}) {
+        const points = getNodePointPairs(indices);
+        const pointString = closePolygonPoints(points).join(' ');
+
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', pointString);
         poly.setAttribute('style', style);
         for (const [k, val] of Object.entries(extraAttrs)) {
             poly.setAttribute(k, val);
@@ -1626,6 +1850,126 @@
     }
 
     /**
+     * Remove all generated region highlights from the active registry.
+     */
+    function clearGeneratedRegionHighlights() {
+        getRegionHighlights().filter(highlight => highlight.generated).forEach(highlight => {
+            removeRegionHighlight(highlight.id);
+        });
+    }
+
+    /**
+     * Register a generated region highlight from sequence ranges.
+     *
+     * @param {Object} v
+     * @param {{sequence1Range:[number, number], sequence2Range:[number, number], color?:string}} spec
+     * @returns {Object}
+     */
+    function registerGeneratedRegionHighlight(v, spec) {
+        const sequenceContext = {
+            '1': { offset: v.offset1, length: v.sequence1 ? v.sequence1.length : 0, sequence: v.sequence1 },
+            '2': { offset: v.offset2, length: v.sequence2 ? v.sequence2.length : 0, sequence: v.sequence2 },
+        };
+
+        return registerRegionHighlight({
+            sequence1Range: spec.sequence1Range,
+            sequence2Range: spec.sequence2Range,
+            color: spec.color || COLORS.backgroundHighlight,
+            generated: true,
+        }, sequenceContext);
+    }
+
+    /**
+     * Derive a true sequence-position range (matching offset/skip-zero
+     * numbering) for a given sequence from a list of combined node/structure
+     * positions (as produced by {@link listIntermolPairs} or
+     * {@link getIntermolBasepairRegion}).
+     *
+     * @param {Object} v
+     * @param {number[]} positions  Combined node positions (1-based, gap-inclusive).
+     * @param {'1'|'2'} sequence
+     * @returns {[number, number]|null}
+     */
+    function getBackgroundRangeForPositions(v, positions, sequence) {
+        const indexDict = getIndexDictionary(v);
+        const values = positions
+            .map(position => indexDict[position])
+            .filter(entry => Array.isArray(entry) && entry[0] === `s${sequence}`)
+            .map(([, seqPosition]) => seqPosition)
+            .filter(Number.isFinite);
+
+        if (values.length === 0) return null;
+        return [Math.min(...values), Math.max(...values)];
+    }
+
+    /**
+     * Compute the generated region-highlight ranges for the "entire
+     * intermolecular region" background-highlighting mode, expressed as true
+     * sequence positions (matching offset/skip-zero numbering).
+     *
+     * @param {Object} v  Validated parameter dictionary.
+     * @returns {{sequence1Range:[number,number], sequence2Range:[number,number]}|null}
+     */
+    function computeBackgroundRegionRanges(v) {
+        const basepairRegion = getIntermolBasepairRegion(v.structure1, v.structure2);
+        if (!basepairRegion || basepairRegion.length < 2) return null;
+
+        const sequence1Range = getBackgroundRangeForPositions(v, basepairRegion[0], '1');
+        const sequence2Range = getBackgroundRangeForPositions(v, basepairRegion[1], '2');
+        if (!sequence1Range || !sequence2Range) return null;
+
+        return { sequence1Range, sequence2Range };
+    }
+
+    /**
+     * Build the node-ID path for a region highlight's filled polygon.
+     *
+     * @param {Object} v
+     * @param {Object} highlight
+     * @returns {number[]}
+     */
+    function getRegionHighlightNodePath(v, highlight) {
+        const nodeIds = [];
+        const seq1Range = Array.isArray(highlight.sequence1Range) ? highlight.sequence1Range : [];
+        const seq2Range = Array.isArray(highlight.sequence2Range) ? highlight.sequence2Range : [];
+
+        for (let position = seq1Range[0]; position <= seq1Range[1]; position++) {
+            const nodeId = getNodeIdForSequencePosition(v, '1', position);
+            if (nodeId) nodeIds.push(nodeId);
+        }
+
+        for (let position = seq2Range[0]; position <= seq2Range[1]; position++) {
+            const nodeId = getNodeIdForSequencePosition(v, '2', position);
+            if (nodeId) nodeIds.push(nodeId);
+        }
+
+        return nodeIds;
+    }
+
+    /**
+     * Apply all region highlights from the active registry.
+     *
+     * @param {Object} v
+     */
+    function applyRegionHighlights(v) {
+        const registryHighlights = getRegionHighlights();
+        const highlights = registryHighlights.length > 0
+            ? registryHighlights
+            : (Array.isArray(v.regionHighlights) ? v.regionHighlights : []);
+
+        highlights.forEach(highlight => {
+            const nodePath = getRegionHighlightNodePath(v, highlight);
+            if (nodePath.length >= 3) {
+                polygon(
+                    nodePath,
+                    `fill:${highlight.color || COLORS.backgroundHighlight};opacity:0.2;stroke:${highlight.color || COLORS.backgroundHighlight};stroke-width:7`,
+                    { 'data-varri-region': 'true' }
+                );
+            }
+        });
+    }
+
+    /**
      * Apply all subsequence highlights from `v.subsequenceHighlights`.
      *
      * @param {Object} v
@@ -1756,7 +2100,10 @@
      */
     function backgroundhighlightBasepairs(v) {
         const intermolPairs = listIntermolPairs(v);
-        if (intermolPairs.length === 0) return;
+        if (intermolPairs.length === 0) {
+            clearGeneratedRegionHighlights();
+            return;
+        }
 
         let stack = [intermolPairs.shift()];
         const highlightAreas = [];
@@ -1768,15 +2115,24 @@
                 continue;
             }
             const area = stack.flatMap(([a, b]) => [a, b]).sort((a, b) => a - b);
-            highlightAreas.push([...area, area[0]]);
+            highlightAreas.push(area);
             stack = [[open, close]];
         }
         const area = stack.flatMap(([a, b]) => [a, b]).sort((a, b) => a - b);
-        highlightAreas.push([...area, area[0]]);
+        highlightAreas.push(area);
 
-        for (const region of highlightAreas) {
-            polyline(region, `fill:${COLORS.backgroundHighlight};opacity:0.2;stroke:${COLORS.backgroundHighlight};stroke-width:7`, { 'data-varri-bg': 'true' });
-        }
+        clearGeneratedRegionHighlights();
+        highlightAreas.forEach(region => {
+            const seq1Range = getBackgroundRangeForPositions(v, region, '1');
+            const seq2Range = getBackgroundRangeForPositions(v, region, '2');
+            if (seq1Range && seq2Range) {
+                registerGeneratedRegionHighlight(v, {
+                    sequence1Range: seq1Range,
+                    sequence2Range: seq2Range,
+                    color: COLORS.backgroundHighlight,
+                });
+            }
+        });
     }
 
     /**
@@ -1785,12 +2141,18 @@
      * @param {Object} v  Validated parameter dictionary.
      */
     function backgroundhighlightRegion(v) {
-        const basepairRegion = getIntermolBasepairRegion(v.structure1, v.structure2);
-        const intermolNodes = [];
-        for (const [start, end] of basepairRegion) {
-            for (let i = start; i <= end; i++) intermolNodes.push(i);
+        const ranges = computeBackgroundRegionRanges(v);
+        if (!ranges) {
+            clearGeneratedRegionHighlights();
+            return;
         }
-        polyline(intermolNodes, `fill:${COLORS.backgroundHighlight};opacity:0.2`, { 'data-varri-bg': 'true' });
+
+        clearGeneratedRegionHighlights();
+        registerGeneratedRegionHighlight(v, {
+            sequence1Range: ranges.sequence1Range,
+            sequence2Range: ranges.sequence2Range,
+            color: COLORS.backgroundHighlight,
+        });
     }
 
     /**
@@ -1931,6 +2293,9 @@
 
             // Basepair styling (colour + optional G-U dashing)
             styleBasepairs(v);
+
+            // Region highlights
+            applyRegionHighlights(v);
 
             // Subsequence highlights
             applySubsequenceHighlights(v);
@@ -2363,6 +2728,15 @@
         removeSubsequenceHighlight,
         clearSubsequenceHighlights,
         getSubsequenceHighlights,
+        createRegionHighlight,
+        registerRegionHighlight,
+        updateRegionHighlight,
+        removeRegionHighlight,
+        clearRegionHighlights,
+        getRegionHighlights,
+        registerGeneratedRegionHighlight,
+        computeBackgroundRegionRanges,
+        getRegionHighlightNodePath,
         createPointMutation,
         registerPointMutation,
         updatePointMutation,
@@ -2390,6 +2764,7 @@
         backgroundhighlightBasepairs,
         styleBasepairs,
         highlightSubsequence,
+        applyRegionHighlights,
         applySubsequenceHighlights,
         applyPointMutations,
         removeDummyNodes,
@@ -2398,6 +2773,7 @@
         polyline,
         addElement,
         getPositionOfNode,
+        closePolygonPoints,
         visualiseAccessibility,
         setAttributeForElements,
     };

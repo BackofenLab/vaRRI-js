@@ -9,6 +9,9 @@ const EXAMPLES = {
     coloring: 'strand', highlighting: 'region',
     backgroundhighlighting: 'basepairs', guBasepairs: true,
     cropping: '2',
+    regionHighlights: [
+    { sequence1Range: '13-14', sequence2Range: '120-121', color: '#0d00ff', generated: false },
+    ],
     subsequenceHighlights: [
     { sequence: '1', range: '18-20', color: '#338a29' },
     { sequence: '2', range: '114-116', color: '#338a29' },
@@ -78,6 +81,7 @@ document.getElementById('profile-color-1-represents-one').checked = !!ex.profile
 document.getElementById('profile-color-2-represents-one').checked = !!ex.profileColor2RepresentsOne;
 vaRRI.clearSubsequenceHighlights();
 vaRRI.clearPointMutations();
+vaRRI.clearRegionHighlights();
 
 const exampleHighlights = Array.isArray(ex.subsequenceHighlights)
     ? ex.subsequenceHighlights
@@ -89,6 +93,21 @@ if (exampleHighlights.length > 0) {
         sequence: highlight.sequence,
         range: highlight.range,
         color: highlight.color,
+    }, sequenceContext);
+    });
+}
+
+const exampleRegionHighlights = Array.isArray(ex.regionHighlights)
+    ? ex.regionHighlights
+    : [];
+if (exampleRegionHighlights.length > 0) {
+    const sequenceContext = getHighlightSequenceContext();
+    exampleRegionHighlights.forEach(region => {
+    vaRRI.registerRegionHighlight({
+        sequence1Range: region.sequence1Range,
+        sequence2Range: region.sequence2Range,
+        color: region.color,
+        generated: region.generated,
     }, sequenceContext);
     });
 }
@@ -108,9 +127,12 @@ if (exampleMutations.length > 0) {
     });
 }
 
+
 renderHighlightList();
+renderRegionList();
 renderMutationList();
 resetHighlightForm();
+resetRegionForm();
 resetMutationForm();
 runVisualization();
 }
@@ -150,6 +172,7 @@ document.getElementById('mutationColor').value = getDefaultMutationColor();
 document.getElementById('color-intermol').value = cssColorToHex(c.intermolecularHighlight);
 document.getElementById('color-bg').value       = cssColorToHex(c.backgroundHighlight);
 document.getElementById('highlightColor').value = getDefaultSubsequenceHighlightColor();
+document.getElementById('regionColor').value = getDefaultRegionHighlightColor();
 document.getElementById('color-basepair').value = cssColorToHex(c.basepair);
 }
 
@@ -188,12 +211,19 @@ let autoVisualizationTimeoutId = null;
 let latestVisualizationRunId = 0;
 const skipNextCommittedFieldChange = new WeakMap();
 let defaultSubsequenceHighlightColor = null;
+let defaultRegionHighlightColor = null;
 let defaultMutationColor = null;
 
 function getDefaultSubsequenceHighlightColor() {
 if (defaultSubsequenceHighlightColor !== null) return defaultSubsequenceHighlightColor;
 defaultSubsequenceHighlightColor = cssColorToHex(vaRRI.getColors().subsequenceHighlight);
 return defaultSubsequenceHighlightColor;
+}
+
+function getDefaultRegionHighlightColor() {
+if (defaultRegionHighlightColor !== null) return defaultRegionHighlightColor;
+defaultRegionHighlightColor = cssColorToHex(vaRRI.getColors().backgroundHighlight);
+return defaultRegionHighlightColor;
 }
 
 function getDefaultMutationColor() {
@@ -224,10 +254,13 @@ document.getElementById('profile-idx-ref-2').value = '1';
 document.getElementById('startIndex1').value = '1';
 document.getElementById('startIndex2').value = '1';
 vaRRI.clearSubsequenceHighlights();
+vaRRI.clearRegionHighlights();
 vaRRI.clearPointMutations();
 renderHighlightList();
+renderRegionList();
 renderMutationList();
 resetHighlightForm();
+resetRegionForm();
 resetMutationForm();
 const container = document.getElementById('rna_ss');
 container.innerHTML = '';
@@ -368,6 +401,12 @@ return {
                                 position: mutation.position,
                                 replacement: mutation.replacement,
                                 color: mutation.color,
+                                })),
+    regionHighlights:       vaRRI.getRegionHighlights().map(highlight => ({
+                                sequence1Range: highlight.sequence1Range,
+                                sequence2Range: highlight.sequence2Range,
+                                color: highlight.color,
+                                generated: highlight.generated,
                                 })),
 };
 }
@@ -521,6 +560,7 @@ function validateStartIndexCompatibility(args) {
 const argsWithoutAnnotations = {
     ...args,
     subsequenceHighlights: [],
+    regionHighlights: [],
     pointMutations: [],
 };
 
@@ -555,6 +595,26 @@ for (const highlight of highlights) {
         focusField: 'highlightRange',
         startField: highlight.sequence === '1' ? 'startIndex1' : 'startIndex2',
     };
+    }
+}
+
+const regions = vaRRI.getRegionHighlights();
+for (const region of regions) {
+    try {
+        vaRRI.createRegionHighlight({
+            sequence1Range: region.sequence1Range,
+            sequence2Range: region.sequence2Range,
+            color: region.color,
+            generated: region.generated,
+        }, sequenceContext);
+    } catch (err) {
+        const message = err && err.message ? err.message : String(err);
+        return {
+            ok: false,
+            message: `Start index ${region.sequence1Range[0]} is incompatible with region highlight "${region.rangeText}": ${message}`,
+            focusField: 'regionSequence1Start',
+            startField: 'startIndex1',
+        };
     }
 }
 
@@ -657,6 +717,28 @@ clearFieldError('highlightSequence');
 clearFieldError('highlightRange');
 clearFieldError('highlightColor');
 document.querySelectorAll('.highlight-item.active').forEach(el => el.classList.remove('active'));
+}
+
+function normalizeRegionInput(value) {
+    if (value === null || value === undefined) return '';
+    const normalized = String(value).replace(/\s+/g, '');
+    if (normalized === '') return '';
+    if (!/^(-?\d+)-(-?\d+)$/.test(normalized)) {
+        throw new Error('Region must use the format START-END.');
+    }
+    return normalized;
+}
+
+function resetRegionForm() {
+document.getElementById('regionEditId').value = '';
+document.getElementById('region1').value = '';
+document.getElementById('region2').value = '';
+document.getElementById('regionColor').value = getDefaultRegionHighlightColor();
+document.getElementById('regionSubmitBtn').textContent = 'Add';
+clearFieldError('region1');
+clearFieldError('region2');
+clearFieldError('regionColor');
+document.querySelectorAll('.region-item.active').forEach(el => el.classList.remove('active'));
 }
 
 function renderHighlightList() {
@@ -769,6 +851,151 @@ try {
 // Reset first so the form is cleared even if later UI updates fail.
 resetHighlightForm();
 renderHighlightList();
+runVisualization();
+}
+
+function renderRegionList() {
+const listEl = document.getElementById('region-list');
+const regions = vaRRI.getRegionHighlights();
+
+if (regions.length === 0) {
+    listEl.innerHTML = '<li class="highlight-empty">No region highlights defined.</li>';
+    updateListCounter('region-list', 'region-counter');
+    return;
+}
+
+listEl.innerHTML = '';
+regions.forEach(region => {
+    const item = document.createElement('li');
+    item.className = 'highlight-item region-item';
+    item.dataset.regionId = String(region.id);
+    if (region.generated) item.classList.add('generated');
+
+    const info = document.createElement('button');
+    info.type = 'button';
+    info.className = 'highlight-item-main';
+    info.textContent = region.rangeText;
+    info.style.borderLeft = `10px solid ${region.color}`;
+    if (region.generated) {
+        info.disabled = true;
+        info.title = 'Generated region highlight';
+    }
+
+    if (!region.generated) {
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'highlight-delete';
+        removeBtn.setAttribute('aria-label', `Remove region highlight ${region.id}`);
+        removeBtn.textContent = '🗑️';
+        removeBtn.title = 'Remove region highlight';
+
+        info.addEventListener('click', () => {
+            document.querySelectorAll('.region-item.active').forEach(el => el.classList.remove('active'));
+            item.classList.add('active');
+            document.getElementById('regionEditId').value = String(region.id);
+            document.getElementById('region1').value = `${region.sequence1Range[0]}-${region.sequence1Range[1]}`;
+            document.getElementById('region2').value = `${region.sequence2Range[0]}-${region.sequence2Range[1]}`;
+            document.getElementById('regionColor').value = cssColorToHex(region.color);
+            document.getElementById('regionSubmitBtn').textContent = 'Update';
+            clearFieldError('region1');
+            clearFieldError('region2');
+            clearFieldError('regionColor');
+        });
+
+        removeBtn.addEventListener('click', () => {
+            const removed = vaRRI.removeRegionHighlight(region.id);
+            if (!removed) return;
+            if (document.getElementById('regionEditId').value === String(region.id)) {
+                resetRegionForm();
+            }
+            renderRegionList();
+            runVisualization();
+        });
+
+        item.appendChild(info);
+        item.appendChild(removeBtn);
+    } else {
+        item.appendChild(info);
+    }
+
+    listEl.appendChild(item);
+});
+
+updateListCounter('region-list', 'region-counter');
+}
+
+function submitRegionForm(event) {
+if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+}
+
+clearFieldError('region1');
+clearFieldError('region2');
+clearFieldError('regionColor');
+
+const region1Input = document.getElementById('region1').value;
+const region2Input = document.getElementById('region2').value;
+const color = document.getElementById('regionColor').value;
+const editIdRaw = document.getElementById('regionEditId').value;
+
+let region1Value;
+let region2Value;
+try {
+    region1Value = normalizeRegionInput(region1Input);
+    region2Value = normalizeRegionInput(region2Input);
+} catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    if (region1Input.trim() && /format/.test(message)) {
+        setFieldError('region1', message);
+    } else if (region2Input.trim() && /format/.test(message)) {
+        setFieldError('region2', message);
+    } else {
+        if (!region1Value && region1Input.trim() === '') setFieldError('region1', 'Region 1 is required.');
+        if (!region2Value && region2Input.trim() === '') setFieldError('region2', 'Region 2 is required.');
+    }
+    return;
+}
+
+if (!region1Value || !region2Value) {
+    if (!region1Value) setFieldError('region1', 'Region 1 is required.');
+    if (!region2Value) setFieldError('region2', 'Region 2 is required.');
+    return;
+}
+
+let sequenceContext;
+try {
+    sequenceContext = getHighlightSequenceContext();
+} catch (err) {
+    showMsg('Please fix sequence/structure inputs first: ' + err.message, 'error');
+    return;
+}
+
+try {
+    if (editIdRaw) {
+        vaRRI.updateRegionHighlight(Number(editIdRaw), {
+            sequence1Range: region1Value,
+            sequence2Range: region2Value,
+            color,
+        }, sequenceContext);
+    } else {
+        vaRRI.registerRegionHighlight({
+            sequence1Range: region1Value,
+            sequence2Range: region2Value,
+            color,
+        }, sequenceContext);
+    }
+} catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    if (/color/i.test(message)) setFieldError('regionColor', message);
+    else if (/region 1|sequence 1/i.test(message)) setFieldError('region1', message);
+    else if (/region 2|sequence 2/i.test(message)) setFieldError('region2', message);
+    else setFieldError('region1', message);
+    return;
+}
+
+resetRegionForm();
+renderRegionList();
 runVisualization();
 }
 
@@ -990,6 +1217,9 @@ const args = {
     })),
 };
 
+syncGeneratedRegionHighlight();
+renderRegionList();
+
 if (!validateFields(args)) return;
 
 let v;
@@ -1023,10 +1253,12 @@ try {
     const renderState = await vaRRI.render(currentContainerId, v, { animation, accessData, accessColors, accessColorMode });
     if (runId !== latestVisualizationRunId || renderState?.cancelled) return;
     container.style.visibility = '';
+    renderRegionList();
     showMsg('Visualisation ready. Use the export buttons to save.', 'success');
 } catch (err) {
     if (runId !== latestVisualizationRunId) return;
     container.style.visibility = '';
+    renderRegionList();
     showMsg('Render error: ' + err.message, 'error');
 }
 }
@@ -1194,13 +1426,18 @@ function generateShareableURL(btnElement) {
 
   // 1. Blacklist: IDs von Elementen, die NIEMALS in die URL sollen
   const blacklist = new Set([
-    'highlightEditId',
-    'mutationEditId',
+    // region highlight input/update form fields
+    'regionEditId',
+    'region1',
+    'region2',
+    'regionColor',
     // sequence highlight input/update form fields
+    'highlightEditId',
     'highlightSequence',
     'highlightRange',
     'highlightColor',
     // mutation input/update form fields
+    'mutationEditId',
     'mutationSequence',
     'mutationPosition',
     'mutationBase',
@@ -1282,6 +1519,27 @@ function generateShareableURL(btnElement) {
 
     if (encodedHighlights) {
       params.append('highlights', encodedHighlights);
+    }
+  }
+
+  // 5. Region highlights aus vaRRI auslesen (Encoding: "<start1>-<end1>&<start2>-<end2>[:<color>]")
+  const regionHighlights = (typeof vaRRI !== 'undefined' && vaRRI.getRegionHighlights) ? vaRRI.getRegionHighlights() : [];
+  if (regionHighlights && regionHighlights.length > 0) {
+    const encodedRegionHighlights = regionHighlights
+      .filter(h => !h.generated)
+      .map(h => {
+        const colorClean = h.color ? h.color.replace('#', '') : '';
+        const rangeText = typeof h.rangeText === 'string' && h.rangeText && h.rangeText !== 'undefined'
+          ? h.rangeText
+          : `${Array.isArray(h.sequence1Range) ? h.sequence1Range.join('-') : ''}&${Array.isArray(h.sequence2Range) ? h.sequence2Range.join('-') : ''}`;
+
+        return `${rangeText}${colorClean ? ':' + colorClean : ''}`;
+      })
+      .filter(Boolean)
+      .join(',');
+
+    if (encodedRegionHighlights) {
+      params.append('regionHighlights', encodedRegionHighlights);
     }
   }
 
@@ -1399,6 +1657,38 @@ function loadUrlSubsequenceHighlightsToVaRRI(argName = 'highlights') {
 }
 
 /**
+ * Checks whether region highlights are present in the URL parameters and loads them into vaRRI.
+ * Expected encoding: "<start1>-<end1>&<start2>-<end2>[:<color>]", comma-separated.
+ */
+function loadUrlRegionHighlightsToVaRRI(argName = 'regionHighlights') {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has(argName)) {
+    const value = urlParams.get(argName) || '';
+    const regionHighlights = value.split(',').map(h => h.trim()).filter(h => h.length > 0);
+
+    regionHighlights.forEach(region => {
+      const match = region.match(/^(-?\d+)-(-?\d+)&(-?\d+)-(-?\d+)(?::([0-9a-fA-F]{3,8}))?$/i);
+      if (match) {
+        const sequence1Range = [parseInt(match[1], 10), parseInt(match[2], 10)];
+        const sequence2Range = [parseInt(match[3], 10), parseInt(match[4], 10)];
+        const color = parseUrlColor(match[5], getDefaultRegionHighlightColor());
+
+        try {
+          vaRRI.registerRegionHighlight(
+            { sequence1Range, sequence2Range, color },
+            getHighlightSequenceContext()
+          );
+        } catch (err) {
+          console.warn(`Failed to register region highlight from URL parameter: ${region}. Error: ${err.message}`);
+        }
+      } else {
+        console.warn(`Invalid region highlight format in URL parameter: ${region}`);
+      }
+    });
+  }
+}
+
+/**
  * Helper to populate any DOM element from a URL parameter by ID.
  * Handles text inputs, textareas, checkboxes, select dropdowns, and color inputs.
  */
@@ -1437,6 +1727,68 @@ function loadUrlArgumentToInputField(argName, inputFieldId = argName) {
 /**
  * Master initialization function to execute on page load.
  */
+function syncGeneratedRegionHighlight() {
+  const bgMode = document.getElementById('backgroundhighlighting')?.value;
+  if (bgMode !== 'region') {
+    vaRRI.getRegionHighlights().filter(highlight => highlight.generated).forEach(highlight => {
+      vaRRI.removeRegionHighlight(highlight.id);
+    });
+    return;
+  }
+
+  let sequenceContext;
+  try {
+    sequenceContext = getHighlightSequenceContext();
+  } catch (err) {
+    return;
+  }
+
+  let validated;
+  try {
+    validated = vaRRI.validate({
+      ...getBaseVisualizationArgs(),
+      subsequenceHighlights: [],
+      regionHighlights: [],
+      pointMutations: [],
+    });
+  } catch (err) {
+    return;
+  }
+
+  const ranges = vaRRI.computeBackgroundRegionRanges(validated);
+  if (!ranges) {
+    vaRRI.getRegionHighlights().filter(highlight => highlight.generated).forEach(highlight => {
+      vaRRI.removeRegionHighlight(highlight.id);
+    });
+    return;
+  }
+
+  const payload = {
+    sequence1Range: ranges.sequence1Range,
+    sequence2Range: ranges.sequence2Range,
+    color: document.getElementById('color-bg')?.value || getDefaultRegionHighlightColor(),
+  };
+
+  const existing = vaRRI.getRegionHighlights().find(highlight => highlight.generated);
+  if (existing) {
+    vaRRI.updateRegionHighlight(existing.id, {
+      ...payload,
+      generated: true,
+    }, sequenceContext);
+  } else {
+    vaRRI.registerGeneratedRegionHighlight({
+      offset1: validated.offset1,
+      offset2: validated.offset2,
+      sequence1: validated.sequence1,
+      sequence2: validated.sequence2,
+    }, {
+      ...payload,
+      generated: true,
+    });
+  }
+}
+
+
 function loadAllUrlParameters() {
   const urlParams = new URLSearchParams(window.location.search);
   let hasProfileData = false;
@@ -1458,9 +1810,10 @@ function loadAllUrlParameters() {
     }
   });
 
-  // 2. Load vaRRI point mutations & subsequence highlights
+  // 2. Load vaRRI point mutations, subsequence highlights, and region highlights
   loadUrlMutationsToVaRRI('mutations');
   loadUrlSubsequenceHighlightsToVaRRI('highlights');
+  loadUrlRegionHighlightsToVaRRI('regionHighlights');
 
   // 3. Auto-apply probability profiles if profile data was populated
   if (hasProfileData) {
@@ -1496,11 +1849,15 @@ renderMutationList();
 
 const submitBtn = document.getElementById('highlightSubmitBtn');
 const cancelBtn = document.getElementById('highlightCancelBtn');
+const regionSubmitBtn = document.getElementById('regionSubmitBtn');
+const regionCancelBtn = document.getElementById('regionCancelBtn');
 const mutationSubmitBtn = document.getElementById('mutationSubmitBtn');
 const mutationCancelBtn = document.getElementById('mutationCancelBtn');
 const profileApplyBtn = document.getElementById('profileApplyBtn');
 if (submitBtn) submitBtn.addEventListener('click', submitHighlightForm);
 if (cancelBtn) cancelBtn.addEventListener('click', resetHighlightForm);
+if (regionSubmitBtn) regionSubmitBtn.addEventListener('click', submitRegionForm);
+if (regionCancelBtn) regionCancelBtn.addEventListener('click', resetRegionForm);
 if (mutationSubmitBtn) mutationSubmitBtn.addEventListener('click', submitMutationForm);
 if (mutationCancelBtn) mutationCancelBtn.addEventListener('click', resetMutationForm);
 if (profileApplyBtn) profileApplyBtn.addEventListener('click', () => runVisualization());
@@ -1539,8 +1896,10 @@ if (urlParams.has('sequence')) {
 
     // trigger page rendering with the loaded URL parameters
     renderHighlightList();
+    renderRegionList();
     renderMutationList();
     resetHighlightForm();
+    resetRegionForm();
     resetMutationForm();
     runVisualization();
 } else {
