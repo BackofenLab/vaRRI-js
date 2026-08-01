@@ -9,6 +9,7 @@ const EXAMPLES = {
     coloring: 'strand', highlighting: 'region',
     backgroundhighlighting: 'basepairs', guBasepairs: true,
     cropping: '2',
+    animation: false,
     regionHighlights: [
     { sequence1Range: '13-14', sequence2Range: '120-121', color: '#0d00ff', generated: false },
     ],
@@ -70,6 +71,7 @@ document.getElementById('cropping').value          = ex.cropping;
 document.getElementById('startIndex1').value       = ex.startIndex1;
 document.getElementById('startIndex2').value       = ex.startIndex2;
 document.getElementById('coloring').value          = ex.coloring;
+document.getElementById('animation').checked       = !!ex.animation;
 document.getElementById('highlighting').value      = ex.highlighting;
 document.getElementById('backgroundhighlighting').value = ex.backgroundhighlighting;
 document.getElementById('guBasepairs').checked     = ex.guBasepairs;
@@ -265,10 +267,21 @@ resetMutationForm();
 const container = document.getElementById('rna_ss');
 container.innerHTML = '';
 container.style.visibility = '';
-resetRotationControl();
 resetCroppingControl();
+resetRotationControl();
+resetForceLayoutControl();
 clearMsg();
 clearAllFieldErrors();
+}
+
+function resetForceLayoutControl() {
+// disable the checkboxes for force-layout options when resetting the form
+const animationCheckbox = document.getElementById('animation');
+if (animationCheckbox) animationCheckbox.checked = false;
+const freeTrailingEndsCheckbox = document.getElementById('free-trailing-ends');
+if (freeTrailingEndsCheckbox) freeTrailingEndsCheckbox.checked = false;
+const pullPseudoknotBasepairsCheckbox = document.getElementById('pull-pseudoknot-basepairs');
+if (pullPseudoknotBasepairsCheckbox) pullPseudoknotBasepairsCheckbox.checked = false;
 }
 
 function resetRotationControl() {
