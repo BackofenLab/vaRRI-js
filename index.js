@@ -1246,11 +1246,20 @@ container.style.visibility = 'hidden';
 resetRotationControl();
 
 const animation = document.getElementById('animation').checked;
+const freeTrailingEnds = animation && !!document.getElementById('free-trailing-ends')?.checked;
+const pullPseudoknotBasepairs = animation && !!document.getElementById('pull-pseudoknot-basepairs')?.checked;
 const accessColors = getProfileAccessibilityColors();
 const accessColorMode = getProfileAccessibilityMode();
 
 try {
-    const renderState = await vaRRI.render(currentContainerId, v, { animation, accessData, accessColors, accessColorMode });
+  const renderState = await vaRRI.render(currentContainerId, v, {
+  animation,
+  freeTrailingEnds,
+  pullPseudoknotBasepairs,
+  accessData,
+  accessColors,
+  accessColorMode,
+  });
     if (runId !== latestVisualizationRunId || renderState?.cancelled) return;
     container.style.visibility = '';
     renderRegionList();
@@ -1280,6 +1289,22 @@ autoVisualizationTimeoutId = setTimeout(() => {
 }, delay);
 }
 
+function syncAnimationDependentControls() {
+const animationCheckbox = document.getElementById('animation');
+if (!animationCheckbox) return;
+
+const enabled = !!animationCheckbox.checked;
+
+[
+    document.getElementById('free-trailing-ends'),
+    document.getElementById('pull-pseudoknot-basepairs'),
+].forEach(checkbox => {
+    if (!checkbox) return;
+    checkbox.disabled = !enabled;
+    if (!enabled) checkbox.checked = false;
+});
+}
+
 function attachAutoVisualizationListeners() {
 const committedFieldIds = [
     'structure',
@@ -1297,6 +1322,8 @@ const listenerConfig = {
     backgroundhighlighting: { eventName: 'change' },
     guBasepairs: { eventName: 'change' },
     animation: { eventName: 'change' },
+    'free-trailing-ends': { eventName: 'change' },
+    'pull-pseudoknot-basepairs': { eventName: 'change' },
     'profile-color-1': { eventName: 'change' },
     'profile-color-2': { eventName: 'change' },
     'profile-color-1-represents-one': { eventName: 'change' },
@@ -1341,6 +1368,7 @@ Object.entries(listenerConfig).forEach(([id, config]) => {
     if (!el) return;
 
     el.addEventListener(config.eventName, () => {
+    if (id === 'animation') syncAnimationDependentControls();
     clearFieldError(id);
     queueVisualization();
     });
@@ -1861,6 +1889,8 @@ if (regionCancelBtn) regionCancelBtn.addEventListener('click', resetRegionForm);
 if (mutationSubmitBtn) mutationSubmitBtn.addEventListener('click', submitMutationForm);
 if (mutationCancelBtn) mutationCancelBtn.addEventListener('click', resetMutationForm);
 if (profileApplyBtn) profileApplyBtn.addEventListener('click', () => runVisualization());
+
+syncAnimationDependentControls();
 
 attachAutoVisualizationListeners();
 
