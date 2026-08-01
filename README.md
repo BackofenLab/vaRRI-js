@@ -23,7 +23,7 @@ Visualise and annotate RNA–RNA interactions directly in the browser — no ser
    - [Sequence and Structure Input Fields](#sequence-and-structure-input-fields)
    - [Example Input](#example-input)
    - [Visualisation Settings](#visualisation-settings)
-  - [Region Highlights](#region-highlights)
+   - [Region Highlights](#region-highlights)
    - [Subsequence Highlights](#subsequence-highlights)
    - [Probability Profiles](#probability-profiles)
    - [Point Mutations](#point-mutations)
