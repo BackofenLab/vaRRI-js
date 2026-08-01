@@ -275,13 +275,13 @@ clearAllFieldErrors();
 }
 
 function resetForceLayoutControl() {
-// disable the checkboxes for force-layout options when resetting the form
-const animationCheckbox = document.getElementById('animation');
-if (animationCheckbox) animationCheckbox.checked = false;
-const freeTrailingEndsCheckbox = document.getElementById('free-trailing-ends');
-if (freeTrailingEndsCheckbox) freeTrailingEndsCheckbox.checked = false;
-const pullPseudoknotBasepairsCheckbox = document.getElementById('pull-pseudoknot-basepairs');
-if (pullPseudoknotBasepairsCheckbox) pullPseudoknotBasepairsCheckbox.checked = false;
+    const animationCheckbox = document.getElementById('animation');
+    if (animationCheckbox) animationCheckbox.checked = true;
+    // disable the checkboxes for additional force-layout options when resetting the form
+    const freeTrailingEndsCheckbox = document.getElementById('free-trailing-ends');
+    if (freeTrailingEndsCheckbox) freeTrailingEndsCheckbox.checked = false;
+    const pullPseudoknotBasepairsCheckbox = document.getElementById('pull-pseudoknot-basepairs');
+    if (pullPseudoknotBasepairsCheckbox) pullPseudoknotBasepairsCheckbox.checked = false;
 }
 
 function resetRotationControl() {
