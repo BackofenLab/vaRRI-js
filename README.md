@@ -72,6 +72,8 @@ applies all of vaRRI's annotations and tweaks.
 
 To showcase the capabilities of vaRRI-js, we provide a collection of [examples from the literature that have been reproduced using vaRRI-js](examples.html).
 
+Click the following image to view the examples page, which contains the gallery.
+
 [![vaRRI-js example visualization](doc/example-page-screenshot.png)](examples.html)
 
 ---
