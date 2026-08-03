@@ -1729,38 +1729,33 @@ function loadUrlRegionHighlightsToVaRRI(argName = 'regionHighlights') {
   }
 }
 
-/**
- * Helper to populate any DOM element from a URL parameter by ID.
- * Handles text inputs, textareas, checkboxes, select dropdowns, and color inputs.
- */
-function loadUrlArgumentToInputField(argName, inputFieldId = argName) {
-  const urlParams = new URLSearchParams(window.location.search);
-  if (!urlParams.has(argName)) return false;
 
-  const value = urlParams.get(argName);
+
+// Helper to populate any DOM element from a URL parameter by ID.
+// Handles text inputs, textareas, checkboxes, select dropdowns, and color inputs.
+function loadUrlArgumentToInputField(argName, value, inputFieldId = argName) {
   const el = document.getElementById(inputFieldId);
 
   if (!el) {
-    console.warn(`URL param found for '${argName}', but no DOM element with ID '${inputFieldId}' exists.`);
     return false;
   }
 
-  // 1. Handle Checkboxes
+  // 1. Checkboxen
   if (el.type === 'checkbox') {
     el.checked = (value === 'on' || value === 'true' || value === '1');
   } 
-  // 2. Handle Color Pickers (Ensure leading #)
+  // 2. Color Pickers (MUSS immer ein valides Hex-Format #RRGGBB haben!)
   else if (el.type === 'color') {
     el.value = parseUrlColor(value, el.value);
   } 
-  // 3. Handle Textarea, Select, Text, Number
+  // 3. Textarea, Select, Text, Number
   else {
     el.value = value;
   }
 
-  // Dispatch events so UI listeners update
-  el.dispatchEvent(new Event('input', { bubbles: true }));
-  el.dispatchEvent(new Event('change', { bubbles: true }));
+  // Leichtes Event auslösen, damit UI-Previews (z.B. Farb-Anzeigen) sich aktualisieren.
+  // Durch das spätere Deaktivieren der Auto-Visualisierung beim Laden wird hier KEIN Re-Render ausgelöst.
+  el.dispatchEvent(new Event('input', { bubbles: false }));
 
   return true;
 }
@@ -1829,123 +1824,111 @@ function syncGeneratedRegionHighlight() {
   }
 }
 
-
 function loadAllUrlParameters() {
   const urlParams = new URLSearchParams(window.location.search);
   let hasProfileData = false;
 
-  // 0. Check for "showRenderingOnly" parameter to hide UI elements
+  // 0. Render-Only Flag
   if (urlParams.has('showRenderingOnly') && urlParams.get('showRenderingOnly') !== 'false') {
     document.body.classList.add('rendering-only');
   }
 
-  // 1. Hydrate ALL matching DOM elements from URL parameters
-  urlParams.forEach((_, paramKey) => {
-    // Exclude special dynamic list keys and rendering flags handled separately
-    if (paramKey === 'mutations' || paramKey === 'highlights' || paramKey === 'showRenderingOnly') return;
+  // 1. Alle Standard-DOM-Elemente befüllen
+  urlParams.forEach((value, paramKey) => {
+    // Spezial-Parameter überspringen, da diese separat geladen werden
+    if (paramKey === 'mutations' || paramKey === 'highlights' || paramKey === 'regionHighlights' || paramKey === 'showRenderingOnly') return;
 
-    const loaded = loadUrlArgumentToInputField(paramKey, paramKey);
+    const loaded = loadUrlArgumentToInputField(paramKey, value, paramKey);
 
     if (loaded && (paramKey.startsWith('profile-data') || paramKey.startsWith('profile-color') || paramKey.startsWith('profile-idx'))) {
       hasProfileData = true;
     }
   });
 
-  // 2. Load vaRRI point mutations, subsequence highlights, and region highlights
+  // 2. Spezifische vaRRI Objekte laden
   loadUrlMutationsToVaRRI('mutations');
   loadUrlSubsequenceHighlightsToVaRRI('highlights');
   loadUrlRegionHighlightsToVaRRI('regionHighlights');
 
-  // 3. Auto-apply probability profiles if profile data was populated
+  // 3. Profil-Accordion öffnen, falls Daten vorhanden sind
   if (hasProfileData) {
-    // Open the probability profile details accordion so it's visible
     const profileDetails = document.getElementById('profile-data-1')?.closest('details');
     if (profileDetails) {
       profileDetails.open = true;
     }
-
-    // Trigger profile application after a micro-task tick
-    setTimeout(() => {
-      const profileBtn = document.getElementById('profileApplyBtn');
-      if (profileBtn) {
-        profileBtn.click();
-      }
-    }, 50);
   }
 }
 
-// -------------------------------------------------------------------------
-// -------------------------------------------------------------------------
-// Auto-load 2-molecule example on page load
-// -------------------------------------------------------------------------
 window.addEventListener('load', () => {
-// reset
-clearAll();
-// Initialise colour pickers from the vaRRI.js defaults
-initColorPickers();
-resetHighlightForm();
-resetMutationForm();
-renderHighlightList();
-renderMutationList();
+  // 1. Zustand & Formulare zurücksetzen
+  clearAll();
+  initColorPickers();
+  resetHighlightForm();
+  resetMutationForm();
+  renderHighlightList();
+  renderMutationList();
 
-const submitBtn = document.getElementById('highlightSubmitBtn');
-const cancelBtn = document.getElementById('highlightCancelBtn');
-const regionSubmitBtn = document.getElementById('regionSubmitBtn');
-const regionCancelBtn = document.getElementById('regionCancelBtn');
-const mutationSubmitBtn = document.getElementById('mutationSubmitBtn');
-const mutationCancelBtn = document.getElementById('mutationCancelBtn');
-const profileApplyBtn = document.getElementById('profileApplyBtn');
-if (submitBtn) submitBtn.addEventListener('click', submitHighlightForm);
-if (cancelBtn) cancelBtn.addEventListener('click', resetHighlightForm);
-if (regionSubmitBtn) regionSubmitBtn.addEventListener('click', submitRegionForm);
-if (regionCancelBtn) regionCancelBtn.addEventListener('click', resetRegionForm);
-if (mutationSubmitBtn) mutationSubmitBtn.addEventListener('click', submitMutationForm);
-if (mutationCancelBtn) mutationCancelBtn.addEventListener('click', resetMutationForm);
-if (profileApplyBtn) profileApplyBtn.addEventListener('click', () => runVisualization());
+  // 2. Event-Listener für Buttons registrieren (ABER NOCH NICHT die Auto-Visualization Listener!)
+  const submitBtn = document.getElementById('highlightSubmitBtn');
+  const cancelBtn = document.getElementById('highlightCancelBtn');
+  const regionSubmitBtn = document.getElementById('regionSubmitBtn');
+  const regionCancelBtn = document.getElementById('regionCancelBtn');
+  const mutationSubmitBtn = document.getElementById('mutationSubmitBtn');
+  const mutationCancelBtn = document.getElementById('mutationCancelBtn');
+  const profileApplyBtn = document.getElementById('profileApplyBtn');
 
-syncAnimationDependentControls();
+  if (submitBtn) submitBtn.addEventListener('click', submitHighlightForm);
+  if (cancelBtn) cancelBtn.addEventListener('click', resetHighlightForm);
+  if (regionSubmitBtn) regionSubmitBtn.addEventListener('click', submitRegionForm);
+  if (regionCancelBtn) regionCancelBtn.addEventListener('click', resetRegionForm);
+  if (mutationSubmitBtn) mutationSubmitBtn.addEventListener('click', submitMutationForm);
+  if (mutationCancelBtn) mutationCancelBtn.addEventListener('click', resetMutationForm);
+  if (profileApplyBtn) profileApplyBtn.addEventListener('click', () => runVisualization());
 
-attachAutoVisualizationListeners();
-
-setupFileDragAndDrop('profile-data-1');
-setupFileDragAndDrop('profile-data-2');
+  // 3. Drag & Drop und Textarea-Counter vorbereiten
+  setupFileDragAndDrop('profile-data-1');
+  setupFileDragAndDrop('profile-data-2');
 
 const rotationSlider = document.getElementById('rotation-slider');
 if (rotationSlider) {
     rotationSlider.addEventListener('input', applySliderRotation);
     rotationSlider.addEventListener('change', commitSliderRotation);
 }
+  const profileInputIds = ['profile-data-1', 'profile-data-2'];
+  profileInputIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => updateInputCounter(profileInputIds, 'profile-counter'));
+      el.addEventListener('change', () => updateInputCounter(profileInputIds, 'profile-counter'));
+    }
+  });
 
-// register input event listeners for profile data textareas to update the counter in the UI
-const profileInputIds = ['profile-data-1', 'profile-data-2'];
-profileInputIds.forEach(id => {
-  const el = document.getElementById(id);
-  if (el) {
-    el.addEventListener('input', () => {
-      updateInputCounter(profileInputIds, 'profile-counter');
-    });
-    el.addEventListener('change', () => {
-      updateInputCounter(profileInputIds, 'profile-counter');
-    });
-  }
-});
+  // 4. URL Parameter laden (Vorm Registrieren der Auto-Render-Listener!)
+  const urlParams = new URLSearchParams(window.location.search);
 
-// load URL parameters if present, otherwise load the 2-molecule example
-const urlParams = new URLSearchParams(window.location.search);
-// at least a sequence has to be present in the URL parameters for the visualization to be loaded
-if (urlParams.has('sequence')) {
-    // load all URL parameters into the form fields and vaRRI state
+  if (urlParams.has('sequence')) {
+    // Parameter laden & Felder befüllen (Löst KEINE Visualisierung aus)
     loadAllUrlParameters();
 
-    // trigger page rendering with the loaded URL parameters
+    // Listen & UI-Zähler aktualisieren
     renderHighlightList();
     renderRegionList();
     renderMutationList();
     resetHighlightForm();
     resetRegionForm();
     resetMutationForm();
+    updateInputCounter(profileInputIds, 'profile-counter');
+
+    syncAnimationDependentControls();
+
+    // EINMALIGE Visualisierung ausführen
     runVisualization();
-} else {
+  } else {
     loadExample('2mol');
-}
+  }
+
+  // 5. ERST JETZT die Auto-Visualisierungs-Listener aktivieren!
+  // Dadurch reagiert die App ab jetzt auf spätere Nutzereingaben, 
+  // rechnet aber beim Starten über die URL nicht 50 Mal unnötig.
+  attachAutoVisualizationListeners();
 });
