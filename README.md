@@ -16,9 +16,10 @@ Visualise and annotate RNA–RNA interactions directly in the browser — no ser
 ## Table of Contents
 
 1. [Overview](#overview-and-objective)
-2. [Project Structure](#project-structure)
-3. [Quick Start](#quick-start)
-4. [Input Website](#input-website)
+2. [Examples from Literature](#examples-from-literature-reproduced-with-varri-js)
+3. [Project Structure](#project-structure)
+4. [Quick Start](#quick-start)
+5. [Input Website](#input-website)
    - [Usage](#usage)
    - [Sequence and Structure Input Fields](#sequence-and-structure-input-fields)
    - [Example Input](#example-input)
@@ -29,14 +30,14 @@ Visualise and annotate RNA–RNA interactions directly in the browser — no ser
    - [Point Mutations](#point-mutations)
    - [Additional Features](#additional-features)
    - [Export](#export)
-5. [URL Parameters & Sharing](#url-parameters--sharing)
+6. [URL Parameters & Sharing](#url-parameters--sharing)
    - [Key Parameters](#key-parameters)
-6. [Embedding / Web Integration](#-embedding--web-integration)
+7. [Embedding / Web Integration](#-embedding--web-integration)
    - [Query Parameter](#query-parameter)
    - [HTML Example](#html-example)
-7. [Input Format Reference](#input-format-reference)
-8. [JavaScript Library API](#javascript-library-api)
-9. [License](#license)
+8. [Input Format Reference](#input-format-reference)
+9. [JavaScript Library API](#javascript-library-api)
+10. [License](#license)
 
 ---
 
