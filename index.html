@@ -13,6 +13,30 @@
 
   <!-- vaRRI-js library -->
   <script src="src/vaRRI.js"></script>
+  <!-- Loading-Weiche für die JS-Bibliothek -->
+  <script>
+    (function() {
+      // Prüfen, ob die Seite lokal ausgeführt wird:
+      // - file: -> Doppelklick auf die HTML-Datei
+      // - localhost / 127.0.0.1 -> Lokaler Dev-Server
+      const isLocal = window.location.protocol === 'file:' || 
+                      window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+
+      // Pfad entsprechend wählen
+      const src = isLocal ? 'src/vaRRI.js' : 'dist/vaRRI.min.js';
+
+      // Skript-Tag dynamisch erzeugen und einbinden
+      const script = document.createElement('script');
+      script.src = src;
+      
+      // Optional: Falls deine Lib moderne ES6-Module verwendet:
+      // script.type = 'module';
+
+      document.head.appendChild(script);
+    })();
+  </script>
+
   <!-- vaRRI-js UI -->
   <script src="index.js" defer></script>
 </head>
