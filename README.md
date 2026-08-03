@@ -68,6 +68,12 @@ applies all of vaRRI's annotations and tweaks.
 [![vaRRI-js example visualization](doc/vaRRI-UI-example.png)](https://backofenlab.github.io/vaRRI-js/)
 
 
+## Examples from Literature reproduced with vaRRI-js
+
+To showcase the capabilities of vaRRI-js, we provide a collection of [examples from the literature that have been reproduced using vaRRI-js](examples.html).
+
+[![vaRRI-js example visualization](doc/example-page-screenshot.png)](examples.html)
+
 ---
 
 ## Project Structure
@@ -169,12 +175,6 @@ You can also use the respective button to load or unload the example input.
 |---|---|
 | **RNA-RNA interaction** | An RNA-RNA interaction demonstrating all features of vaRRI-js. |
 | **X Clear** | Clears all input fields and resets the visualisation. |
-
-Here some example reproductions of figures from the literature:
-
-- *Superfolder GFP reporters validate diverse new mRNA targets of the classic porin regulator, MicF RNA*  (Corcoran et al., 2012) - [DOI](https://doi.org/10.1111/j.1365-2958.2012.08031.x)
-  - original figure: [Figure 4A](https://onlinelibrary.wiley.com/doi/10.1111/j.1365-2958.2012.08031.x#f4)
-  - reproduction: [vaRRI-js rendering](https://backofenlab.github.io/vaRRI-js/?sequence=AUUCAGGGGUAAAAAGUGA%26UCUGUUUACCCCUAUUU&structure=....%28%28%28%28%28%28%28%28%28......%26....%29%29%29%29%29%29%29%29%29....&startIndex1=-15&startIndex2=47)  
 
 
 ### Visualisation Settings
@@ -467,7 +467,7 @@ Accepted characters (case-insensitive):
 | `N` | Any nucleotide |
 
 > [!TIP] 
-> Using upper- and lower-case letters is supported and can be used to encode and annote certain regions of the sequence, e.g. to distinguish between coding and non-coding regions, or to highlight certain motifs.
+> Using *upper- and lower-case letters* is supported and can be used to encode and annote certain regions of the sequence, e.g. to distinguish between coding and non-coding regions, or to highlight certain motifs.
 
 
 ### Start Index
