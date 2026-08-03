@@ -20,21 +20,8 @@ Visualise and annotate RNA–RNA interactions directly in the browser — no ser
 3. [Project Structure](#project-structure)
 4. [Quick Start](#quick-start)
 5. [Input Website](#input-website)
-   - [Usage](#usage)
-   - [Sequence and Structure Input Fields](#sequence-and-structure-input-fields)
-   - [Example Input](#example-input)
-   - [Visualisation Settings](#visualisation-settings)
-   - [Region Highlights](#region-highlights)
-   - [Subsequence Highlights](#subsequence-highlights)
-   - [Probability Profiles](#probability-profiles)
-   - [Point Mutations](#point-mutations)
-   - [Additional Features](#additional-features)
-   - [Export](#export)
 6. [URL Parameters & Sharing](#url-parameters--sharing)
-   - [Key Parameters](#key-parameters)
 7. [Embedding / Web Integration](#-embedding--web-integration)
-   - [Query Parameter](#query-parameter)
-   - [HTML Example](#html-example)
 8. [Input Format Reference](#input-format-reference)
 9. [JavaScript Library API](#javascript-library-api)
 10. [License](#license)
@@ -46,11 +33,12 @@ Visualise and annotate RNA–RNA interactions directly in the browser — no ser
 vaRRI-js is a pure JavaScript library to visualize the base pairing of
 RNA-RNA interactions (RRIs) as 2D diagrams with additional annotation like 
 
-- coloring by sequence or loop type,
-- highlighting of the RRI region,
-- subsequence highlightings, 
-- point mutation information or 
-- probability profile representations.
+> [!NOTE]
+> - coloring by sequence or loop type,
+> - highlighting of the RRI region,
+> - subsequence highlightings, 
+> - point mutation information or 
+> - probability profile representations.
 
 It is intended to be used in web applications, but can also be used in local HTML files without any server or build step.
 
@@ -68,6 +56,8 @@ applies all of vaRRI's annotations and tweaks.
 
 [![vaRRI-js example visualization](doc/vaRRI-UI-example.png)](https://backofenlab.github.io/vaRRI-js/)
 
+
+---
 
 ## Examples from Literature reproduced with vaRRI-js
 
@@ -150,6 +140,20 @@ npm test
 ---
 
 ## Input Website
+
+### Table of Content
+
+- [Usage](#usage)
+- [Sequence and Structure Input Fields](#sequence-and-structure-input-fields)
+- [Example Input](#example-input)
+- [Visualisation Settings](#visualisation-settings)
+- [Region Highlights](#region-highlights)
+- [Subsequence Highlights](#subsequence-highlights)
+- [Probability Profiles](#probability-profiles)
+- [Point Mutations](#point-mutations)
+- [Additional Features](#additional-features)
+- [Export](#export)
+
 
 ### Usage
 
@@ -403,6 +407,14 @@ Valid embedding links can be generated using the "🔗 Share Link" button in the
 > * If you are viewing [this page on **GitHub Pages**](https://backofenlab.github.io/vaRRI-js/README.html), the live widget will render directly below.
 
 ## Input Format Reference
+
+### Table of Contents
+
+- [Dot-Bracket Notation](#dot-bracket-notation)
+- [Two-Molecule Input](#two-molecule-input)
+- [IUPAC Sequence Characters](#iupac-sequence-characters)
+- [Start Index](#start-index)
+
 
 ### Dot-Bracket Notation
 
