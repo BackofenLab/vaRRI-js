@@ -76,22 +76,25 @@ applies all of vaRRI's annotations and tweaks.
 vaRRI-js/
 │
 ├── fornac/
-│   ├── fornac.js       # Fornac library (vaRRI dependency)
-│   ├── fornac.css      # Fornac styles
-│   └── d3.js           # D3.js (fornac dependency)
+│   ├── fornac.js        # Fornac library (vaRRI dependency)
+│   ├── fornac.css       # Fornac styles
+│   └── d3.js            # D3.js (fornac dependency)
 │
 ├── src/
-│   ├── vaRRI.js        # JavaScript library (vaRRI API)
-│   └── README.md       # JavaScript library documentation
+│   ├── vaRRI.js         # JavaScript library (vaRRI API)
+│   └── README.md        # JavaScript library documentation
+├── dist/
+│   ├── vaRRI.min.js     # Minified JavaScript library (vaRRI API for production)
+│   └── vaRRI.min.js.map # Source map for the minified JavaScript library
 ├── tests/
-│   └── vaRRI.test.js   # Jest unit tests for the vaRRI library
+│   └── vaRRI.test.js    # Jest unit tests for the vaRRI library
 │
-├── index.html          # Input website (vaRRI graphical user interface)
-├── style.css           # Input website styles
-├── index.js            # Input website JavaScript (GUI logic)
+├── index.html           # Input website (vaRRI graphical user interface)
+├── style.css            # Input website styles
+├── index.js             # Input website JavaScript (GUI logic)
 │
-├── README.md           # Documentation (this file)
-└── README.html         # Documentation in HTML format (generated from README.md)
+├── README.md            # Documentation (this file)
+└── README.html          # Documentation in HTML format (generated from README.md)
 ```
 
 ---
@@ -120,7 +123,8 @@ To use the library in your own HTML page, include the dependencies in the follow
 <link rel="stylesheet" href="fornac/fornac.css" />
 <script src="fornac/d3.js"></script>
 <script src="fornac/fornac.js"></script>
-<script src="src/vaRRI.js"></script>
+<script src="dist/vaRRI.min.js"></script> 
+<!-- or use the unminified version for development: src/vaRRI.js -->
 ```
 
 
@@ -478,8 +482,8 @@ position-based annotations, including highlightings, point mutations, and probab
 
 ## JavaScript Library API
 
-Include `src/vaRRI.js` after the Fornac dependencies.  The library exposes a
-single global object `vaRRI` with the a set of respective functions.
+Include `dist/vaRRI.min.js` (or `src/vaRRI.js`) after the Fornac dependencies.  
+The library exposes a single global object `vaRRI` with the a set of respective functions.
 
 The `src` directory provides a [detailed vaRRI-js Library API documentation](src/README.md)
 
