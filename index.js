@@ -34,11 +34,13 @@ const DEFAULT_VALUES = {
   'highlightSequence': '1',
   'highlightRange': '',
   get 'highlightColor'() { return getDefaultSubsequenceHighlightColor(); },
+  'highlightAlpha': '0.3',
   // region highlighting
   'regionEditId': '',
   'region1': '',
   'region2': '',
   get 'regionColor'() { return getDefaultRegionHighlightColor(); },
+  'regionAlpha': '0.2',
   // point mutations
   'mutationEditId': '',
   'mutationSequence': '1',
@@ -56,11 +58,13 @@ const UI_ONLY_FIELDS = [
     'region1',
     'region2',
     'regionColor',
+    'regionAlpha',
     // sequence highlight input/update form fields
     'highlightEditId',
     'highlightSequence',
     'highlightRange',
     'highlightColor',
+    'highlightAlpha',
     // mutation input/update form fields
     'mutationEditId',
     'mutationSequence',
@@ -235,6 +239,20 @@ function cssColorToHex(css) {
   return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
+/**
+ * Convert any CSS colour string (named, hex, rgb, etc.) to a
+ * @param {string} css  Any valid CSS colour value.
+ * @returns {string}    Lowercase hex colour, e.g. "#ff0000".
+ */
+function cssColorToRGB(css, alpha=1) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 1;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = css;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+  return `rgb(${r},${g},${b},${alpha})`;
+}
 
 function getProfileAccessibilityColors() {
   const defaults = vaRRI.getColors();
@@ -477,18 +495,10 @@ function getBaseVisualizationArgs() {
     highlighting: document.getElementById('highlighting').value,
     backgroundhighlighting: document.getElementById('backgroundhighlighting').value,
     guBasepairs: document.getElementById('guBasepairs').checked,
-    pointMutations: vaRRI.getPointMutations().map(mutation => ({
-      sequence: mutation.sequence,
-      position: mutation.position,
-      replacement: mutation.replacement,
-      color: mutation.color,
-    })),
-    regionHighlights: vaRRI.getRegionHighlights().map(highlight => ({
-      sequence1Range: highlight.sequence1Range,
-      sequence2Range: highlight.sequence2Range,
-      color: highlight.color,
-      generated: highlight.generated,
-    })),
+    // clone lists
+    subsequenceHighlights: vaRRI.getSubsequenceHighlights(),
+    regionHighlights: vaRRI.getRegionHighlights(),
+    pointMutations: vaRRI.getPointMutations(),
   };
 }
 
@@ -680,7 +690,7 @@ function validateStartIndexCompatibility(args) {
     try {
       vaRRI.createSubsequenceHighlight({
         sequence: highlight.sequence,
-        range: highlight.ranges,
+        range: highlight.range,
         color: highlight.color,
       }, sequenceContext);
     } catch (err) {
@@ -819,13 +829,14 @@ function resetRegionForm() {
     'regionEditId',
     'region1',
     'region2',
-    'regionColor'
+    'regionColor',
+    'regionAlpha'
   ]);
   const submitBtn = document.getElementById('regionSubmitBtn');
   if (submitBtn) submitBtn.textContent = 'Add';
   document.querySelectorAll('.region-item.active').forEach(el => el.classList.remove('active'));
   // update counter in UI section
-  updateListCounter('region-list', 'region-counter', 0);
+  updateListCounter('region-list', 'region-counter');
 }
 
 function resetHighlightForm() {
@@ -833,13 +844,14 @@ function resetHighlightForm() {
     'highlightEditId',
     'highlightSequence',
     'highlightRange',
-    'highlightColor'
+    'highlightColor',
+    'highlightAlpha'
   ]);
   const submitBtn = document.getElementById('highlightSubmitBtn');
   if (submitBtn) submitBtn.textContent = 'Add';
   document.querySelectorAll('.highlight-item.active').forEach(el => el.classList.remove('active'));
   // update counter in UI section
-  updateListCounter('highlight-list', 'highlight-counter', 0);
+  updateListCounter('highlight-list', 'highlight-counter');
 }
 
 function renderHighlightList() {
@@ -863,7 +875,7 @@ function renderHighlightList() {
     info.type = 'button';
     info.className = 'highlight-item-main';
     info.textContent = `Seq ${highlight.sequence} : ${highlight.rangeText}`;
-    info.style.borderLeft = `10px solid ${highlight.color}`;
+    info.style.borderLeft = `10px solid ${cssColorToRGB(highlight.color,highlight.alpha)}`;
 
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
@@ -879,6 +891,7 @@ function renderHighlightList() {
       document.getElementById('highlightSequence').value = highlight.sequence;
       document.getElementById('highlightRange').value = highlight.rangeText;
       document.getElementById('highlightColor').value = cssColorToHex(highlight.color);
+      document.getElementById('highlightAlpha').value = highlight.alpha.toFixed(1);
       document.getElementById('highlightSubmitBtn').textContent = 'Update';
       clearFieldError('highlightSequence');
       clearFieldError('highlightRange');
@@ -912,10 +925,12 @@ function submitHighlightForm(event) {
   clearFieldError('highlightSequence');
   clearFieldError('highlightRange');
   clearFieldError('highlightColor');
+  clearFieldError('highlightAlpha');
 
   const sequence = document.getElementById('highlightSequence').value;
   const range = document.getElementById('highlightRange').value.trim();
   const color = document.getElementById('highlightColor').value;
+  const alpha = document.getElementById('highlightAlpha').value.trim();
   const editIdRaw = document.getElementById('highlightEditId').value;
 
   if (!range) {
@@ -933,9 +948,9 @@ function submitHighlightForm(event) {
 
   try {
     if (editIdRaw) {
-      vaRRI.updateSubsequenceHighlight(Number(editIdRaw), { sequence, range, color }, sequenceContext);
+      vaRRI.updateSubsequenceHighlight(Number(editIdRaw), { sequence, range, color, alpha }, sequenceContext);
     } else {
-      vaRRI.registerSubsequenceHighlight({ sequence, range, color }, sequenceContext);
+      vaRRI.registerSubsequenceHighlight({ sequence, range, color, alpha }, sequenceContext);
     }
   } catch (err) {
     const message = err && err.message ? err.message : String(err);
@@ -978,7 +993,7 @@ function renderRegionList() {
     info.type = 'button';
     info.className = 'highlight-item-main';
     info.textContent = region.rangeText;
-    info.style.borderLeft = `10px solid ${region.color}`;
+    info.style.borderLeft = `10px solid ${cssColorToRGB(region.color,region.alpha)}`;
     if (region.generated) {
       info.disabled = true;
       info.title = 'Generated region highlight';
@@ -999,6 +1014,7 @@ function renderRegionList() {
         document.getElementById('region1').value = `${region.sequence1Range[0]}-${region.sequence1Range[1]}`;
         document.getElementById('region2').value = `${region.sequence2Range[0]}-${region.sequence2Range[1]}`;
         document.getElementById('regionColor').value = cssColorToHex(region.color);
+        document.getElementById('regionAlpha').value = region.alpha.toFixed(1);
         document.getElementById('regionSubmitBtn').textContent = 'Update';
         clearFieldError('region1');
         clearFieldError('region2');
@@ -1036,10 +1052,12 @@ function submitRegionForm(event) {
   clearFieldError('region1');
   clearFieldError('region2');
   clearFieldError('regionColor');
+  clearFieldError('regionAlpha');
 
   const region1Input = document.getElementById('region1').value;
   const region2Input = document.getElementById('region2').value;
   const color = document.getElementById('regionColor').value;
+  const alpha = Number.parseFloat(document.getElementById('regionAlpha').value.trim());
   const editIdRaw = document.getElementById('regionEditId').value;
 
   let region1Value;
@@ -1080,12 +1098,14 @@ function submitRegionForm(event) {
         sequence1Range: region1Value,
         sequence2Range: region2Value,
         color,
+        alpha,
       }, sequenceContext);
     } else {
       vaRRI.registerRegionHighlight({
         sequence1Range: region1Value,
         sequence2Range: region2Value,
         color,
+        alpha,
       }, sequenceContext);
     }
   } catch (err) {
@@ -1114,7 +1134,7 @@ function resetMutationForm() {
   if (submitBtn) submitBtn.textContent = 'Add';
   document.querySelectorAll('.mutation-item.active').forEach(el => el.classList.remove('active'));
   // update counter in UI section
-  updateListCounter('mutation-list', 'mutation-counter', 0);
+  updateListCounter('mutation-list', 'mutation-counter');
 }
 
 function renderMutationList() {
@@ -1315,14 +1335,7 @@ async function runVisualization() {
   clearMsg();
   applyColors();
 
-  const args = {
-    ...getBaseVisualizationArgs(),
-    subsequenceHighlights: vaRRI.getSubsequenceHighlights().map(highlight => ({
-      sequence: highlight.sequence,
-      range: highlight.ranges,
-      color: highlight.color,
-    })),
-  };
+  const args = getBaseVisualizationArgs();
 
   syncGeneratedRegionHighlight();
   renderRegionList();
@@ -1576,9 +1589,7 @@ function generateShareableURL(btnElement) {
 
     // Behandlung von Checkboxen und Radio-Buttons
     if (el.type === 'checkbox' || el.type === 'radio') {
-      if (el.checked) {
-        params.append(id, el.value || 'true');
-      }
+      params.append(id, el.checked ? '1' : '0');
       return;
     }
 
@@ -1608,24 +1619,27 @@ function generateShareableURL(btnElement) {
     const encodedHighlights = highlights
       .map(h => {
         const colorClean = h.color ? h.color.replace('#', '') : '';
+        const alphaString = (h.alpha !== undefined && h.alpha !== null) ? ':' + h.alpha : '';
+        // combine color and alpha into a single string if both are present
+        const colorString = colorClean !== '' ? ':' + colorClean + alphaString : '';
         const sequence = h.sequence || '1';
 
         // 1. Prefer explicit rangeText if available (e.g., "18-20")
         if (typeof h.rangeText === 'string' && h.rangeText && h.rangeText !== 'undefined') {
-          return `${sequence}:${h.rangeText}${colorClean ? ':' + colorClean : ''}`;
+          return `${sequence}:${h.rangeText}${colorString}`;
         }
 
         // 2. Fall back to nested ranges array (e.g., [[18, 20]])
-        if (Array.isArray(h.ranges) && h.ranges.length > 0) {
-          return h.ranges.map(r => {
+        if (Array.isArray(h.range) && h.range.length > 0) {
+          return h.range.map(r => {
             const rangeStr = Array.isArray(r) ? `${r[0]}-${r[1]}` : r;
-            return `${sequence}:${rangeStr}${colorClean ? ':' + colorClean : ''}`;
+            return `${sequence}:${rangeStr}${colorString}`;
           }).join(',');
         }
 
         // 3. Fall back to single range property
         if (typeof h.range === 'string' && h.range !== 'undefined') {
-          return `${sequence}:${h.range}${colorClean ? ':' + colorClean : ''}`;
+          return `${sequence}:${h.range}${colorString}`;
         }
 
         return null;
@@ -1645,11 +1659,14 @@ function generateShareableURL(btnElement) {
       .filter(h => !h.generated)
       .map(h => {
         const colorClean = h.color ? h.color.replace('#', '') : '';
+        const alphaString = (h.alpha !== undefined && h.alpha !== null) ? ':' + h.alpha : '';
+        // combine color and alpha into a single string if both are present
+        const colorString = colorClean !== '' ? ':' + colorClean + alphaString : '';
         const rangeText = typeof h.rangeText === 'string' && h.rangeText && h.rangeText !== 'undefined'
           ? h.rangeText
           : `${Array.isArray(h.sequence1Range) ? h.sequence1Range.join('-') : ''}&${Array.isArray(h.sequence2Range) ? h.sequence2Range.join('-') : ''}`;
 
-        return `${rangeText}${colorClean ? ':' + colorClean : ''}`;
+        return `${rangeText}${colorString}`;
       })
       .filter(Boolean)
       .join(',');
@@ -1750,16 +1767,17 @@ function loadUrlSubsequenceHighlightsToVaRRI(argName = 'highlights') {
     const highlights = value.split(',').map(h => h.trim()).filter(h => h.length > 0);
 
     highlights.forEach(highlight => {
-      const match = highlight.match(/^([12]):(-?\d+)-(-?\d+)(?::([0-9a-fA-F]{3,8}))?$/i);
+      const match = highlight.match(/^([12]):(-?\d+)-(-?\d+)(?::([0-9a-fA-F]{3,8})(:([01](.\d+)?))?)?$/i);
       if (match) {
         const sequence = match[1];
         const start = parseInt(match[2], 10);
         const end = parseInt(match[3], 10);
         const color = parseUrlColor(match[4], getDefaultSubsequenceHighlightColor());
+        const alpha = match[6] !== undefined ? parseFloat(match[6]) : DEFAULT_VALUES.highlightAlpha;
 
         try {
           vaRRI.registerSubsequenceHighlight(
-            { sequence, range: `${start}-${end}`, color },
+            { sequence, range: `${start}-${end}`, color, alpha },
             getHighlightSequenceContext()
           );
         } catch (err) {
@@ -1783,15 +1801,16 @@ function loadUrlRegionHighlightsToVaRRI(argName = 'regionHighlights') {
     const regionHighlights = value.split(',').map(h => h.trim()).filter(h => h.length > 0);
 
     regionHighlights.forEach(region => {
-      const match = region.match(/^(-?\d+)-(-?\d+)&(-?\d+)-(-?\d+)(?::([0-9a-fA-F]{3,8}))?$/i);
+      const match = region.match(/^(-?\d+)-(-?\d+)&(-?\d+)-(-?\d+)(?::([0-9a-fA-F]{3,8})(:([01](.\d+)?))?)?$/i);
       if (match) {
         const sequence1Range = [parseInt(match[1], 10), parseInt(match[2], 10)];
         const sequence2Range = [parseInt(match[3], 10), parseInt(match[4], 10)];
         const color = parseUrlColor(match[5], getDefaultRegionHighlightColor());
+        const alpha = match[7] !== undefined ? parseFloat(match[7]) : DEFAULT_VALUES.regionAlpha;
 
         try {
           vaRRI.registerRegionHighlight(
-            { sequence1Range, sequence2Range, color },
+            { sequence1Range, sequence2Range, color, alpha },
             getHighlightSequenceContext()
           );
         } catch (err) {
@@ -1978,7 +1997,7 @@ window.addEventListener('load', () => {
   // 4. URL Parameter laden (Vorm Registrieren der Auto-Render-Listener!)
   const urlParams = new URLSearchParams(window.location.search);
 
-  if (urlParams.has('sequence')) {
+  if (urlParams.size > 0) {
     // Parameter laden & Felder befüllen (Löst KEINE Visualisierung aus)
     loadAllUrlParameters();
 
@@ -1989,7 +2008,6 @@ window.addEventListener('load', () => {
     resetHighlightForm();
     resetRegionForm();
     resetMutationForm();
-    resetProfileForm();
     updateInputCounter(profileInputIds, 'profile-counter');
 
     syncAnimationDependentControls();

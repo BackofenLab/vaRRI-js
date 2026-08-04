@@ -78,8 +78,9 @@
         return {
             id: highlight.id,
             sequence: highlight.sequence,
-            ranges: highlight.ranges.map(([start, end]) => [start, end]),
+            range: highlight.range.map(([start, end]) => [start, end]),
             color: highlight.color,
+            alpha: highlight.alpha,
             rangeText: highlight.rangeText,
         };
     }
@@ -103,26 +104,26 @@
      *
      * @param {string|Array<[number, number]>} rangeInput
      * @param {{offset:number, length:number}=} context
-     * @returns {{ranges:Array<[number, number]>, rangeText:string}}
+     * @returns {{range:Array<[number, number]>, rangeText:string}}
      */
     function normaliseHighlightRanges(rangeInput, context) {
         if (typeof rangeInput === 'string') {
-            const ranges = parseSubsequences(
+            const range = parseSubsequences(
                 rangeInput,
                 context ? context.offset : undefined,
                 context ? context.length : undefined
             );
-            if (!ranges || ranges.length === 0) {
+            if (!range || range.length === 0) {
                 throw new Error('Highlight range must not be empty.');
             }
-            return { ranges, rangeText: rangeInput.trim() };
+            return { range, rangeText: rangeInput.trim() };
         }
 
         if (!Array.isArray(rangeInput) || rangeInput.length === 0) {
             throw new Error('Highlight range must not be empty.');
         }
 
-        const ranges = rangeInput.map((pair, idx) => {
+        const range = rangeInput.map((pair, idx) => {
             if (!Array.isArray(pair) || pair.length !== 2) {
                 throw new Error(`Invalid subsequence range ${pair} at index ${idx}. Expected [start, end].`);
             }
@@ -142,44 +143,46 @@
 
         if (context) {
             parseSubsequences(
-                ranges.map(([start, end]) => `${start}-${end}`).join(','),
+                range.map(([start, end]) => `${start}-${end}`).join(','),
                 context.offset,
                 context.length
             );
         }
 
         return {
-            ranges,
-            rangeText: ranges.map(([start, end]) => `${start}-${end}`).join(','),
+            range,
+            rangeText: range.map(([start, end]) => `${start}-${end}`).join(','),
         };
     }
 
     /**
      * Build a normalized subsequence-highlight object from user input.
      *
-     * @param {{sequence:string|number, range:string|Array<[number, number]>, color?:string, id?:number}} input
+     * @param {{sequence:string|number, range:string|Array<[number, number]>, color?:string, alpha?:number, id?:number}} input
      * @param {{'1'?:{offset:number, length:number}, '2'?:{offset:number, length:number}}=} sequenceContext
-     * @returns {{id:number, sequence:'1'|'2', ranges:Array<[number, number]>, color:string, rangeText:string}}
+     * @returns {{id:number, sequence:'1'|'2', range:Array<[number, number]>, color:string, rangeText:string}}
      */
     function createSubsequenceHighlight(input, sequenceContext = {}) {
         const sequence = normaliseHighlightSequence(input.sequence);
         const context = sequenceContext[sequence];
-        const normalizedRanges = normaliseHighlightRanges(input.range, context);
+        const normalizedRange = normaliseHighlightRanges(input.range, context);
         const color = (input.color || '').trim() || COLORS.subsequenceHighlight;
+        const alpha = input.alpha !== undefined ? Number(input.alpha) : 0.3;
 
         return {
             id: Number.isInteger(input.id) ? input.id : 0,
             sequence,
-            ranges: normalizedRanges.ranges,
+            range: normalizedRange.range,
             color,
-            rangeText: normalizedRanges.rangeText,
+            alpha,
+            rangeText: normalizedRange.rangeText,
         };
     }
 
     /**
      * Register a new subsequence highlight object.
      *
-     * @param {{sequence:string|number, range:string|Array<[number, number]>, color?:string}} input
+     * @param {{sequence:string|number, range:string|Array<[number, number]>, color?:string, alpha?:number}} input
      * @param {{'1'?:{offset:number, length:number}, '2'?:{offset:number, length:number}}=} sequenceContext
      * @returns {Object}
      */
@@ -207,13 +210,15 @@
         const normalized = createSubsequenceHighlight({
             id,
             sequence: patch.sequence !== undefined ? patch.sequence : target.sequence,
-            range: patch.range !== undefined ? patch.range : target.ranges,
+            range: patch.range !== undefined ? patch.range : target.range,
             color: patch.color !== undefined ? patch.color : target.color,
+            alpha: patch.alpha !== undefined ? patch.alpha : target.alpha,
         }, sequenceContext);
 
         target.sequence = normalized.sequence;
-        target.ranges = normalized.ranges;
+        target.range = normalized.range;
         target.color = normalized.color;
+        target.alpha = normalized.alpha;
         target.rangeText = normalized.rangeText;
 
         return cloneSubsequenceHighlight(target);
@@ -261,6 +266,7 @@
             sequence1Range: [highlight.sequence1Range[0], highlight.sequence1Range[1]],
             sequence2Range: [highlight.sequence2Range[0], highlight.sequence2Range[1]],
             color: highlight.color,
+            alpha: highlight.alpha,
             rangeText: highlight.rangeText,
             generated: !!highlight.generated,
         };
@@ -320,7 +326,7 @@
     /**
      * Build a normalized region-highlight object from user input.
      *
-     * @param {{sequence1Range:string|[number, number], sequence2Range:string|[number, number], color?:string, generated?:boolean, id?:number}} input
+     * @param {{sequence1Range:string|[number, number], sequence2Range:string|[number, number], color?:string, alpha?:number, generated?:boolean, id?:number}} input
      * @param {{'1'?:{offset:number, length:number}, '2'?:{offset:number, length:number}}=} sequenceContext
      * @returns {{id:number, sequence1Range:[number, number], sequence2Range:[number, number], color:string, rangeText:string, generated:boolean}}
      */
@@ -330,12 +336,14 @@
         const seq1Range = normaliseRegionRange(input.sequence1Range, context1);
         const seq2Range = normaliseRegionRange(input.sequence2Range, context2);
         const color = (input.color || '').trim() || COLORS.backgroundHighlight;
+        const alpha = input.alpha !== undefined ? Number(input.alpha) : 0.2;
 
         return {
             id: Number.isInteger(input.id) ? input.id : 0,
             sequence1Range: seq1Range.range,
             sequence2Range: seq2Range.range,
             color,
+            alpha,
             rangeText: `${seq1Range.rangeText}&${seq2Range.rangeText}`,
             generated: !!input.generated,
         };
@@ -344,7 +352,7 @@
     /**
      * Register a new region highlight object.
      *
-     * @param {{sequence1Range:string|[number, number], sequence2Range:string|[number, number], color?:string, generated?:boolean}} input
+     * @param {{sequence1Range:string|[number, number], sequence2Range:string|[number, number], color?:string, alpha?:number, generated?:boolean}} input
      * @param {{'1'?:{offset:number, length:number}, '2'?:{offset:number, length:number}}=} sequenceContext
      * @returns {Object}
      */
@@ -374,12 +382,14 @@
             sequence1Range: patch.sequence1Range !== undefined ? patch.sequence1Range : target.sequence1Range,
             sequence2Range: patch.sequence2Range !== undefined ? patch.sequence2Range : target.sequence2Range,
             color: patch.color !== undefined ? patch.color : target.color,
+            alpha: patch.alpha !== undefined ? patch.alpha : target.alpha,
             generated: patch.generated !== undefined ? patch.generated : target.generated,
         }, sequenceContext);
 
         target.sequence1Range = normalized.sequence1Range;
         target.sequence2Range = normalized.sequence2Range;
         target.color = normalized.color;
+        target.alpha = normalized.alpha;
         target.rangeText = normalized.rangeText;
         target.generated = normalized.generated;
 
@@ -1778,10 +1788,11 @@
      *
      * @param {Object} v  Validated parameter dictionary.
      * @param {"1"|"2"} seq  Which sequence to highlight.
-     * @param {Array<[number, number]>} ranges  Parsed index ranges.
+     * @param {Array<[number, number]>} range  Parsed index range.
      * @param {string} color  Highlight color.
+     * @param {number} Highlight opacity.
      */
-    function highlightSubsequence(v, seq, ranges, color) {
+    function highlightSubsequence(v, seq, range, color, alpha) {
         const highlightDiameter = 14;
         const keyOffset = `offset${seq}`;
 
@@ -1795,7 +1806,7 @@
 
         const shift = seq === '2' ? v.sequence1.length + GAP : 0;
 
-        for (const [start, end] of (ranges || [])) {
+        for (const [start, end] of (range || [])) {
             const startIndex = v[keyOffset];
 
             if (start === end) {
@@ -1805,7 +1816,7 @@
                     cx: String(x),
                     cy: String(y),
                     r: `${Math.ceil(highlightDiameter/2)}px`,
-                    style: `fill:${color};opacity:0.3;`,
+                    style: `fill:${color};opacity:${alpha};`,
                     'data-varri-subseq': 'true',
                 });
                 continue;
@@ -1823,7 +1834,7 @@
             for (let i = startNode; i <= endNode; i++) indices.push(i);
 
             polyline(indices,
-                `stroke:${color};stroke-width:14;opacity:0.3;fill:None;` +
+                `stroke:${color};stroke-width:14;opacity:${alpha};fill:None;` +
                 'stroke-linejoin:round;stroke-linecap:round',
                 { 'data-varri-subseq': 'true' }
             );
@@ -1843,7 +1854,7 @@
      * Register a generated region highlight from sequence ranges.
      *
      * @param {Object} v
-     * @param {{sequence1Range:[number, number], sequence2Range:[number, number], color?:string}} spec
+     * @param {{sequence1Range:[number, number], sequence2Range:[number, number], color?:string, alpha?:number}} spec
      * @returns {Object}
      */
     function registerGeneratedRegionHighlight(v, spec) {
@@ -1856,6 +1867,7 @@
             sequence1Range: spec.sequence1Range,
             sequence2Range: spec.sequence2Range,
             color: spec.color || COLORS.backgroundHighlight,
+            alpha: spec.alpha,
             generated: true,
         }, sequenceContext);
     }
@@ -1943,7 +1955,7 @@
             if (nodePath.length >= 3) {
                 polygon(
                     nodePath,
-                    `fill:${highlight.color || COLORS.backgroundHighlight};opacity:0.2;stroke:${highlight.color || COLORS.backgroundHighlight};stroke-width:7`,
+                    `fill:${highlight.color || COLORS.backgroundHighlight};opacity:${highlight.alpha};stroke:${highlight.color || COLORS.backgroundHighlight};stroke-width:7`,
                     { 'data-varri-region': 'true' }
                 );
             }
@@ -1961,8 +1973,9 @@
             highlightSubsequence(
                 v,
                 highlight.sequence,
-                highlight.ranges,
-                highlight.color || COLORS.subsequenceHighlight
+                highlight.range,
+                highlight.color || COLORS.subsequenceHighlight,
+                highlight.alpha
             );
         });
     }

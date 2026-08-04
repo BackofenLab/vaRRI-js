@@ -491,14 +491,14 @@ a.btn:active {
 
 .highlightInput {
   display: grid;
-  grid-template-columns: minmax(0, 0.5fr) minmax(0, 2fr) minmax(0, 0.2fr);
+  grid-template-columns: minmax(0, 0.5fr) minmax(0, 2fr) 1.5em 4em;
   gap: .45rem;
   align-items: end;
 }
 
 .regionInput {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 1.5em;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 1.5em 4em;
   gap: .45rem;
   align-items: start;
 }
