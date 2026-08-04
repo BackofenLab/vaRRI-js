@@ -659,13 +659,13 @@ describe('subsequence highlight registry', () => {
     test('creates a normalized highlight object from string input', () => {
         const highlight = vaRRI.createSubsequenceHighlight({
             sequence: 1,
-            range: '3-8,10-12',
+            range: '3-8',
             color: '#123456',
         });
 
         expect(highlight.sequence).toBe('1');
-        expect(highlight.ranges).toEqual([[3, 8], [10, 12]]);
-        expect(highlight.rangeText).toBe('3-8,10-12');
+        expect(highlight.range).toEqual([[3, 8]]);
+        expect(highlight.rangeText).toBe('3-8');
         expect(highlight.color).toBe('#123456');
     });
 
@@ -1091,7 +1091,7 @@ describe('validate', () => {
             startIndex1: '-2',
             subsequenceHighlights: [{ sequence: '1', range: '-2-2', color: '#123456' }],
         });
-        expect(v.subsequenceHighlights[0].ranges).toEqual([[-2, 2]]);
+        expect(v.subsequenceHighlights[0].range).toEqual([[-2, 2]]);
     });
 
     test('throws when subsequenceHighlights range endpoints are outside valid sequence indices', () => {

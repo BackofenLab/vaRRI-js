@@ -227,7 +227,7 @@ function loadExample(key) {
  * @param {string} css  Any valid CSS colour value.
  * @returns {string}    Lowercase hex colour, e.g. "#ff0000".
  */
-function cssColorToHex(css, alpha=1) {
+function cssColorToHex(css) {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 1;
   const ctx = canvas.getContext('2d');
