@@ -667,6 +667,7 @@ describe('subsequence highlight registry', () => {
         expect(highlight.range).toEqual([[3, 8]]);
         expect(highlight.rangeText).toBe('3-8');
         expect(highlight.color).toBe('#123456');
+        expect(highlight.alpha).toBe(0.3);  // should be default alpha value
     });
 
     test('registers, updates and removes highlights by id', () => {
@@ -718,6 +719,7 @@ describe('region highlight registry', () => {
         expect(highlight.sequence2Range).toEqual([10, 12]);
         expect(highlight.rangeText).toBe('3-8&10-12');
         expect(highlight.color).toBe('#123456');
+        expect(highlight.alpha).toBe(0.2);  // should be default alpha value
         expect(highlight.generated).toBe(true);
     });
 

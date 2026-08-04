@@ -40,6 +40,7 @@ const DEFAULT_VALUES = {
   'region1': '',
   'region2': '',
   get 'regionColor'() { return getDefaultRegionHighlightColor(); },
+  'regionAlpha': '0.2',
   // point mutations
   'mutationEditId': '',
   'mutationSequence': '1',
@@ -57,6 +58,7 @@ const UI_ONLY_FIELDS = [
     'region1',
     'region2',
     'regionColor',
+    'regionAlpha',
     // sequence highlight input/update form fields
     'highlightEditId',
     'highlightSequence',
@@ -827,7 +829,8 @@ function resetRegionForm() {
     'regionEditId',
     'region1',
     'region2',
-    'regionColor'
+    'regionColor',
+    'regionAlpha'
   ]);
   const submitBtn = document.getElementById('regionSubmitBtn');
   if (submitBtn) submitBtn.textContent = 'Add';
@@ -888,7 +891,7 @@ function renderHighlightList() {
       document.getElementById('highlightSequence').value = highlight.sequence;
       document.getElementById('highlightRange').value = highlight.rangeText;
       document.getElementById('highlightColor').value = cssColorToHex(highlight.color);
-      document.getElementById('highlightAlpha').value = highlight.alpha !== undefined ? String(highlight.alpha) : '';
+      document.getElementById('highlightAlpha').value = highlight.alpha.toFixed(1);
       document.getElementById('highlightSubmitBtn').textContent = 'Update';
       clearFieldError('highlightSequence');
       clearFieldError('highlightRange');
@@ -990,7 +993,7 @@ function renderRegionList() {
     info.type = 'button';
     info.className = 'highlight-item-main';
     info.textContent = region.rangeText;
-    info.style.borderLeft = `10px solid ${region.color}`;
+    info.style.borderLeft = `10px solid ${cssColorToRGB(region.color,region.alpha)}`;
     if (region.generated) {
       info.disabled = true;
       info.title = 'Generated region highlight';
@@ -1011,6 +1014,7 @@ function renderRegionList() {
         document.getElementById('region1').value = `${region.sequence1Range[0]}-${region.sequence1Range[1]}`;
         document.getElementById('region2').value = `${region.sequence2Range[0]}-${region.sequence2Range[1]}`;
         document.getElementById('regionColor').value = cssColorToHex(region.color);
+        document.getElementById('regionAlpha').value = region.alpha.toFixed(1);
         document.getElementById('regionSubmitBtn').textContent = 'Update';
         clearFieldError('region1');
         clearFieldError('region2');
@@ -1048,10 +1052,12 @@ function submitRegionForm(event) {
   clearFieldError('region1');
   clearFieldError('region2');
   clearFieldError('regionColor');
+  clearFieldError('regionAlpha');
 
   const region1Input = document.getElementById('region1').value;
   const region2Input = document.getElementById('region2').value;
   const color = document.getElementById('regionColor').value;
+  const alpha = Number.parseFloat(document.getElementById('regionAlpha').value.trim());
   const editIdRaw = document.getElementById('regionEditId').value;
 
   let region1Value;
@@ -1092,12 +1098,14 @@ function submitRegionForm(event) {
         sequence1Range: region1Value,
         sequence2Range: region2Value,
         color,
+        alpha,
       }, sequenceContext);
     } else {
       vaRRI.registerRegionHighlight({
         sequence1Range: region1Value,
         sequence2Range: region2Value,
         color,
+        alpha,
       }, sequenceContext);
     }
   } catch (err) {
@@ -1613,7 +1621,7 @@ function generateShareableURL(btnElement) {
         const colorClean = h.color ? h.color.replace('#', '') : '';
         const alphaString = (h.alpha !== undefined && h.alpha !== null) ? ':' + h.alpha : '';
         // combine color and alpha into a single string if both are present
-        const colorString = colorClean ? ':' + colorClean + alphaString : '';
+        const colorString = colorClean !== '' ? ':' + colorClean + alphaString : '';
         const sequence = h.sequence || '1';
 
         // 1. Prefer explicit rangeText if available (e.g., "18-20")
@@ -1651,11 +1659,14 @@ function generateShareableURL(btnElement) {
       .filter(h => !h.generated)
       .map(h => {
         const colorClean = h.color ? h.color.replace('#', '') : '';
+        const alphaString = (h.alpha !== undefined && h.alpha !== null) ? ':' + h.alpha : '';
+        // combine color and alpha into a single string if both are present
+        const colorString = colorClean !== '' ? ':' + colorClean + alphaString : '';
         const rangeText = typeof h.rangeText === 'string' && h.rangeText && h.rangeText !== 'undefined'
           ? h.rangeText
           : `${Array.isArray(h.sequence1Range) ? h.sequence1Range.join('-') : ''}&${Array.isArray(h.sequence2Range) ? h.sequence2Range.join('-') : ''}`;
 
-        return `${rangeText}${colorClean ? ':' + colorClean : ''}`;
+        return `${rangeText}${colorString}`;
       })
       .filter(Boolean)
       .join(',');
@@ -1790,15 +1801,16 @@ function loadUrlRegionHighlightsToVaRRI(argName = 'regionHighlights') {
     const regionHighlights = value.split(',').map(h => h.trim()).filter(h => h.length > 0);
 
     regionHighlights.forEach(region => {
-      const match = region.match(/^(-?\d+)-(-?\d+)&(-?\d+)-(-?\d+)(?::([0-9a-fA-F]{3,8}))?$/i);
+      const match = region.match(/^(-?\d+)-(-?\d+)&(-?\d+)-(-?\d+)(?::([0-9a-fA-F]{3,8})(:([01](.\d+)?))?)?$/i);
       if (match) {
         const sequence1Range = [parseInt(match[1], 10), parseInt(match[2], 10)];
         const sequence2Range = [parseInt(match[3], 10), parseInt(match[4], 10)];
         const color = parseUrlColor(match[5], getDefaultRegionHighlightColor());
+        const alpha = match[7] !== undefined ? parseFloat(match[7]) : DEFAULT_VALUES.regionAlpha;
 
         try {
           vaRRI.registerRegionHighlight(
-            { sequence1Range, sequence2Range, color },
+            { sequence1Range, sequence2Range, color, alpha },
             getHighlightSequenceContext()
           );
         } catch (err) {

@@ -326,7 +326,7 @@
     /**
      * Build a normalized region-highlight object from user input.
      *
-     * @param {{sequence1Range:string|[number, number], sequence2Range:string|[number, number], color?:string, generated?:boolean, id?:number}} input
+     * @param {{sequence1Range:string|[number, number], sequence2Range:string|[number, number], color?:string, alpha?:number, generated?:boolean, id?:number}} input
      * @param {{'1'?:{offset:number, length:number}, '2'?:{offset:number, length:number}}=} sequenceContext
      * @returns {{id:number, sequence1Range:[number, number], sequence2Range:[number, number], color:string, rangeText:string, generated:boolean}}
      */
@@ -336,12 +336,14 @@
         const seq1Range = normaliseRegionRange(input.sequence1Range, context1);
         const seq2Range = normaliseRegionRange(input.sequence2Range, context2);
         const color = (input.color || '').trim() || COLORS.backgroundHighlight;
+        const alpha = input.alpha !== undefined ? Number(input.alpha) : 0.2;
 
         return {
             id: Number.isInteger(input.id) ? input.id : 0,
             sequence1Range: seq1Range.range,
             sequence2Range: seq2Range.range,
             color,
+            alpha,
             rangeText: `${seq1Range.rangeText}&${seq2Range.rangeText}`,
             generated: !!input.generated,
         };
@@ -350,7 +352,7 @@
     /**
      * Register a new region highlight object.
      *
-     * @param {{sequence1Range:string|[number, number], sequence2Range:string|[number, number], color?:string, generated?:boolean}} input
+     * @param {{sequence1Range:string|[number, number], sequence2Range:string|[number, number], color?:string, alpha?:number, generated?:boolean}} input
      * @param {{'1'?:{offset:number, length:number}, '2'?:{offset:number, length:number}}=} sequenceContext
      * @returns {Object}
      */
@@ -380,12 +382,14 @@
             sequence1Range: patch.sequence1Range !== undefined ? patch.sequence1Range : target.sequence1Range,
             sequence2Range: patch.sequence2Range !== undefined ? patch.sequence2Range : target.sequence2Range,
             color: patch.color !== undefined ? patch.color : target.color,
+            alpha: patch.alpha !== undefined ? patch.alpha : target.alpha,
             generated: patch.generated !== undefined ? patch.generated : target.generated,
         }, sequenceContext);
 
         target.sequence1Range = normalized.sequence1Range;
         target.sequence2Range = normalized.sequence2Range;
         target.color = normalized.color;
+        target.alpha = normalized.alpha;
         target.rangeText = normalized.rangeText;
         target.generated = normalized.generated;
 
@@ -1786,7 +1790,7 @@
      * @param {"1"|"2"} seq  Which sequence to highlight.
      * @param {Array<[number, number]>} range  Parsed index range.
      * @param {string} color  Highlight color.
-     * @param {number} [alpha=0.3]  Highlight opacity.
+     * @param {number} Highlight opacity.
      */
     function highlightSubsequence(v, seq, range, color, alpha) {
         const highlightDiameter = 14;
@@ -1850,7 +1854,7 @@
      * Register a generated region highlight from sequence ranges.
      *
      * @param {Object} v
-     * @param {{sequence1Range:[number, number], sequence2Range:[number, number], color?:string}} spec
+     * @param {{sequence1Range:[number, number], sequence2Range:[number, number], color?:string, alpha?:number}} spec
      * @returns {Object}
      */
     function registerGeneratedRegionHighlight(v, spec) {
@@ -1863,6 +1867,7 @@
             sequence1Range: spec.sequence1Range,
             sequence2Range: spec.sequence2Range,
             color: spec.color || COLORS.backgroundHighlight,
+            alpha: spec.alpha,
             generated: true,
         }, sequenceContext);
     }
@@ -1950,7 +1955,7 @@
             if (nodePath.length >= 3) {
                 polygon(
                     nodePath,
-                    `fill:${highlight.color || COLORS.backgroundHighlight};opacity:0.2;stroke:${highlight.color || COLORS.backgroundHighlight};stroke-width:7`,
+                    `fill:${highlight.color || COLORS.backgroundHighlight};opacity:${highlight.alpha};stroke:${highlight.color || COLORS.backgroundHighlight};stroke-width:7`,
                     { 'data-varri-region': 'true' }
                 );
             }
