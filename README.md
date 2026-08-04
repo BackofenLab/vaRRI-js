@@ -57,7 +57,7 @@ applies all of vaRRI's annotations and tweaks.
 
 ## Examples from Literature reproduced with vaRRI-js
 
-To showcase the capabilities of vaRRI-js, we provide a collection of [examples from the literature that have been reproduced using vaRRI-js]https://backofenlab.github.io/vaRRI-js/examples.html).
+To showcase the capabilities of vaRRI-js, we provide a collection of [examples from the literature that have been reproduced using vaRRI-js](https://backofenlab.github.io/vaRRI-js/examples.html).
 
 Click the following image to view the examples page, which contains the gallery.
 
