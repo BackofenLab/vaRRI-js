@@ -8,9 +8,7 @@
   "jest": {
     "testEnvironment": "node",
     "testPathIgnorePatterns": [
-      "/node_modules/",
-      "<rootDir>/tests/ui.test.js",
-      "<rootDir>/tests/ui-jsdom.test.js"
+      "/node_modules/"
     ]
   },
   "devDependencies": {
