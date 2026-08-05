@@ -358,12 +358,12 @@ See descriptions above and the [Input Format Reference](#input-format-reference)
 | **`sequence`** | IUPAC nucleotide sequence. Use `&` as a separator for two interacting molecules (*e.g., `GCAUGGCGGGCAA&CCCGCAU*`). |
 | **`structure`** | Secondary structure in dot-bracket notation. Separate two molecules with `&` (*e.g., `((...))..<<..&...>>..*`). |
 | **`startIndex1` / `startIndex2`** | Starting sequence indices for strand 1 and strand 2 (default: `1`). |
-| **`color-seq1` / `color-seq2`** | Custom color hex codes for sequence strands 1 and 2 (*e.g., `%23ff0000` for `#ff0000*`). |
+| **`colorSeq1` / `colorSeq2`** | Custom color hex codes for sequence strands 1 and 2 (*e.g., `%23ff0000` for `#ff0000*`). |
 | **`coloring`** | Nucleotide color scheme (`strand` or `loop`). |
 | **`highlighting` / `backgroundhighlighting`** | RRI highlight targets (`region`, `basepairs`, or `nothing`). |
-| **`color-intermol` / `color-bg` / `color-basepair`** | Hex color codes for nucleotide highlights, background highlights, and base pairs. |
+| **`colorRriNodes` / `colorRriRegion` / `colorBasepair`** | Hex color codes for nucleotide highlights, background highlights, and base pairs. |
 | **`guBasepairs`** | Toggle display of G-U Wobble base pairs as dashed lines (`true` / `false`). |
-| **`animation`** | Enable or disable Fornac force-layout physics simulation (`true` / `false`). |
+| **`forceLayout`** | Enable or disable Fornac force-layout physics simulation (`true` / `false`). |
 
 
 > [!IMPORTANT]
@@ -389,7 +389,7 @@ https://backofenlab.github.io/vaRRI-js/index.html?showRenderingOnly=true&<remain
 
 ```html
 <iframe 
-  src="https://backofenlab.github.io/vaRRI-js/?sequence=ACGAUCAUGGAUUAGAGCAUUCGACAGCAG%26ACGAAAAAAAGAGCAUACGACAGUAG&color-seq1=%23add8e6&startIndex1=-6&color-seq2=%23f4bb44&startIndex2=100&structure=..%3C%3C%3C%3C...%3E%3E%3E%3E...%28%28..%28%28%28...%28%28..%26............%29%29...%29%29%29..%29%29..&coloring=strand&highlighting=region&color-intermol=%23ff0000&backgroundhighlighting=basepairs&color-bg=%23ff0000&color-basepair=%23ff0000&guBasepairs=on&animation=on&profile-color-1=%23800080&profile-color-1-represents-one=on&profile-color-2=%23ff0000&profile-data-1=%23+unpaired+probabilities%0A1+0.9%0A2+0.7%0A3+0.3%0A4+0.1%0A7+0.3%0A8+0.7%0A9+0.6&profile-idx-ref-1=1&profile-idx-ref-2=1&cropping=2&mutations=1%3A16G%3A338a29%2C2%3A118C%3A338a29&highlights=1%3A18-20%3A338a29%2C2%3A114-116%3A338a29&showRenderingOnly=true" 
+  src="https://backofenlab.github.io/vaRRI-js/?sequence=ACGAUCAUGGAUUAGAGCAUUCGACAGCAG%26ACGAAAAAAAGAGCAUACGACAGUAG&colorSeq1=%23add8e6&startIndex1=-6&colorSeq2=%23f4bb44&startIndex2=100&structure=..%3C%3C%3C%3C...%3E%3E%3E%3E...%28%28..%28%28%28...%28%28..%26............%29%29...%29%29%29..%29%29..&coloring=strand&highlighting=region&colorRriNodes=%23ff0000&backgroundhighlighting=basepairs&colorRriRegion=%23ff0000&colorBasepair=%23ff0000&guBasepairs=on&forceLayout=on&profileColor1=%23800080&profileColorRepresentsOne1=on&profileColor2=%23ff0000&profileData1=%23+unpaired+probabilities%0A1+0.9%0A2+0.7%0A3+0.3%0A4+0.1%0A7+0.3%0A8+0.7%0A9+0.6&profileIdxRef1=1&profileIdxRef2=1&cropping=2&mutations=1%3A16G%3A338a29%2C2%3A118C%3A338a29&highlights=1%3A18-20%3A338a29%2C2%3A114-116%3A338a29&showRenderingOnly=true" 
   width="100%" 
   height="600" 
   style="border: none;"
@@ -405,7 +405,7 @@ Valid embedding links can be generated using the "🔗 Share Link" button in the
 ----
 
 <iframe 
-  src="https://backofenlab.github.io/vaRRI-js/?showRenderingOnly=true&sequence=ACGAUCAUGGAUUAGAGCAUUCGACAGCAG%26ACGAAAAAAAGAGCAUACGACAGUAG&color-seq1=%23add8e6&startIndex1=-6&color-seq2=%23f4bb44&startIndex2=100&structure=..%3C%3C%3C%3C...%3E%3E%3E%3E...%28%28..%28%28%28...%28%28..%26............%29%29...%29%29%29..%29%29..&coloring=strand&highlighting=region&color-intermol=%23ff0000&backgroundhighlighting=basepairs&color-bg=%23ff0000&color-basepair=%23ff0000&guBasepairs=on&animation=on&profile-color-1=%23800080&profile-color-1-represents-one=on&profile-color-2=%23ff0000&profile-data-1=%23+unpaired+probabilities%0A1+0.9%0A2+0.7%0A3+0.3%0A4+0.1%0A7+0.3%0A8+0.7%0A9+0.6&profile-idx-ref-1=1&profile-idx-ref-2=1&cropping=2&mutations=1%3A16G%3A338a29%2C2%3A118C%3A338a29&highlights=1%3A18-20%3A338a29%2C2%3A114-116%3A338a29" 
+  src="https://backofenlab.github.io/vaRRI-js/?showRenderingOnly=true&sequence=ACGAUCAUGGAUUAGAGCAUUCGACAGCAG%26ACGAAAAAAAGAGCAUACGACAGUAG&colorSeq1=%23add8e6&startIndex1=-6&colorSeq2=%23f4bb44&startIndex2=100&structure=..%3C%3C%3C%3C...%3E%3E%3E%3E...%28%28..%28%28%28...%28%28..%26............%29%29...%29%29%29..%29%29..&coloring=strand&highlighting=region&colorRriNodes=%23ff0000&backgroundhighlighting=basepairs&colorRriRegion=%23ff0000&colorBasepair=%23ff0000&guBasepairs=on&forceLayout=on&profileColor1=%23800080&profileColorRepresentsOne1=on&profileColor2=%23ff0000&profileData1=%23+unpaired+probabilities%0A1+0.9%0A2+0.7%0A3+0.3%0A4+0.1%0A7+0.3%0A8+0.7%0A9+0.6&profileIdxRef1=1&profileIdxRef2=1&cropping=2&mutations=1%3A16G%3A338a29%2C2%3A118C%3A338a29&highlights=1%3A18-20%3A338a29%2C2%3A114-116%3A338a29" 
   width="100%" 
   height="600" 
   style="border: 2px solid #333333; border-radius: 6px;"

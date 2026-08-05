@@ -8,7 +8,7 @@ depends on, and the exact steps taken to implement it.
 
 vaRRI-js renders RNA/RNA-RNA-interaction structures using
 [Fornac](https://github.com/ViennaRNA/fornac)'s force-directed layout
-(`options.animation = true`, i.e. the "Enable Fornac force-layout animation"
+(`options.forceLayout = true`, i.e. the "Enable Fornac force-layout animation"
 checkbox). Fornac's layout algorithm pulls every *loop* of the structure
 (hairpins, interior loops, multiloops, and — enabled by default — the
 top-level *external loop*) into a rounded/circular shape using invisible
@@ -35,17 +35,17 @@ structure still looks exactly like a standard Fornac rendering.
 
 ## 2. UI integration
 
-- **[index.html](index.html)** — a checkbox `#free-trailing-ends` ("Free
-  trailing ends") was added directly below the existing `#animation`
+- **[index.html](index.html)** — a checkbox `#forceLayoutFreeTails` ("Free
+  trailing ends") was added directly below the existing `#forceLayout`
   checkbox ("Enable Fornac force-layout animation"), unchecked by default.
 - **[index.js](index.js)**:
   - `syncFreeTrailingEndsControl()` disables and force-unchecks
-    `#free-trailing-ends` whenever `#animation` is unchecked (the feature
+    `#forceLayoutFreeTails` whenever `#forceLayout` is unchecked (the feature
     only makes sense while the force simulation is actually running), and is
-    wired into the `change` listener for `#animation` and called once on
+    wired into the `change` listener for `#forceLayout` and called once on
     page load.
   - `runVisualization()` reads both checkboxes and passes
-    `freeTrailingEnds: animation && checkbox.checked` as a new option to
+    `freeTrailingEnds: forceLayout && checkbox.checked` as a new option to
     `vaRRI.render(...)`.
 
 ## 3. Required background: Fornac's internal force-graph architecture
@@ -209,7 +209,7 @@ loop's hub.
    - `render(containerId, v, options)` accepts a new
      `options.freeTrailingEnds` flag (default `false`).
    - Immediately after `container.addRNA(...)` builds the initial force
-     graph, and only when both `animation` and `freeTrailingEnds` are true,
+     graph, and only when both `forceLayout` and `freeTrailingEnds` are true,
      call `relaxForceGraphScaffold(container, v)` once, before any further
      DOM post-processing happens.
 

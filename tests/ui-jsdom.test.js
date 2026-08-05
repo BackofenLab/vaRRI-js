@@ -106,8 +106,8 @@ const committedFields = [
       'startIndex1',
       'startIndex2',
       'mutationPosition',
-      'profile-data-1',
-      'profile-data-2',
+      'profileData1',
+      'profileData2',
     ];
 const enterCommittedFields = ['cropping', 'startIndex1', 'startIndex2', 'mutationPosition'];
 const immediateFields = [
@@ -115,7 +115,7 @@ const immediateFields = [
     'highlighting',
     'backgroundhighlighting',
     'guBasepairs',
-    'animation',
+    'forceLayout',
     'mutationSequence',
     'mutationBase',
     'mutationColor',
@@ -215,9 +215,9 @@ const { elements } = createIndexHtmlSandbox();
 
 window.dispatchEvent(new window.Event('load'));
 
-elements.highlightSequence.value = '2';
-elements.highlightRange.value = '3-8';
-elements.highlightColor.value = '#112233';
+elements.subseqSequence.value = '2';
+elements.subseqRange.value = '3-8';
+elements.subseqColor.value = '#112233';
 
 elements.highlightSubmitBtn.trigger('click', {
     preventDefault: jest.fn(),
@@ -225,9 +225,9 @@ elements.highlightSubmitBtn.trigger('click', {
 });
 
 expect(registerSpy).toHaveBeenCalledTimes(1);
-expect(elements.highlightEditId.value).toBe('');
-expect(elements.highlightSequence.value).toBe('1');
-expect(elements.highlightRange.value).toBe('');
+expect(elements.subseqEditId.value).toBe('');
+expect(elements.subseqSequence.value).toBe('1');
+expect(elements.subseqRange.value).toBe('');
 expect(elements.highlightSubmitBtn.textContent).toBe('Add');
 
 });
@@ -265,15 +265,15 @@ const { elements } = createIndexHtmlSandbox();
 
 window.dispatchEvent(new window.Event('load'));
 elements.sequence1 = 'ACGU';
-elements.highlightRange.value = '-2-3';
+elements.subseqRange.value = '-2-3';
 
 elements.highlightSubmitBtn.trigger('click', {
     preventDefault: jest.fn(),
     stopPropagation: jest.fn(),
 });
 
-expect(elements.highlightRange.__wrap.classList.add).toHaveBeenCalledWith('has-error');
-expect(elements.highlightRange.__wrap.__tooltip.textContent).toMatch(/valid sequence indices/);
+expect(elements.subseqRange.__wrap.classList.add).toHaveBeenCalledWith('has-error');
+expect(elements.subseqRange.__wrap.__tooltip.textContent).toMatch(/valid sequence indices/);
 
 });
 

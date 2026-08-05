@@ -21,9 +21,9 @@ function createIndexHtmlSandbox() {
         'sequence',
         'startIndex1',
         'startIndex2',
-        'highlightSequence',
-        'highlightRange',
-        'highlightColor',
+        'subseqSequence',
+        'subseqRange',
+        'subseqColor',
         'mutationSequence',
         'mutationPosition',
         'mutationBase',
@@ -93,10 +93,10 @@ function createIndexHtmlSandbox() {
         highlighting: makeElement('highlighting', { value: 'region', tagName: 'SELECT' }),
         backgroundhighlighting: makeElement('backgroundhighlighting', { value: 'basepairs', tagName: 'SELECT' }),
         guBasepairs: makeElement('guBasepairs', { checked: true, type: 'checkbox' }),
-        highlightSequence: makeElement('highlightSequence', { value: '1', tagName: 'SELECT' }),
-        highlightRange: makeElement('highlightRange', { value: '', type: 'text' }),
-        highlightColor: makeElement('highlightColor', { value: '#000000', type: 'color' }),
-        highlightEditId: makeElement('highlightEditId', { value: '', type: 'hidden' }),
+        subseqSequence: makeElement('subseqSequence', { value: '1', tagName: 'SELECT' }),
+        subseqRange: makeElement('subseqRange', { value: '', type: 'text' }),
+        subseqColor: makeElement('subseqColor', { value: '#000000', type: 'color' }),
+        subseqEditId: makeElement('subseqEditId', { value: '', type: 'hidden' }),
         highlightSubmitBtn: makeElement('highlightSubmitBtn', { tagName: 'BUTTON' }),
         highlightCancelBtn: makeElement('highlightCancelBtn', { tagName: 'BUTTON' }),
         'highlight-list': makeElement('highlight-list', { tagName: 'UL' }),
@@ -108,21 +108,21 @@ function createIndexHtmlSandbox() {
         mutationSubmitBtn: makeElement('mutationSubmitBtn', { tagName: 'BUTTON' }),
         mutationCancelBtn: makeElement('mutationCancelBtn', { tagName: 'BUTTON' }),
         'mutation-list': makeElement('mutation-list', { tagName: 'UL' }),
-        animation: makeElement('animation', { type: 'checkbox' }),
-        'color-seq1': makeElement('color-seq1', { value: '#000000', type: 'color' }),
-        'color-seq2': makeElement('color-seq2', { value: '#000000', type: 'color' }),
-        'color-intermol': makeElement('color-intermol', { value: '#000000', type: 'color' }),
-        'color-bg': makeElement('color-bg', { value: '#000000', type: 'color' }),
-        'color-basepair': makeElement('color-basepair', { value: '#000000', type: 'color' }),
-        'rotation-slider': makeElement('rotation-slider', { value: '0', type: 'range' }),
+        forceLayout: makeElement('forceLayout', { type: 'checkbox' }),
+        'colorSeq1': makeElement('colorSeq1', { value: '#000000', type: 'color' }),
+        'colorSeq2': makeElement('colorSeq2', { value: '#000000', type: 'color' }),
+        'colorRriNodes': makeElement('colorRriNodes', { value: '#000000', type: 'color' }),
+        'colorRriRegion': makeElement('colorRriRegion', { value: '#000000', type: 'color' }),
+        'colorBasepair': makeElement('colorBasepair', { value: '#000000', type: 'color' }),
+        'rotationSlider': makeElement('rotationSlider', { value: '0', type: 'range' }),
         rna_ss: makeElement('rna_ss', { tagName: 'DIV' }),
         msg: makeElement('msg', { tagName: 'DIV' }),
-        'profile-data-1': makeElement('profile-data-1', { tagName: 'TEXTAREA' }),
-        'profile-data-2': makeElement('profile-data-2', { tagName: 'TEXTAREA' }),
-        'profile-color-1': makeElement('profile-color-1', { value: '#000000', type: 'color' }),
-        'profile-color-2': makeElement('profile-color-2', { value: '#000000', type: 'color' }),
-        'profile-color-1-represents-one': makeElement('profile-color-1-represents-one', { checked: true, type: 'checkbox' }),
-        'profile-color-2-represents-one': makeElement('profile-color-2-represents-one', { checked: true, type: 'checkbox' })
+        'profileData1': makeElement('profileData1', { tagName: 'TEXTAREA' }),
+        'profileData2': makeElement('profileData2', { tagName: 'TEXTAREA' }),
+        'profileColor1': makeElement('profileColor1', { value: '#000000', type: 'color' }),
+        'profileColor2': makeElement('profileColor2', { value: '#000000', type: 'color' }),
+        'profileColorRepresentsOne1': makeElement('profileColorRepresentsOne1', { checked: true, type: 'checkbox' }),
+        'profileColorRepresentsOne2': makeElement('profileColorRepresentsOne2', { checked: true, type: 'checkbox' })
     };
 
     const loadHandlers = [];
@@ -302,7 +302,7 @@ describe('index.html auto visualization UI', () => {
             'highlighting',
             'backgroundhighlighting',
             'guBasepairs',
-            'animation',
+            'forceLayout',
             'mutationSequence',
             'mutationBase',
             'mutationColor',
@@ -402,9 +402,9 @@ describe('index.html auto visualization UI', () => {
         expect(loadHandlers).toHaveLength(1);
         loadHandlers[0]();
 
-        elements.highlightSequence.value = '2';
-        elements.highlightRange.value = '3-8';
-        elements.highlightColor.value = '#112233';
+        elements.subseqSequence.value = '2';
+        elements.subseqRange.value = '3-8';
+        elements.subseqColor.value = '#112233';
 
         elements.highlightSubmitBtn.trigger('click', {
             preventDefault: jest.fn(),
@@ -412,9 +412,9 @@ describe('index.html auto visualization UI', () => {
         });
 
         expect(vaRRIStub.registerSubsequenceHighlight).toHaveBeenCalledTimes(1);
-        expect(elements.highlightEditId.value).toBe('');
-        expect(elements.highlightSequence.value).toBe('1');
-        expect(elements.highlightRange.value).toBe('');
+        expect(elements.subseqEditId.value).toBe('');
+        expect(elements.subseqSequence.value).toBe('1');
+        expect(elements.subseqRange.value).toBe('');
         expect(elements.highlightSubmitBtn.textContent).toBe('Add');
     });
 
@@ -448,7 +448,7 @@ describe('index.html auto visualization UI', () => {
         expect(loadHandlers).toHaveLength(1);
         loadHandlers[0]();
         elements.sequence1 = 'ACGU';
-        elements.highlightRange.value = '-2-3';
+        elements.subseqRange.value = '-2-3';
         vaRRIStub.registerSubsequenceHighlight.mockImplementation(() => {
             throw new Error('Invalid subsequence range: "-2-3". Range endpoints must be valid sequence indices.');
         });
@@ -458,8 +458,8 @@ describe('index.html auto visualization UI', () => {
             stopPropagation: jest.fn(),
         });
 
-        expect(elements.highlightRange.__wrap.classList.add).toHaveBeenCalledWith('has-error');
-        expect(elements.highlightRange.__wrap.__tooltip.textContent).toMatch(/valid sequence indices/);
+        expect(elements.subseqRange.__wrap.classList.add).toHaveBeenCalledWith('has-error');
+        expect(elements.subseqRange.__wrap.__tooltip.textContent).toMatch(/valid sequence indices/);
     });
 });
 */

@@ -88,7 +88,7 @@
         <div class="start-index-grid">
           <div class="start-index-item">
             <div class="start-index-label-row">
-              <input type="color" id="color-seq1" class="legend-color"
+              <input type="color" id="colorSeq1" class="legend-color"
                               title="Select sequence 1 strand colour"
                               onchange="applyColors(); runVisualization();" />
               <label for="startIndex1">Start&nbsp;1</label>
@@ -98,7 +98,7 @@
           </div>
           <div class="start-index-item">
             <div class="start-index-label-row">
-              <input type="color" id="color-seq2" class="legend-color"
+              <input type="color" id="colorSeq2" class="legend-color"
               title="Select sequence 2 strand colour" onchange="applyColors(); runVisualization();" />
               <label for="startIndex2">Start&nbsp;2</label>
               <input type="number" id="startIndex2" value="1" size="4" />
@@ -129,10 +129,10 @@
         <div class="control-group-body">
 
           <div class="row-2">
-            <label for="color-basepair"
-            onmouseenter="this.title = document.getElementById('color-basepair')?.getAttribute('title') || '';"
-            onclick="document.getElementById('color-basepair').click();">Base pair color</label>
-            <input type="color" id="color-basepair" class="legend-color-rect"
+            <label for="colorBasepair"
+            onmouseenter="this.title = document.getElementById('colorBasepair')?.getAttribute('title') || '';"
+            onclick="document.getElementById('colorBasepair').click();">Base pair color</label>
+            <input type="color" id="colorBasepair" class="legend-color-rect"
             title="Select base pair colour" onchange="applyColors(); runVisualization();" />
           </div>
 
@@ -152,7 +152,7 @@
               <option value="basepairs">basepairs</option>
               <option value="nothing">nothing</option>
             </select>  
-            <input type="color" id="color-intermol" class="legend-color"
+            <input type="color" id="colorRriNodes" class="legend-color"
                  title="Select nucleotide highlight colour" onchange="applyColors(); runVisualization();" />
           </div>                 
           <div class="checkbox-row">
@@ -161,18 +161,18 @@
           </div>
 
           <div class="checkbox-row">
-            <input type="checkbox" id="animation" checked />
-            <label for="animation" style="margin:0">Enable Fornac force-layout animation</label>
+            <input type="checkbox" id="forceLayout" checked />
+            <label for="forceLayout" style="margin:0">Enable Fornac force-layout animation</label>
           </div>
 
           <div class="checkbox-row" style="margin-left: 1.5em;">
-            <input type="checkbox" id="free-trailing-ends" />
-            <label for="free-trailing-ends" style="margin:0">Free trailing ends</label>
+            <input type="checkbox" id="forceLayoutFreeTails" />
+            <label for="forceLayoutFreeTails" style="margin:0">Free trailing ends</label>
           </div>
 
           <div class="checkbox-row" style="margin-left: 1.5em;">
-            <input type="checkbox" id="pull-pseudoknot-basepairs" />
-            <label for="pull-pseudoknot-basepairs" style="margin:0">Pull Pseudoknot Basepairs</label>
+            <input type="checkbox" id="forceLayoutPullCrossing" />
+            <label for="forceLayoutPullCrossing" style="margin:0">Pull Pseudoknot Basepairs</label>
           </div>
         </div>
       </details>
@@ -196,7 +196,7 @@
                         <option value="region">region</option>
                         <option value="nothing">nothing</option>
                       </select>
-                      <input type="color" id="color-bg" class="legend-color-rect"
+                      <input type="color" id="colorRriRegion" class="legend-color-rect"
                            title="Select background highlight colour" onchange="applyColors(); runVisualization();" />
                     </div>
 
@@ -267,13 +267,13 @@
         <div class="control-group-body">
           <ul id="highlight-list" class="highlight-list" aria-label="Registered subsequence highlights"></ul>
 
-          <input type="hidden" id="highlightEditId" value="" />
+          <input type="hidden" id="subseqEditId" value="" />
 
           <div class="highlightInput">
             <div>
-              <label for="highlightSequence">Seq.</label>
+              <label for="subseqSequence">Seq.</label>
               <div class="input-wrap">
-                <select id="highlightSequence">
+                <select id="subseqSequence">
                   <option value="1">1</option>
                   <option value="2">2</option>
                 </select>
@@ -281,23 +281,23 @@
               </div>
             </div>
             <div>
-              <label for="highlightRange">Range</label>
+              <label for="subseqRange">Range</label>
               <div class="input-wrap">
-                <input type="text" id="highlightRange" placeholder="e.g. 3-8" />
+                <input type="text" id="subseqRange" placeholder="e.g. 3-8" />
                 <span class="field-tooltip"></span>
               </div>
             </div>
             <div>
-              <label for="highlightColor">Color</label>
+              <label for="subseqColor">Color</label>
               <div class="input-wrap">
-                <input type="color" id="highlightColor" />
+                <input type="color" id="subseqColor" />
                 <span class="field-tooltip"></span>
               </div>
             </div>
             <div>
-              <label for="highlightAlpha" title="Opacity of the highlight (0.0 = fully transparent, 1.0 = fully opaque)">&nbsp;&nbsp;&nbsp;&nbsp;◐</label>
+              <label for="subseqAlpha" title="Opacity of the highlight (0.0 = fully transparent, 1.0 = fully opaque)">&nbsp;&nbsp;&nbsp;&nbsp;◐</label>
               <div class="input-wrap">
-                <select id="highlightAlpha">
+                <select id="subseqAlpha">
                   <option value="0.1">0.1</option>
                   <option value="0.2">0.2</option>
                   <option value="0.3">0.3</option>
@@ -329,37 +329,37 @@
       <details class="control-group">
         <summary>
           Probability Profiles <small>(Accessibility, ...)</small>
-          <span id="profile-counter" class="list-counter"></span>
+          <span id="profileCounterUI" class="list-counter"></span>
         </summary>
         <div class="control-group-body">
 
           <!-- Profile data input fields -->
           <label><small>Space-separated CSV; # starts comment line</small></label>
           <div class="row-2">
-            <label for="profile-data-1" class="profile-label-with-color">
+            <label for="profileData1" class="profile-label-with-color">
               <span>Seq. 1 profile</span>
-              <input type="color" id="profile-color-1" class="profile-color-picker" title="Accessibility color for sequence 1" />
+              <input type="color" id="profileColor1" class="profile-color-picker" title="Accessibility color for sequence 1" />
               <span class="profile-color-mode-wrap">
                 <span class="profile-color-mode-text">=1</span>
-                <input type="checkbox" id="profile-color-1-represents-one" class="profile-color-mode-checkbox" />
+                <input type="checkbox" id="profileColorRepresentsOne1" class="profile-color-mode-checkbox" />
               </span>
             </label>
-            <label for="profile-data-2" class="profile-label-with-color">
+            <label for="profileData2" class="profile-label-with-color">
               <span>Seq. 2 profile</span>
-              <input type="color" id="profile-color-2" class="profile-color-picker" title="Accessibility color for sequence 2" />
+              <input type="color" id="profileColor2" class="profile-color-picker" title="Accessibility color for sequence 2" />
               <span class="profile-color-mode-wrap">
                 <span class="profile-color-mode-text">=1</span>
-                <input type="checkbox" id="profile-color-2-represents-one" class="profile-color-mode-checkbox" />
+                <input type="checkbox" id="profileColorRepresentsOne2" class="profile-color-mode-checkbox" />
               </span>
             </label>
           </div>
           <div class="row-2">
             <div class="input-wrap">
-              <textarea id="profile-data-1" name="profile-data-1" rows="10" cols="10" wrap='off'></textarea>
+              <textarea id="profileData1" name="profileData1" rows="10" cols="10" wrap='off'></textarea>
               <span class="field-tooltip"></span>
             </div>
             <div class="input-wrap">
-              <textarea id="profile-data-2" name="profile-data-2" rows="10" cols="10" wrap='off'></textarea>
+              <textarea id="profileData2" name="profileData2" rows="10" cols="10" wrap='off'></textarea>
               <span class="field-tooltip"></span>
             </div>
           </div>
@@ -367,15 +367,15 @@
           <!-- index reference -->
           <div class="row-2">
             <div class="checkbox-row"">
-              <label for="profile-idx-ref-1">Index&nbsp;wrt.</label>
-              <select id="profile-idx-ref-1">
+              <label for="profileIdxRef1">Index&nbsp;wrt.</label>
+              <select id="profileIdxRef1">
                 <option value="1" selected>1st nt</option>
                 <option value="start">Start 1</option>
               </select>
             </div>
             <div class="checkbox-row">
-              <label for="profile-idx-ref-2">Index&nbsp;wrt.</label>
-              <select id="profile-idx-ref-2">
+              <label for="profileIdxRef2">Index&nbsp;wrt.</label>
+              <select id="profileIdxRef2">
                 <option value="1" selected>1st nt</option>
                 <option value="start">Start 1</option>
               </select>
@@ -474,8 +474,8 @@
     <div id="rna_ss" tabindex="1"></div>
 
     <div class="viz-control">
-      <label for="rotation-slider">Rotate</label>
-      <input type="range" id="rotation-slider" min="-180" max="180" step="1" value="0" />
+      <label for="rotationSlider">Rotate</label>
+      <input type="range" id="rotationSlider" min="-180" max="180" step="1" value="0" />
       <label for="cropping">Crop: 
         <!-- dummy element to show the value of cropping input slider-->
          <span id="cropping-value" style="font-weight:600; color:#1c2b39; margin-left:0.3em;">0</span>

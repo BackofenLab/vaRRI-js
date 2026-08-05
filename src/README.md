@@ -56,7 +56,7 @@ Builds the Fornac visualisation and applies all vaRRI modifications. The returne
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `animation` | `boolean` | `false` | Enable Fornac force-layout animation. When `true` and background highlighting is active, the highlight polygon is redrawn on every animation frame to stay in sync with the force layout. |
+| `forceLayout` | `boolean` | `false` | Enable Fornac force-layout animation. When `true` and background highlighting is active, the highlight polygon is redrawn on every animation frame to stay in sync with the force layout. |
 | `accessData` | `Object\|null` | `null` | Accessibility data: `{ nodeId: probability, … }`. |
 
 ```javascript

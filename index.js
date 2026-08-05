@@ -5,48 +5,48 @@
 
 const DEFAULT_VALUES = {
   // input + rendering
-  'sequence': '',
-  'structure': '',
-  'startIndex1': '1',
-  'startIndex2': '1',
-  'rotation-slider': '0',
-  'cropping': '-1',
-  get 'color-seq1'() { return cssColorToHex(vaRRI.getColors().sequence1); },
-  get 'color-seq2'() { return cssColorToHex(vaRRI.getColors().sequence2); },
+  sequence: '',
+  structure: '',
+  startIndex1: '1',
+  startIndex2: '1',
+  rotationSlider: '0',
+  cropping: '-1',
+  get colorSeq1() { return cssColorToHex(vaRRI.getColors().sequence1); },
+  get colorSeq2() { return cssColorToHex(vaRRI.getColors().sequence2); },
   // profile data
-  'profile-data-1': '',
-  'profile-idx-ref-1': '1',
-  get 'profile-color-1'() { return cssColorToHex(vaRRI.getColors().seq1profileColor); },
-  'profile-color-1-represents-one': true,
-  'profile-data-2': '',
-  'profile-idx-ref-2': '1',
-  get 'profile-color-2'() { return cssColorToHex(vaRRI.getColors().seq2profileColor); },
-  'profile-color-2-represents-one': true,
+  profileData1: '',
+  profileIdxRef1: '1',
+  get profileColor1() { return cssColorToHex(vaRRI.getColors().seq1profileColor); },
+  profileColorRepresentsOne1: true,
+  profileData2: '',
+  profileIdxRef2: '1',
+  get profileColor2() { return cssColorToHex(vaRRI.getColors().seq2profileColor); },
+  profileColorRepresentsOne2: true,
   // visualization
-  'animation': true,
-  'free-trailing-ends': false,
-  'pull-pseudoknot-basepairs': false,
-  get 'color-intermol'() { return cssColorToHex(vaRRI.getColors().intermolecularHighlight); },
-  get 'color-bg'() { return cssColorToHex(vaRRI.getColors().backgroundHighlight); },
-  get 'color-basepair'() { return cssColorToHex(vaRRI.getColors().basepair); },
+  forceLayout: true,
+  forceLayoutFreeTails: false,
+  forceLayoutPullCrossing: false,
+  get colorRriNodes() { return cssColorToHex(vaRRI.getColors().intermolecularHighlight); },
+  get colorRriRegion() { return cssColorToHex(vaRRI.getColors().backgroundHighlight); },
+  get colorBasepair() { return cssColorToHex(vaRRI.getColors().basepair); },
   // subsequence highlighting
-  'highlightEditId': '',
-  'highlightSequence': '1',
-  'highlightRange': '',
-  get 'highlightColor'() { return getDefaultSubsequenceHighlightColor(); },
-  'highlightAlpha': '0.3',
+  subseqEditId: '',
+  subseqSequence: '1',
+  subseqRange: '',
+  get subseqColor() { return getDefaultSubsequenceHighlightColor(); },
+  subseqAlpha: '0.3',
   // region highlighting
-  'regionEditId': '',
-  'region1': '',
-  'region2': '',
-  get 'regionColor'() { return getDefaultRegionHighlightColor(); },
-  'regionAlpha': '0.2',
+  regionEditId: '',
+  region1: '',
+  region2: '',
+  get regionColor() { return getDefaultRegionHighlightColor(); },
+  regionAlpha: '0.2',
   // point mutations
-  'mutationEditId': '',
-  'mutationSequence': '1',
-  'mutationPosition': '',
-  'mutationBase': '',
-  get 'mutationColor'() { return getDefaultMutationColor(); },
+  mutationEditId: '',
+  mutationSequence: '1',
+  mutationPosition: '',
+  mutationBase: '',
+  get mutationColor() { return getDefaultMutationColor(); },
 };
 
 // -----------------------------------------------------------------------
@@ -60,11 +60,11 @@ const UI_ONLY_FIELDS = [
     'regionColor',
     'regionAlpha',
     // sequence highlight input/update form fields
-    'highlightEditId',
-    'highlightSequence',
-    'highlightRange',
-    'highlightColor',
-    'highlightAlpha',
+    'subseqEditId',
+    'subseqSequence',
+    'subseqRange',
+    'subseqColor',
+    'subseqAlpha',
     // mutation input/update form fields
     'mutationEditId',
     'mutationSequence',
@@ -72,7 +72,7 @@ const UI_ONLY_FIELDS = [
     'mutationBase',
     'mutationColor',
     // rotation control & slider
-    'rotation-slider'
+    'rotationSlider'
   ]
 
 // -------------------------------------------------------------------------
@@ -86,7 +86,7 @@ const EXAMPLES = {
     coloring: 'strand', highlighting: 'region',
     backgroundhighlighting: 'basepairs', guBasepairs: true,
     cropping: '2',
-    animation: false,
+    forceLayout: false,
     regionHighlights: [
       { sequence1Range: '13-14', sequence2Range: '120-121', color: '#0d00ff', generated: false },
     ],
@@ -148,16 +148,16 @@ function loadExample(key) {
   document.getElementById('startIndex1').value = ex.startIndex1;
   document.getElementById('startIndex2').value = ex.startIndex2;
   document.getElementById('coloring').value = ex.coloring;
-  document.getElementById('animation').checked = !!ex.animation;
+  document.getElementById('forceLayout').checked = !!ex.forceLayout;
   document.getElementById('highlighting').value = ex.highlighting;
   document.getElementById('backgroundhighlighting').value = ex.backgroundhighlighting;
   document.getElementById('guBasepairs').checked = ex.guBasepairs;
-  document.getElementById('profile-data-1').value = ex.profileData1 || '';
-  document.getElementById('profile-idx-ref-1').value = ex.profileIndexReference1 || '1';
-  document.getElementById('profile-data-2').value = ex.profileData2 || '';
-  document.getElementById('profile-idx-ref-2').value = ex.profileIndexReference2 || '1';
-  document.getElementById('profile-color-1-represents-one').checked = !!ex.profileColor1RepresentsOne;
-  document.getElementById('profile-color-2-represents-one').checked = !!ex.profileColor2RepresentsOne;
+  document.getElementById('profileData1').value = ex.profileData1 || '';
+  document.getElementById('profileIdxRef1').value = ex.profileIndexReference1 || '1';
+  document.getElementById('profileData2').value = ex.profileData2 || '';
+  document.getElementById('profileIdxRef2').value = ex.profileIndexReference2 || '1';
+  document.getElementById('profileColorRepresentsOne1').checked = !!ex.profileColor1RepresentsOne;
+  document.getElementById('profileColorRepresentsOne2').checked = !!ex.profileColor2RepresentsOne;
   
   vaRRI.clearSubsequenceHighlights();
   const exampleHighlights = Array.isArray(ex.subsequenceHighlights)
@@ -257,26 +257,26 @@ function cssColorToRGB(css, alpha=1) {
 function getProfileAccessibilityColors() {
   const defaults = vaRRI.getColors();
   return {
-    sequence1: document.getElementById('profile-color-1')?.value || cssColorToHex(defaults.seq1profileColor),
-    sequence2: document.getElementById('profile-color-2')?.value || cssColorToHex(defaults.seq2profileColor),
+    sequence1: document.getElementById('profileColor1')?.value || cssColorToHex(defaults.seq1profileColor),
+    sequence2: document.getElementById('profileColor2')?.value || cssColorToHex(defaults.seq2profileColor),
   };
 }
 
 function getProfileAccessibilityMode() {
   return {
-    sequence1RepresentsOne: !!document.getElementById('profile-color-1-represents-one')?.checked,
-    sequence2RepresentsOne: !!document.getElementById('profile-color-2-represents-one')?.checked,
+    sequence1RepresentsOne: !!document.getElementById('profileColorRepresentsOne1')?.checked,
+    sequence2RepresentsOne: !!document.getElementById('profileColorRepresentsOne2')?.checked,
   };
 }
 
 function applyColors() {
   vaRRI.setColors({
-    sequence1: document.getElementById('color-seq1').value,
-    sequence2: document.getElementById('color-seq2').value,
-    intermolecularHighlight: document.getElementById('color-intermol').value,
-    backgroundHighlight: document.getElementById('color-bg').value,
-    subsequenceHighlight: document.getElementById('highlightColor').value,
-    basepair: document.getElementById('color-basepair').value,
+    sequence1: document.getElementById('colorSeq1').value,
+    sequence2: document.getElementById('colorSeq2').value,
+    intermolecularHighlight: document.getElementById('colorRriNodes').value,
+    backgroundHighlight: document.getElementById('colorRriRegion').value,
+    subsequenceHighlight: document.getElementById('subseqColor').value,
+    basepair: document.getElementById('colorBasepair').value,
   });
 }
 
@@ -346,15 +346,15 @@ function clearAll() {
 
 function resetForceLayoutControl() {
   resetFormDefaultValue([
-    'animation',
-    'free-trailing-ends',
-    'pull-pseudoknot-basepairs'
+    'forceLayout',
+    'forceLayoutFreeTails',
+    'forceLayoutPullCrossing'
   ]);
 }
 
 function resetRotationControl() {
   committedRotationDeg = 0;
-  resetFormDefaultValue(['rotation-slider']);
+  resetFormDefaultValue(['rotationSlider']);
 }
 
 function resetCroppingControl() {
@@ -364,7 +364,7 @@ function resetCroppingControl() {
 }
 
 function applySliderRotation() {
-  const slider = document.getElementById('rotation-slider');
+  const slider = document.getElementById('rotationSlider');
   if (!slider) return;
 
   const container = document.getElementById(currentContainerId);
@@ -379,7 +379,7 @@ function applySliderRotation() {
 }
 
 function commitSliderRotation() {
-  const slider = document.getElementById('rotation-slider');
+  const slider = document.getElementById('rotationSlider');
   if (!slider) return;
 
   const sliderDelta = Number(slider.value);
@@ -512,7 +512,7 @@ function getHighlightSequenceContext() {
 }
 
 function getProfileIndexReference(seq) {
-  const selected = document.getElementById(`profile-idx-ref-${seq}`);
+  const selected = document.getElementById(`profileIdxRef${seq}`);
   return selected ? selected.value : '1';
 }
 
@@ -580,7 +580,7 @@ function mapProfileDataToAccessData(seqData, seqId, refMode, v, vUncropped) {
       const ordinal = index;
       if (!Number.isInteger(ordinal) || ordinal < 1 || ordinal > sourceSeqPositions.length) {
         throw {
-          fieldId: `profile-data-${seqId}`,
+          fieldId: `profileData${seqId}`,
           message: `Profile index ${index} is out of 1-based sequence bounds [1, ${sourceSeqPositions.length}] for sequence ${seqId}.`,
         };
       }
@@ -603,7 +603,7 @@ function mapProfileDataToAccessData(seqData, seqId, refMode, v, vUncropped) {
         return;
       }
       throw {
-        fieldId: `profile-data-${seqId}`,
+        fieldId: `profileData${seqId}`,
         message: `Profile index ${index} does not map to a valid nucleotide of sequence ${seqId}.`,
       };
     }
@@ -618,31 +618,31 @@ function parseProfileAccessData(v, args) {
   const vUncropped = vaRRI.validate({ ...args, cropping: '-1' });
   let accessData = {};
   for (const seqId of ['1', '2']) {
-    const profileRaw = document.getElementById(`profile-data-${seqId}`).value;
-    const seqData = parseProfileLines(profileRaw, `profile-data-${seqId}`);
+    const profileRaw = document.getElementById(`profileData${seqId}`).value;
+    const seqData = parseProfileLines(profileRaw, `profileData${seqId}`);
     const refMode = getProfileIndexReference(seqId);
     // append the access data for this sequence to the overall access data object
     accessData = { ...accessData, ...mapProfileDataToAccessData(seqData, seqId, refMode, v, vUncropped) };
   }
   // update UI counters for profile data fields
-  updateInputCounter(['profile-data-1', 'profile-data-2'], 'profile-counter');
+  updateInputCounter(['profileData1', 'profileData2'], 'profileCounterUI');
   // return the combined access data for both sequences
   return accessData;
 }
 
 function resetProfileForm() {
   resetFormDefaultValue([
-    'profile-data-1',
-    'profile-idx-ref-1',
-    'profile-color-1',
-    'profile-color-1-represents-one',
-    'profile-data-2',
-    'profile-idx-ref-2',
-    'profile-color-2',
-    'profile-color-2-represents-one',
+    'profileData1',
+    'profileIdxRef1',
+    'profileColor1',
+    'profileColorRepresentsOne1',
+    'profileData2',
+    'profileIdxRef2',
+    'profileColor2',
+    'profileColorRepresentsOne2',
   ]);
   // update UI counter for profile data fields
-  updateInputCounter(['profile-data-1', 'profile-data-2'], 'profile-counter');
+  updateInputCounter(['profileData1', 'profileData2'], 'profileCounterUI');
 }
 
 function getCompatibilityValidationContext(v) {
@@ -698,7 +698,7 @@ function validateStartIndexCompatibility(args) {
       return {
         ok: false,
         message: `Start index ${highlight.sequence} is incompatible with subsequence highlight "${highlight.rangeText}": ${message}`,
-        focusField: 'highlightRange',
+        focusField: 'subseqRange',
         startField: highlight.sequence === '1' ? 'startIndex1' : 'startIndex2',
       };
     }
@@ -759,7 +759,7 @@ function validateStartIndexCompatibility(args) {
   } catch (err) {
     const message = err && err.message ? err.message : String(err);
     const fieldId = err && err.fieldId ? err.fieldId : null;
-    const seq = fieldId === 'profile-data-2' ? '2' : '1';
+    const seq = fieldId === 'profileData2' ? '2' : '1';
     return {
       ok: false,
       message: `Start index ${seq} is incompatible with profile data: ${message}`,
@@ -774,7 +774,7 @@ function validateStartIndexCompatibility(args) {
 /**
  * Updates a UI counter element based on the number of non-empty input/textarea fields.
  * 
- * @param {string[]} inputIds - Array of element IDs to inspect (e.g. ['profile-data-1', 'profile-data-2']).
+ * @param {string[]} inputIds - Array of element IDs to inspect (e.g. ['profileData1', 'profileData2']).
  * @param {string} counterId - ID of the <span> element displaying the counter.
  */
 function updateInputCounter(inputIds, counterId) {
@@ -841,11 +841,11 @@ function resetRegionForm() {
 
 function resetHighlightForm() {
   resetFormDefaultValue([
-    'highlightEditId',
-    'highlightSequence',
-    'highlightRange',
-    'highlightColor',
-    'highlightAlpha'
+    'subseqEditId',
+    'subseqSequence',
+    'subseqRange',
+    'subseqColor',
+    'subseqAlpha'
   ]);
   const submitBtn = document.getElementById('highlightSubmitBtn');
   if (submitBtn) submitBtn.textContent = 'Add';
@@ -887,21 +887,21 @@ function renderHighlightList() {
     info.addEventListener('click', () => {
       document.querySelectorAll('.highlight-item.active').forEach(el => el.classList.remove('active'));
       item.classList.add('active');
-      document.getElementById('highlightEditId').value = String(highlight.id);
-      document.getElementById('highlightSequence').value = highlight.sequence;
-      document.getElementById('highlightRange').value = highlight.rangeText;
-      document.getElementById('highlightColor').value = cssColorToHex(highlight.color);
-      document.getElementById('highlightAlpha').value = highlight.alpha.toFixed(1);
+      document.getElementById('subseqEditId').value = String(highlight.id);
+      document.getElementById('subseqSequence').value = highlight.sequence;
+      document.getElementById('subseqRange').value = highlight.rangeText;
+      document.getElementById('subseqColor').value = cssColorToHex(highlight.color);
+      document.getElementById('subseqAlpha').value = highlight.alpha.toFixed(1);
       document.getElementById('highlightSubmitBtn').textContent = 'Update';
-      clearFieldError('highlightSequence');
-      clearFieldError('highlightRange');
-      clearFieldError('highlightColor');
+      clearFieldError('subseqSequence');
+      clearFieldError('subseqRange');
+      clearFieldError('subseqColor');
     });
 
     removeBtn.addEventListener('click', () => {
       const removed = vaRRI.removeSubsequenceHighlight(highlight.id);
       if (!removed) return;
-      if (document.getElementById('highlightEditId').value === String(highlight.id)) {
+      if (document.getElementById('subseqEditId').value === String(highlight.id)) {
         resetHighlightForm();
       }
       renderHighlightList();
@@ -922,19 +922,19 @@ function submitHighlightForm(event) {
     event.stopPropagation();
   }
 
-  clearFieldError('highlightSequence');
-  clearFieldError('highlightRange');
-  clearFieldError('highlightColor');
-  clearFieldError('highlightAlpha');
+  clearFieldError('subseqSequence');
+  clearFieldError('subseqRange');
+  clearFieldError('subseqColor');
+  clearFieldError('subseqAlpha');
 
-  const sequence = document.getElementById('highlightSequence').value;
-  const range = document.getElementById('highlightRange').value.trim();
-  const color = document.getElementById('highlightColor').value;
-  const alpha = document.getElementById('highlightAlpha').value.trim();
-  const editIdRaw = document.getElementById('highlightEditId').value;
+  const sequence = document.getElementById('subseqSequence').value;
+  const range = document.getElementById('subseqRange').value.trim();
+  const color = document.getElementById('subseqColor').value;
+  const alpha = document.getElementById('subseqAlpha').value.trim();
+  const editIdRaw = document.getElementById('subseqEditId').value;
 
   if (!range) {
-    setFieldError('highlightRange', 'Highlight range must not be empty.');
+    setFieldError('subseqRange', 'Highlight range must not be empty.');
     return;
   }
 
@@ -960,9 +960,9 @@ function submitHighlightForm(event) {
     const isSequenceSelectorError = /must be "1" or "2"/i.test(message);
     const isColorError = /color/i.test(message);
 
-    if (isSequenceSelectorError) setFieldError('highlightSequence', message);
-    else if (isColorError) setFieldError('highlightColor', message);
-    else setFieldError('highlightRange', message);
+    if (isSequenceSelectorError) setFieldError('subseqSequence', message);
+    else if (isColorError) setFieldError('subseqColor', message);
+    else setFieldError('subseqRange', message);
     return;
   }
 
@@ -1312,11 +1312,11 @@ function validateFields(args) {
   catch (e) { setFieldError('startIndex2', e.message); valid = false; }
 
   // Profile textarea syntax
-  try { parseProfileLines(document.getElementById('profile-data-1').value, 'profile-data-1'); }
-  catch (e) { setFieldError(e.fieldId || 'profile-data-1', e.message || String(e)); valid = false; }
+  try { parseProfileLines(document.getElementById('profileData1').value, 'profileData1'); }
+  catch (e) { setFieldError(e.fieldId || 'profileData1', e.message || String(e)); valid = false; }
 
-  try { parseProfileLines(document.getElementById('profile-data-2').value, 'profile-data-2'); }
-  catch (e) { setFieldError(e.fieldId || 'profile-data-2', e.message || String(e)); valid = false; }
+  try { parseProfileLines(document.getElementById('profileData2').value, 'profileData2'); }
+  catch (e) { setFieldError(e.fieldId || 'profileData2', e.message || String(e)); valid = false; }
 
   if (valid) {
     const compatibility = validateStartIndexCompatibility(args);
@@ -1354,7 +1354,7 @@ async function runVisualization() {
   try {
     accessData = parseProfileAccessData(v, args);
   } catch (err) {
-    setFieldError(err.fieldId || 'profile-data-1', err.message || String(err));
+    setFieldError(err.fieldId || 'profileData1', err.message || String(err));
     return;
   }
 
@@ -1365,15 +1365,15 @@ async function runVisualization() {
   container.style.visibility = 'hidden';
   resetRotationControl();
 
-  const animation = document.getElementById('animation').checked;
-  const freeTrailingEnds = animation && !!document.getElementById('free-trailing-ends')?.checked;
-  const pullPseudoknotBasepairs = animation && !!document.getElementById('pull-pseudoknot-basepairs')?.checked;
+  const forceLayout = document.getElementById('forceLayout').checked;
+  const freeTrailingEnds = forceLayout && !!document.getElementById('forceLayoutFreeTails')?.checked;
+  const pullPseudoknotBasepairs = forceLayout && !!document.getElementById('forceLayoutPullCrossing')?.checked;
   const accessColors = getProfileAccessibilityColors();
   const accessColorMode = getProfileAccessibilityMode();
 
   try {
     const renderState = await vaRRI.render(currentContainerId, v, {
-      animation,
+      forceLayout,
       freeTrailingEnds,
       pullPseudoknotBasepairs,
       accessData,
@@ -1410,14 +1410,14 @@ function queueVisualization(delay = 0) {
 }
 
 function syncAnimationDependentControls() {
-  const animationCheckbox = document.getElementById('animation');
+  const animationCheckbox = document.getElementById('forceLayout');
   if (!animationCheckbox) return;
 
   const enabled = !!animationCheckbox.checked;
 
   [
-    document.getElementById('free-trailing-ends'),
-    document.getElementById('pull-pseudoknot-basepairs'),
+    document.getElementById('forceLayoutFreeTails'),
+    document.getElementById('forceLayoutPullCrossing'),
   ].forEach(checkbox => {
     if (!checkbox) return;
     checkbox.disabled = !enabled;
@@ -1433,26 +1433,23 @@ function attachAutoVisualizationListeners() {
     'startIndex1',
     'startIndex2',
     'mutationPosition',
-    'profile-data-1',
-    'profile-data-2',
+    'profileData1',
+    'profileData2',
   ];
   const listenerConfig = {
     coloring: { eventName: 'change' },
     highlighting: { eventName: 'change' },
     backgroundhighlighting: { eventName: 'change' },
     guBasepairs: { eventName: 'change' },
-    animation: { eventName: 'change' },
-    'free-trailing-ends': { eventName: 'change' },
-    'pull-pseudoknot-basepairs': { eventName: 'change' },
-    'profile-color-1': { eventName: 'change' },
-    'profile-color-2': { eventName: 'change' },
-    'profile-color-1-represents-one': { eventName: 'change' },
-    'profile-color-2-represents-one': { eventName: 'change' },
-    mutationSequence: { eventName: 'change' },
-    mutationBase: { eventName: 'change' },
-    mutationColor: { eventName: 'change' },
-    'profile-idx-ref-1': { eventName: 'change' },
-    'profile-idx-ref-2': { eventName: 'change' },
+    forceLayout: { eventName: 'change' },
+    forceLayoutFreeTails: { eventName: 'change' },
+    forceLayoutPullCrossing: { eventName: 'change' },
+    profileColor1: { eventName: 'change' },
+    profileColor2: { eventName: 'change' },
+    profileColorRepresentsOne1: { eventName: 'change' },
+    profileColorRepresentsOne2: { eventName: 'change' },
+    profileIdxRef1: { eventName: 'change' },
+    profileIdxRef2: { eventName: 'change' },
   };
 
   committedFieldIds.forEach(id => {
@@ -1488,7 +1485,7 @@ function attachAutoVisualizationListeners() {
     if (!el) return;
 
     el.addEventListener(config.eventName, () => {
-      if (id === 'animation') syncAnimationDependentControls();
+      if (id === 'forceLayout') syncAnimationDependentControls();
       clearFieldError(id);
       queueVisualization();
     });
@@ -1648,7 +1645,7 @@ function generateShareableURL(btnElement) {
       .join(',');
 
     if (encodedHighlights) {
-      params.append('highlights', encodedHighlights);
+      params.append('subseqHighlights', encodedHighlights);
     }
   }
 
@@ -1760,7 +1757,7 @@ function loadUrlMutationsToVaRRI(argName = 'mutations') {
  * Checks whether subsequence highlights are present in the URL parameters and loads them into vaRRI.
  * Expected encoding: "<seq>:<start>-<end>[:<color>]", comma-separated.
  */
-function loadUrlSubsequenceHighlightsToVaRRI(argName = 'highlights') {
+function loadUrlSubsequenceHighlightsToVaRRI(argName = 'subseqHighlights') {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.has(argName)) {
     const value = urlParams.get(argName) || '';
@@ -1773,7 +1770,7 @@ function loadUrlSubsequenceHighlightsToVaRRI(argName = 'highlights') {
         const start = parseInt(match[2], 10);
         const end = parseInt(match[3], 10);
         const color = parseUrlColor(match[4], getDefaultSubsequenceHighlightColor());
-        const alpha = match[6] !== undefined ? parseFloat(match[6]) : DEFAULT_VALUES.highlightAlpha;
+        const alpha = match[6] !== undefined ? parseFloat(match[6]) : DEFAULT_VALUES.subseqAlpha;
 
         try {
           vaRRI.registerSubsequenceHighlight(
@@ -1896,7 +1893,7 @@ function syncGeneratedRegionHighlight() {
   const payload = {
     sequence1Range: ranges.sequence1Range,
     sequence2Range: ranges.sequence2Range,
-    color: document.getElementById('color-bg')?.value || getDefaultRegionHighlightColor(),
+    color: document.getElementById('colorRriRegion')?.value || getDefaultRegionHighlightColor(),
   };
 
   const existing = vaRRI.getRegionHighlights().find(highlight => highlight.generated);
@@ -1930,23 +1927,23 @@ function loadAllUrlParameters() {
   // 1. Alle Standard-DOM-Elemente befüllen
   urlParams.forEach((value, paramKey) => {
     // Spezial-Parameter überspringen, da diese separat geladen werden
-    if (paramKey === 'mutations' || paramKey === 'highlights' || paramKey === 'regionHighlights' || paramKey === 'showRenderingOnly') return;
+    if (paramKey === 'mutations' || paramKey === 'subseqHighlights' || paramKey === 'regionHighlights' || paramKey === 'showRenderingOnly') return;
 
     const loaded = loadUrlArgumentToInputField(paramKey, value, paramKey);
 
-    if (loaded && (paramKey.startsWith('profile-data') || paramKey.startsWith('profile-color') || paramKey.startsWith('profile-idx'))) {
+    if (loaded && (paramKey.startsWith('profileData'))) {
       hasProfileData = true;
     }
   });
 
   // 2. Spezifische vaRRI Objekte laden
   loadUrlMutationsToVaRRI('mutations');
-  loadUrlSubsequenceHighlightsToVaRRI('highlights');
+  loadUrlSubsequenceHighlightsToVaRRI('subseqHighlights');
   loadUrlRegionHighlightsToVaRRI('regionHighlights');
 
   // 3. Profil-Accordion öffnen, falls Daten vorhanden sind
   if (hasProfileData) {
-    const profileDetails = document.getElementById('profile-data-1')?.closest('details');
+    const profileDetails = document.getElementById('profileData1')?.closest('details');
     if (profileDetails) {
       profileDetails.open = true;
     }
@@ -1977,20 +1974,20 @@ window.addEventListener('load', () => {
   if (profileClearBtn) profileClearBtn.addEventListener('click', resetProfileForm);
 
   // 3. Drag & Drop und Textarea-Counter vorbereiten
-  setupFileDragAndDrop('profile-data-1');
-  setupFileDragAndDrop('profile-data-2');
+  setupFileDragAndDrop('profileData1');
+  setupFileDragAndDrop('profileData2');
 
-  const rotationSlider = document.getElementById('rotation-slider');
+  const rotationSlider = document.getElementById('rotationSlider');
   if (rotationSlider) {
     rotationSlider.addEventListener('input', applySliderRotation);
     rotationSlider.addEventListener('change', commitSliderRotation);
   }
-  const profileInputIds = ['profile-data-1', 'profile-data-2'];
+  const profileInputIds = ['profileData1', 'profileData2'];
   profileInputIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-      el.addEventListener('input', () => updateInputCounter(profileInputIds, 'profile-counter'));
-      el.addEventListener('change', () => updateInputCounter(profileInputIds, 'profile-counter'));
+      el.addEventListener('input', () => updateInputCounter(profileInputIds, 'profileCounterUI'));
+      el.addEventListener('change', () => updateInputCounter(profileInputIds, 'profileCounterUI'));
     }
   });
 
@@ -2008,7 +2005,7 @@ window.addEventListener('load', () => {
     resetHighlightForm();
     resetRegionForm();
     resetMutationForm();
-    updateInputCounter(profileInputIds, 'profile-counter');
+    updateInputCounter(profileInputIds, 'profileCounterUI');
 
     syncAnimationDependentControls();
 
