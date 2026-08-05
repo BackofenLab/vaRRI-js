@@ -91,12 +91,12 @@ const EXAMPLES = {
       { sequence1Range: '13-14', sequence2Range: '120-121', color: '#0d00ff', generated: false },
     ],
     subsequenceHighlights: [
-      { sequence: '1', range: '18-20', color: '#338a29' },
-      { sequence: '2', range: '114-116', color: '#338a29' },
+      { sequence: '1', range: '18-20', color: '#338a29', alpha: 1 },
+      { sequence: '2', range: '114-116', color: '#1e1ee4', alpha: 0.7 },
     ],
     pointMutations: [
       { sequence: '1', position: 16, replacement: 'G', color: '#338a29' },
-      { sequence: '2', position: 118, replacement: 'C', color: '#338a29' },
+      { sequence: '2', position: 118, replacement: 'C', color: '#1e1ee4' },
     ],
     profileColor1RepresentsOne: true,
     profileColor2RepresentsOne: false,
@@ -170,6 +170,7 @@ function loadExample(key) {
         sequence: highlight.sequence,
         range: highlight.range,
         color: highlight.color,
+        alpha: highlight.alpha,
       }, sequenceContext);
     });
   }
@@ -185,6 +186,7 @@ function loadExample(key) {
         sequence1Range: region.sequence1Range,
         sequence2Range: region.sequence2Range,
         color: region.color,
+        alpha: region.alpha,
         generated: region.generated,
       }, sequenceContext);
     });
