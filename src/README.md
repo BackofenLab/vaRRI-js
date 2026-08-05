@@ -56,6 +56,7 @@ post-processing from the previous render.
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `forceLayout` | `boolean` | `false` | Enable Fornac force-layout animation. |
+| `forceLayoutLinear` | `boolean` | `false` | Keep intermolecularly paired nucleotides on two rigid parallel rails. Loop bridges derive from the larger strand's arc length and retain bending slack on the shorter strand. Requires `forceLayout`. |
 | `freeTrailingEnds` | `boolean` | `false` | Relax the external-loop closure scaffold when force layout is active. |
 | `pullPseudoknotBasepairs` | `boolean` | `false` | Increase pseudoknot link strength when force layout is active. |
 | `accessData` | `Object<number, number>\|null` | `null` | Node-ID to probability map. |
@@ -65,6 +66,7 @@ post-processing from the previous render.
 ```javascript
 const state = await vaRRI.render('rna_ss', validated, {
   forceLayout: true,
+  forceLayoutLinear: true,
   accessData: { 1: 0.8, 2: 0.3 },
 });
 ```
@@ -167,6 +169,7 @@ const sequenceContext = {
 ## Base-pair utilities
 
 - `vaRRI.getIntermolBasepairRegion(structure1, structure2)`
+- `vaRRI.getLinearRriConstraintSpecs(validated)`
 - `vaRRI.listBasepairs(structureDictionary)`
 - `vaRRI.listIntermolNodes(structure, shift?)`
 - `vaRRI.listIntermolPairs(validated)`

@@ -20,6 +20,12 @@
     /** Number of invisible gap nodes Fornac inserts between two molecules. */
     const GAP = 3;
 
+    /** Force-graph link type reserved for invisible linear-RRI constraints. */
+    const LINEAR_RRI_LINK_TYPE = 'rri_linear';
+
+    /** Match Fornac's strong backbone/basepair link strength. */
+    const LINEAR_RRI_LINK_STRENGTH = 10;
+
     /** Active requestAnimationFrame ID for the background-highlight animation loop (null when idle). */
     let _animFrameId = null;
 
@@ -2049,6 +2055,197 @@
     }
 
     /**
+     * Build the invisible same-strand distance constraints used by the linear
+     * RRI layout.
+     *
+     * RRI pairs are ordered along sequence 1. For each two neighbouring pair
+     * columns, both strand-spanning constraints receive the same length. The
+     * larger loop is treated as a semicircular backbone arc and converted to
+     * its chord length. That chord is capped by the shorter side so at least
+     * one backbone unit remains available for bending whenever both sides
+     * contain unpaired nucleotides. This avoids stretching the shorter side
+     * taut while retaining equal rail spans and aligned basepair columns.
+     *
+     * @param {Object} v  Validated parameter dictionary.
+     * @returns {Array<{source:number,target:number,distanceUnits:number,sequence:"1"|"2"}>}
+     */
+    function getLinearRriConstraintSpecs(v) {
+        const pairs = listIntermolPairs(v).slice().sort((a, b) => a[0] - b[0]);
+        const constraints = [];
+
+        for (let i = 1; i < pairs.length; i++) {
+            const previous = pairs[i - 1];
+            const current = pairs[i];
+            const sequence1LoopSize = Math.max(0, Math.abs(current[0] - previous[0]) - 1);
+            const sequence2LoopSize = Math.max(0, Math.abs(current[1] - previous[1]) - 1);
+            const largerLoopSize = Math.max(sequence1LoopSize, sequence2LoopSize);
+            const shorterLoopSize = Math.min(sequence1LoopSize, sequence2LoopSize);
+
+            // A semicircle with contour length L has chord 2L / PI. The
+            // contour contains one more backbone bond than internal nodes.
+            const largerLoopChordUnits = 2 * (largerLoopSize + 1) / Math.PI;
+
+            // When both strands contain unpaired nodes, leave at least one
+            // backbone unit of slack on the shorter side. For a true bulge,
+            // the paired/adjacent side retains its normal one-unit spacing.
+            const shorterRelaxedLimit = Math.max(1, shorterLoopSize);
+            const distanceUnits = Math.max(
+                1,
+                Math.min(largerLoopChordUnits, shorterRelaxedLimit)
+            );
+
+            constraints.push({
+                source: previous[0],
+                target: current[0],
+                distanceUnits,
+                sequence: '1',
+            });
+            constraints.push({
+                source: previous[1],
+                target: current[1],
+                distanceUnits,
+                sequence: '2',
+            });
+        }
+
+        return constraints;
+    }
+
+    /**
+     * Resolve a nucleotide node by its 1-based Fornac node number.
+     *
+     * @param {Object} graph
+     * @param {number} nodeNumber
+     * @returns {Object|null}
+     */
+    function getGraphNucleotideByNumber(graph, nodeNumber) {
+        if (!graph || !Array.isArray(graph.nodes)) return null;
+        return graph.nodes.find(node =>
+            node && node.nodeType === 'nucleotide' && node.num === nodeNumber
+        ) || null;
+    }
+
+    /**
+     * Pin all intermolecularly paired nucleotides to two parallel rails and
+     * add layout-only links representing the equal bridge distances.
+     *
+     * D3 v3 link distances are springs rather than rigid constraints. Pinning
+     * the RRI scaffold supplies the rigidity requested by the linear layout,
+     * while the rest of the RNA remains governed by Fornac's force field. The
+     * added links are deliberately not passed through `container.update()`, so
+     * they participate in the force graph but never become visible SVG lines.
+     *
+     * @param {Object} container  Live Fornac container.
+     * @param {Object} v  Validated parameter dictionary.
+     * @returns {boolean}  Whether a linear scaffold was applied.
+     */
+    function applyLinearRriLayout(container, v) {
+        const graph = container && container.graph;
+        if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.links)) return false;
+
+        const pairs = listIntermolPairs(v).slice().sort((a, b) => a[0] - b[0]);
+        if (pairs.length < 2) return false;
+
+        const pairNodes = pairs.map(([sequence1Node, sequence2Node]) => ({
+            sequence1: getGraphNucleotideByNumber(graph, sequence1Node),
+            sequence2: getGraphNucleotideByNumber(graph, sequence2Node),
+        }));
+        if (pairNodes.some(pair => !pair.sequence1 || !pair.sequence2)) return false;
+
+        const constraints = getLinearRriConstraintSpecs(v);
+        const linkDistanceMultiplier = Number(container.options?.linkDistanceMultiplier) || 15;
+
+        // Preserve the initial direction chosen by Fornac, but make it stable
+        // when the two endpoint pair centres happen to overlap.
+        const first = pairNodes[0];
+        const last = pairNodes[pairNodes.length - 1];
+        const firstCenter = {
+            x: (first.sequence1.x + first.sequence2.x) / 2,
+            y: (first.sequence1.y + first.sequence2.y) / 2,
+        };
+        const lastCenter = {
+            x: (last.sequence1.x + last.sequence2.x) / 2,
+            y: (last.sequence1.y + last.sequence2.y) / 2,
+        };
+        let axisX = lastCenter.x - firstCenter.x;
+        let axisY = lastCenter.y - firstCenter.y;
+        let axisLength = Math.hypot(axisX, axisY);
+        if (!Number.isFinite(axisLength) || axisLength < 1e-6) {
+            axisX = 1;
+            axisY = 0;
+            axisLength = 1;
+        }
+        axisX /= axisLength;
+        axisY /= axisLength;
+
+        let normalX = -axisY;
+        let normalY = axisX;
+        const averagePairDirection = pairNodes.reduce((sum, pair) => ({
+            x: sum.x + pair.sequence2.x - pair.sequence1.x,
+            y: sum.y + pair.sequence2.y - pair.sequence1.y,
+        }), { x: 0, y: 0 });
+        if (averagePairDirection.x * normalX + averagePairDirection.y * normalY < 0) {
+            normalX *= -1;
+            normalY *= -1;
+        }
+
+        const columnOffsets = [0];
+        for (let i = 0; i < constraints.length; i += 2) {
+            columnOffsets.push(
+                columnOffsets[columnOffsets.length - 1] +
+                constraints[i].distanceUnits * linkDistanceMultiplier
+            );
+        }
+        const offsetCenter = (columnOffsets[0] + columnOffsets[columnOffsets.length - 1]) / 2;
+        const scaffoldCenter = pairNodes.reduce((sum, pair) => ({
+            x: sum.x + (pair.sequence1.x + pair.sequence2.x) / 2,
+            y: sum.y + (pair.sequence1.y + pair.sequence2.y) / 2,
+        }), { x: 0, y: 0 });
+        scaffoldCenter.x /= pairNodes.length;
+        scaffoldCenter.y /= pairNodes.length;
+
+        const halfRung = linkDistanceMultiplier / 2;
+        pairNodes.forEach((pair, index) => {
+            const along = columnOffsets[index] - offsetCenter;
+            const centerX = scaffoldCenter.x + axisX * along;
+            const centerY = scaffoldCenter.y + axisY * along;
+            const targets = [
+                [pair.sequence1, centerX - normalX * halfRung, centerY - normalY * halfRung],
+                [pair.sequence2, centerX + normalX * halfRung, centerY + normalY * halfRung],
+            ];
+
+            targets.forEach(([node, x, y]) => {
+                node.x = node.px = x;
+                node.y = node.py = y;
+                node.fixed = (node.fixed || 0) | 1;
+                node.varriLinearRri = true;
+            });
+        });
+
+        constraints.forEach(spec => {
+            const source = getGraphNucleotideByNumber(graph, spec.source);
+            const target = getGraphNucleotideByNumber(graph, spec.target);
+            if (!source || !target) return;
+            graph.links.push({
+                source,
+                target,
+                value: spec.distanceUnits,
+                linkType: LINEAR_RRI_LINK_TYPE,
+                extraLinkType: 'constraint',
+            });
+        });
+
+        if (container.linkStrengths) {
+            container.linkStrengths[LINEAR_RRI_LINK_TYPE] = LINEAR_RRI_LINK_STRENGTH;
+        }
+        if (container.force && typeof container.force.start === 'function') {
+            container.force.start();
+        }
+
+        return true;
+    }
+
+    /**
      * Add background highlighting for intermolecular basepair stacks.
      *
      * @param {Object} v  Validated parameter dictionary.
@@ -2370,6 +2567,7 @@
      * @param {Object} v  Validated parameter dictionary (from `validate()`).
      * @param {Object} [options]
      * @param {boolean} [options.forceLayout=false]  Enable Fornac force-layout animation.
+     * @param {boolean} [options.forceLayoutLinear=false]  Pin intermolecularly paired nucleotides to a rigid, linear two-strand scaffold while the remaining nodes use the force layout.
      * @param {boolean} [options.freeTrailingEnds=false]  Remove Fornac's external-loop circularisation constraint (the "closure" scaffold linking the sequence ends) from the force graph, leaving all other loop constraints intact.
      * @param {boolean} [options.pullPseudoknotBasepairs=false]  Set Fornac's pseudoknot link force strength to 10 (default 0), pulling pseudoknot basepairs together in the force layout.
      * @param {Object.<number,number>|null} [options.accessData=null]  Accessibility data map.
@@ -2396,6 +2594,7 @@
 
         const {
             forceLayout = false,
+            forceLayoutLinear = false,
             freeTrailingEnds = false,
             pullPseudoknotBasepairs = false,
             accessData = null,
@@ -2416,6 +2615,10 @@
 
         if (forceLayout && pullPseudoknotBasepairs) {
             applyPseudoknotLinkStrength(container, true);
+        }
+
+        if (forceLayout && forceLayoutLinear && v.molecules === '2') {
+            applyLinearRriLayout(container, v);
         }
 
         function applyModifications() {
@@ -2464,6 +2667,12 @@
             // Accessibility overlay
             if (accessData) {
                 visualiseAccessibility(accessData, v.sequence1.length, accessColors, accessColorMode);
+            }
+
+            // The fixed scaffold may extend beyond Fornac's initial bounds.
+            // Refit after the first force ticks and all hidden nodes are removed.
+            if (forceLayout && forceLayoutLinear && typeof container.centerView === 'function') {
+                container.centerView();
             }
 
             // When animation is on, keep the background-highlight polygon in sync
@@ -2903,6 +3112,7 @@
 
         // Base-pair utilities
         getIntermolBasepairRegion,
+        getLinearRriConstraintSpecs,
         listBasepairs,
         listIntermolNodes,
         listIntermolPairs,

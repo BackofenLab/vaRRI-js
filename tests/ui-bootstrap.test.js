@@ -33,6 +33,22 @@ test('boots through bound UI actions without inline handlers', async () => {
   expect(document.getElementById('regionCounterUI').textContent).toBe('(1)');
   expect(document.getElementById('mutationCounterUI').textContent).toBe('(2)');
 
+  const linearLayout = document.getElementById('forceLayoutLinear');
+  const forceLayout = document.getElementById('forceLayout');
+  forceLayout.checked = false;
+  forceLayout.dispatchEvent(new window.Event('change'));
+  expect(linearLayout.disabled).toBe(false);
+  expect(linearLayout.checked).toBe(false);
+  linearLayout.checked = true;
+  linearLayout.dispatchEvent(new window.Event('change'));
+  expect(forceLayout.checked).toBe(true);
+  expect(renderSpy).toHaveBeenLastCalledWith(
+    expect.any(String),
+    expect.any(Object),
+    expect.objectContaining({ forceLayout: true, forceLayoutLinear: true })
+  );
+  await new Promise(resolve => setTimeout(resolve, 0));
+
   document.getElementById('clearAllBtn').click();
   expect(document.getElementById('sequence').value).toBe('');
   expect(document.getElementById('subseqCounterUI').textContent).toBe('');

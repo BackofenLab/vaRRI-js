@@ -26,6 +26,7 @@ const DEFAULT_VALUES = {
   forceLayout: true,
   forceLayoutFreeTails: false,
   forceLayoutPullCrossing: false,
+  forceLayoutLinear: false,
   get colorRriNodes() { return cssColorToHex(vaRRI.getColors().intermolecularHighlight); },
   get colorRriRegion() { return cssColorToHex(vaRRI.getColors().backgroundHighlight); },
   get colorBasepair() { return cssColorToHex(vaRRI.getColors().basepair); },
@@ -147,6 +148,7 @@ function loadExample(key) {
   document.getElementById('startIndex2').value = ex.startIndex2;
   document.getElementById('coloring').value = ex.coloring;
   document.getElementById('forceLayout').checked = !!ex.forceLayout;
+  document.getElementById('forceLayoutLinear').checked = !!ex.forceLayoutLinear;
   document.getElementById('highlighting').value = ex.highlighting;
   document.getElementById('backgroundhighlighting').value = ex.backgroundhighlighting;
   document.getElementById('guBasepairs').checked = ex.guBasepairs;
@@ -336,7 +338,8 @@ function resetForceLayoutControl() {
   resetFormDefaultValue([
     'forceLayout',
     'forceLayoutFreeTails',
-    'forceLayoutPullCrossing'
+    'forceLayoutPullCrossing',
+    'forceLayoutLinear'
   ]);
 }
 
@@ -1315,6 +1318,7 @@ async function runVisualization() {
   resetRotationControl();
 
   const forceLayout = document.getElementById('forceLayout').checked;
+  const forceLayoutLinear = forceLayout && !!document.getElementById('forceLayoutLinear')?.checked;
   const freeTrailingEnds = forceLayout && !!document.getElementById('forceLayoutFreeTails')?.checked;
   const pullPseudoknotBasepairs = forceLayout && !!document.getElementById('forceLayoutPullCrossing')?.checked;
   const accessColors = getProfileAccessibilityColors();
@@ -1323,6 +1327,7 @@ async function runVisualization() {
   try {
     const renderState = await vaRRI.render(currentContainerId, v, {
       forceLayout,
+      forceLayoutLinear,
       freeTrailingEnds,
       pullPseudoknotBasepairs,
       accessData,
@@ -1363,6 +1368,15 @@ function syncAnimationDependentControls() {
   if (!animationCheckbox) return;
 
   const enabled = !!animationCheckbox.checked;
+  const linearCheckbox = document.getElementById('forceLayoutLinear');
+
+  // Linear layout is self-enabling: it must remain clickable while the main
+  // force control is off. Explicitly turning force layout off clears it.
+  if (linearCheckbox) {
+    linearCheckbox.disabled = false;
+    if (!enabled) linearCheckbox.checked = false;
+  }
+
   [
     document.getElementById('forceLayoutFreeTails'),
     document.getElementById('forceLayoutPullCrossing'),
@@ -1392,6 +1406,7 @@ function attachAutoVisualizationListeners() {
     forceLayout: { eventName: 'change' },
     forceLayoutFreeTails: { eventName: 'change' },
     forceLayoutPullCrossing: { eventName: 'change' },
+    forceLayoutLinear: { eventName: 'change' },
     profileColor1: { eventName: 'change' },
     profileColor2: { eventName: 'change' },
     profileColorRepresentsOne1: { eventName: 'change' },
@@ -1433,6 +1448,10 @@ function attachAutoVisualizationListeners() {
     if (!el) return;
 
     el.addEventListener(config.eventName, () => {
+      if (id === 'forceLayoutLinear' && el.checked) {
+        document.getElementById('forceLayout').checked = true;
+        syncAnimationDependentControls();
+      }
       if (id === 'forceLayout') syncAnimationDependentControls();
       clearFieldError(id);
       queueVisualization();
@@ -1965,6 +1984,9 @@ window.addEventListener('load', () => {
     resetMutationForm();
     updateInputCounter(profileInputIds, 'profileCounterUI');
 
+    if (document.getElementById('forceLayoutLinear')?.checked) {
+      document.getElementById('forceLayout').checked = true;
+    }
     syncAnimationDependentControls();
 
     // Render once after all URL state has been applied.

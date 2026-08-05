@@ -882,6 +882,54 @@ describe('getIntermolBasepairRegion', () => {
 });
 
 // ---------------------------------------------------------------------------
+// getLinearRriConstraintSpecs
+// ---------------------------------------------------------------------------
+
+describe('getLinearRriConstraintSpecs', () => {
+    test('uses relaxed equal chords so the shorter loop side is not stretched taut', () => {
+        const v = vaRRI.validate({
+            structure: '(..(.....(&).....)....)',
+            sequence: 'AAAAAAAAAA&AAAAAAAAAAAA',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+
+        expect(vaRRI.listIntermolPairs(v)).toEqual([
+            [1, 25],
+            [4, 20],
+            [10, 14],
+        ]);
+
+        const constraints = vaRRI.getLinearRriConstraintSpecs(v);
+        expect(constraints).toHaveLength(4);
+        expect(constraints[0]).toMatchObject({ source: 1, target: 4, sequence: '1' });
+        expect(constraints[1]).toMatchObject({ source: 25, target: 20, sequence: '2' });
+        expect(constraints[0].distanceUnits).toBeCloseTo(2, 10);
+        expect(constraints[1].distanceUnits).toBeCloseTo(2, 10);
+
+        expect(constraints[2]).toMatchObject({ source: 4, target: 10, sequence: '1' });
+        expect(constraints[3]).toMatchObject({ source: 20, target: 14, sequence: '2' });
+        expect(constraints[2].distanceUnits).toBeCloseTo(12 / Math.PI, 10);
+        expect(constraints[3].distanceUnits).toBeCloseTo(12 / Math.PI, 10);
+
+        // The first asymmetric loop has three bonds on its shorter side.
+        // A two-unit chord leaves one full backbone unit available for bending.
+        expect(constraints[0].distanceUnits).toBeLessThan(3);
+    });
+
+    test('returns no constraints for fewer than two intermolecular pairs', () => {
+        const v = vaRRI.validate({
+            structure: '(...&...)',
+            sequence: 'AAAA&AAAA',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+
+        expect(vaRRI.getLinearRriConstraintSpecs(v)).toEqual([]);
+    });
+});
+
+// ---------------------------------------------------------------------------
 // sequenceColoring
 // ---------------------------------------------------------------------------
 
