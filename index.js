@@ -836,7 +836,7 @@ function resetRegionForm() {
   if (submitBtn) submitBtn.textContent = 'Add';
   document.querySelectorAll('.region-item.active').forEach(el => el.classList.remove('active'));
   // update counter in UI section
-  updateListCounter('region-list', 'region-counter');
+  updateListCounter('region-list', 'regionCounterUI');
 }
 
 function resetHighlightForm() {
@@ -851,7 +851,7 @@ function resetHighlightForm() {
   if (submitBtn) submitBtn.textContent = 'Add';
   document.querySelectorAll('.highlight-item.active').forEach(el => el.classList.remove('active'));
   // update counter in UI section
-  updateListCounter('highlight-list', 'highlight-counter');
+  updateListCounter('highlight-list', 'subseqCounterUI');
 }
 
 function renderHighlightList() {
@@ -861,7 +861,7 @@ function renderHighlightList() {
   if (highlights.length === 0) {
     listEl.innerHTML = '<li class="highlight-empty">No highlights defined.</li>';
       // update counter in UI section
-    updateListCounter('highlight-list', 'highlight-counter', 0);
+    updateListCounter('highlight-list', 'subseqCounterUI', 0);
     return;
   }
 
@@ -913,7 +913,7 @@ function renderHighlightList() {
     listEl.appendChild(item);
   });
   // update counter in UI section
-  updateListCounter('highlight-list', 'highlight-counter');
+  updateListCounter('highlight-list', 'subseqCounterUI');
 }
 
 function submitHighlightForm(event) {
@@ -978,7 +978,7 @@ function renderRegionList() {
 
   if (regions.length === 0) {
     listEl.innerHTML = '<li class="highlight-empty">No region highlights defined.</li>';
-    updateListCounter('region-list', 'region-counter', 0);
+    updateListCounter('region-list', 'regionCounterUI', 0);
     return;
   }
 
@@ -1040,7 +1040,7 @@ function renderRegionList() {
     listEl.appendChild(item);
   });
 
-  updateListCounter('region-list', 'region-counter');
+  updateListCounter('region-list', 'regionCounterUI');
 }
 
 function submitRegionForm(event) {
@@ -1134,7 +1134,7 @@ function resetMutationForm() {
   if (submitBtn) submitBtn.textContent = 'Add';
   document.querySelectorAll('.mutation-item.active').forEach(el => el.classList.remove('active'));
   // update counter in UI section
-  updateListCounter('mutation-list', 'mutation-counter');
+  updateListCounter('mutation-list', 'mutationCounterUI');
 }
 
 function renderMutationList() {
@@ -1144,7 +1144,7 @@ function renderMutationList() {
   if (mutations.length === 0) {
     listEl.innerHTML = '<li class="highlight-empty">No mutations defined.</li>';
     // update counter in UI section
-    updateListCounter('mutation-list', 'mutation-counter', 0);
+    updateListCounter('mutation-list', 'mutationCounterUI', 0);
     return;
   }
 
@@ -1198,7 +1198,7 @@ function renderMutationList() {
     listEl.appendChild(item);
   });
   // update counter in UI section
-  updateListCounter('mutation-list', 'mutation-counter');
+  updateListCounter('mutation-list', 'mutationCounterUI');
 }
 
 function submitMutationForm(event) {
