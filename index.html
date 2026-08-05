@@ -1,40 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>vaRRI-js — Visual Annotation of RNA-RNA Interactions</title>
 
   <!-- Fornac dependencies -->
-  <link rel="stylesheet" href="fornac/fornac.css" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="fornac/fornac.css">
+  <link rel="stylesheet" href="style.css">
   <script src="fornac/d3.js"></script>
   <script src="fornac/fornac.js"></script>
 
-  <!-- vaRRI-js library -->
-  <!-- Loading-Weiche für die JS-Bibliothek -->
-  <script>
-    (function() {
-      // Prüfen, ob die Seite lokal ausgeführt wird:
-      // - file: -> Doppelklick auf die HTML-Datei
-      // - localhost / 127.0.0.1 -> Lokaler Dev-Server
-      const isLocal = window.location.protocol === 'file:' || 
-                      window.location.hostname === 'localhost' || 
-                      window.location.hostname === '127.0.0.1';
-
-      // Pfad entsprechend wählen
-      const src = isLocal ? 'src/vaRRI.js' : 'dist/vaRRI.min.js';
-
-      // Skript-Tag dynamisch erzeugen und einbinden
-      const script = document.createElement('script');
-      script.src = src;
-      
-      // Optional: Falls deine Lib moderne ES6-Module verwendet:
-      // script.type = 'module';
-
-      document.head.appendChild(script);
-    })();
-  </script>
+  <!-- vaRRI-js library. Use dist/vaRRI.min.js in production integrations. -->
+  <script src="src/vaRRI.js"></script>
 
   <!-- vaRRI-js UI -->
   <script src="index.js" defer></script>
@@ -43,7 +21,7 @@
 
 <header>
   <a class="group-logo-link" href="https://www.bioinf.uni-freiburg.de" target="_blank" rel="noopener noreferrer" aria-label="Visit the Bioinformatics Group Freiburg website">
-    <img class="group-logo" src="https://www.bioinf.uni-freiburg.de/assets/images/bioinf-fr-logo-blau.png" alt="Bioinformatics Group Freiburg logo" />
+    <img class="group-logo" src="https://www.bioinf.uni-freiburg.de/assets/images/bioinf-fr-logo-blau.png" alt="Bioinformatics Group Freiburg logo">
   </a>
   <div class="header-title">
     <h1>vaRRI-js</h1>
@@ -52,7 +30,7 @@
   <div class="uni-logo-wrap">
     <a class="uni-logo-link" href="https://www.bioinf.uni-freiburg.de" target="_blank" rel="noopener noreferrer" aria-label="Open the University Freiburg Bioinformatics website in a new tab">
       <span class="uni-logo-text">Bioinformatics -</span>
-      <img src="https://www.bioinf.uni-freiburg.de/assets/images/logo-uni-freiburg.png" alt="University Freiburg logo" class="img-fluid uni-logo" />
+      <img src="https://www.bioinf.uni-freiburg.de/assets/images/logo-uni-freiburg.png" alt="University Freiburg logo" class="uni-logo">
     </a>
   </div>
 </header>
@@ -62,19 +40,15 @@
     <!-- ================================================================== -->
     <!-- Input panel                                                          -->
     <!-- ================================================================== -->
-    <aside class="panel control-panel">
+    <aside class="panel control-panel" aria-label="Sequence and structure input">
       <details class="control-group" open>
-        <summary>Sequence & Structure Input</summary>
+        <summary>Sequence &amp; Structure Input</summary>
         <div class="control-group-body">
         <!-- Quick examples -->
         <label>Example</label>
         <div class="examples">
-          <button class="example-btn" onclick="loadExample('2mol')">RNA-RNA interaction</button>
-          <!--
-            <button class="example-btn" onclick="loadExample('1mol')">nested</button>
-            <button class="example-btn" onclick="loadExample('pseudoknot')">pseudoknot</button>
-            -->
-          <button class="btn btn-sm" onclick="clearAll()" style="background:#d8e5f1;color:#1c2b39">✕ Clear</button>
+          <button class="example-btn" type="button" data-example="2mol">RNA-RNA interaction</button>
+          <button id="clearAllBtn" class="btn btn-secondary btn-sm" type="button">✕ Clear</button>
         </div>
 
         <!-- Sequence -->
@@ -82,26 +56,25 @@
           Sequence <small>(IUPAC; separate two molecules with &amp;)</small>
         </label>
         <div class="input-wrap"><textarea id="sequence" rows="3"
-          placeholder="ACGAUCAGAGAUUAGAGCAUACGACAGCAG&ACGAAAAGAGCAUACGACAGUAG"></textarea><span class="field-tooltip"></span></div>
+          placeholder="ACGAUCAGAGAUUAGAGCAUACGACAGCAG&amp;ACGAAAAGAGCAUACGACAGUAG"></textarea><span class="field-tooltip"></span></div>
 
         <!-- Start indices and color -->
         <div class="start-index-grid">
           <div class="start-index-item">
             <div class="start-index-label-row">
-              <input type="color" id="colorSeq1" class="legend-color"
-                              title="Select sequence 1 strand colour"
-                              onchange="applyColors(); runVisualization();" />
+              <input type="color" id="colorSeq1" class="legend-color js-render-color"
+                     title="Select sequence 1 strand colour">
               <label for="startIndex1">Start&nbsp;1</label>
-              <input type="number" id="startIndex1" value="1" size="4" />
+              <input type="number" id="startIndex1" value="1">
               <span class="field-tooltip"></span>
             </div>
           </div>
           <div class="start-index-item">
             <div class="start-index-label-row">
-              <input type="color" id="colorSeq2" class="legend-color"
-              title="Select sequence 2 strand colour" onchange="applyColors(); runVisualization();" />
+              <input type="color" id="colorSeq2" class="legend-color js-render-color"
+                     title="Select sequence 2 strand colour">
               <label for="startIndex2">Start&nbsp;2</label>
-              <input type="number" id="startIndex2" value="1" size="4" />
+              <input type="number" id="startIndex2" value="1">
               <span class="field-tooltip"></span>
             </div>
           </div>
@@ -112,7 +85,7 @@
           Structure <small>(dot-bracket; separate two molecules with &amp;)</small>
         </label>
         <div class="input-wrap"><textarea id="structure" rows="3"
-          placeholder="..(((((....)))))(((....)))..&..(((......))).."></textarea><span class="field-tooltip"></span></div>
+          placeholder="..(((((....)))))(((....)))..&amp;..(((......))).."></textarea><span class="field-tooltip"></span></div>
 
         </div>
       </details>
@@ -123,17 +96,15 @@
     <!-- ================================================================== -->
     <!-- Visualization panel                                                 -->
     <!-- ================================================================== -->
-    <aside class="panel control-panel">
+    <aside class="panel control-panel" aria-label="Visualization settings">
       <details class="control-group">
         <summary>Visualization Settings</summary>
         <div class="control-group-body">
 
           <div class="row-2">
-            <label for="colorBasepair"
-            onmouseenter="this.title = document.getElementById('colorBasepair')?.getAttribute('title') || '';"
-            onclick="document.getElementById('colorBasepair').click();">Base pair color</label>
-            <input type="color" id="colorBasepair" class="legend-color-rect"
-            title="Select base pair colour" onchange="applyColors(); runVisualization();" />
+            <label for="colorBasepair" title="Select base pair colour">Base pair color</label>
+            <input type="color" id="colorBasepair" class="legend-color-rect js-render-color"
+                   title="Select base pair colour">
           </div>
 
           <div class="row-2">
@@ -151,28 +122,30 @@
               <option value="region" selected>region</option>
               <option value="basepairs">basepairs</option>
               <option value="nothing">nothing</option>
-            </select>  
-            <input type="color" id="colorRriNodes" class="legend-color"
-                 title="Select nucleotide highlight colour" onchange="applyColors(); runVisualization();" />
-          </div>                 
-          <div class="checkbox-row">
-            <input type="checkbox" id="guBasepairs" checked />
-            <label for="guBasepairs" style="margin:0">Show G-U basepairs as dashed lines</label>
+            </select>
+
+            <input type="color" id="colorRriNodes" class="legend-color js-render-color"
+                   title="Select nucleotide highlight colour">
           </div>
 
           <div class="checkbox-row">
-            <input type="checkbox" id="forceLayout" checked />
-            <label for="forceLayout" style="margin:0">Enable Fornac force-layout animation</label>
+            <input type="checkbox" id="guBasepairs" checked>
+            <label for="guBasepairs">Show G-U basepairs as dashed lines</label>
           </div>
 
-          <div class="checkbox-row" style="margin-left: 1.5em;">
-            <input type="checkbox" id="forceLayoutFreeTails" />
-            <label for="forceLayoutFreeTails" style="margin:0">Free trailing ends</label>
+          <div class="checkbox-row">
+            <input type="checkbox" id="forceLayout" checked>
+            <label for="forceLayout">Enable Fornac force-layout animation</label>
           </div>
 
-          <div class="checkbox-row" style="margin-left: 1.5em;">
-            <input type="checkbox" id="forceLayoutPullCrossing" />
-            <label for="forceLayoutPullCrossing" style="margin:0">Pull Pseudoknot Basepairs</label>
+          <div class="checkbox-row checkbox-row-nested">
+            <input type="checkbox" id="forceLayoutFreeTails">
+            <label for="forceLayoutFreeTails">Free trailing ends</label>
+          </div>
+
+          <div class="checkbox-row checkbox-row-nested">
+            <input type="checkbox" id="forceLayoutPullCrossing">
+            <label for="forceLayoutPullCrossing">Pull Pseudoknot Basepairs</label>
           </div>
         </div>
       </details>
@@ -181,14 +154,14 @@
     <!-- ================================================================== -->
     <!-- Region highlighting panel                                                  -->
     <!-- ================================================================== -->
-    <aside class="panel control-panel">
+    <aside class="panel control-panel" aria-label="Region highlights">
       <details class="control-group">
         <summary>
           Region Highlights
           <span id="regionCounterUI" class="list-counter"></span>
         </summary>
         <div class="control-group-body">
-          
+
                     <div class="label-dropdown-col-row">
                       <label for="backgroundhighlighting">&thinsp;of RRI Background</label>
                       <select id="backgroundhighlighting">
@@ -196,33 +169,33 @@
                         <option value="region">region</option>
                         <option value="nothing">nothing</option>
                       </select>
-                      <input type="color" id="colorRriRegion" class="legend-color-rect"
-                           title="Select background highlight colour" onchange="applyColors(); runVisualization();" />
+                      <input type="color" id="colorRriRegion" class="legend-color-rect js-render-color"
+                             title="Select background highlight colour">
                     </div>
 
-          <ul id="region-list" class="highlight-list" aria-label="Registered region highlights"></ul>
+          <ul id="region-list" class="highlight-list"></ul>
 
-          <input type="hidden" id="regionEditId" value="" />          
+          <input type="hidden" id="regionEditId" value="">
 
           <div class="regionInput">
             <div>
               <label for="region1">Region 1</label>
               <div class="input-wrap">
-                <input type="text" id="region1" placeholder="e.g. 2-4" />
+                <input type="text" id="region1" placeholder="e.g. 2-4">
                 <span class="field-tooltip"></span>
               </div>
             </div>
             <div>
               <label for="region2">Region 2</label>
               <div class="input-wrap">
-                <input type="text" id="region2" placeholder="e.g. 5-7" />
+                <input type="text" id="region2" placeholder="e.g. 5-7">
                 <span class="field-tooltip"></span>
               </div>
             </div>
             <div>
               <label for="regionColor">Color</label>
               <div class="input-wrap">
-                <input type="color" id="regionColor" />
+                <input type="color" id="regionColor">
                 <span class="field-tooltip"></span>
               </div>
             </div>
@@ -248,26 +221,25 @@
 
           <div class="action-row">
             <button id="regionSubmitBtn" class="btn btn-primary btn-sm" type="button">Add</button>
-            <button id="regionCancelBtn" class="btn btn-sm" type="button" style="background:#d8e5f1;color:#1c2b39">Clear</button>
+            <button id="regionCancelBtn" class="btn btn-secondary btn-sm" type="button">Clear</button>
           </div>
         </div>
       </details>
     </aside>
 
-
     <!-- ================================================================== -->
     <!-- Subsequence highlighting panel                                                  -->
     <!-- ================================================================== -->
-    <aside class="panel control-panel">
+    <aside class="panel control-panel" aria-label="Subsequence highlights">
       <details class="control-group">
         <summary>
           Subsequence Highlights
           <span id="subseqCounterUI" class="list-counter"></span>
         </summary>
         <div class="control-group-body">
-          <ul id="highlight-list" class="highlight-list" aria-label="Registered subsequence highlights"></ul>
+          <ul id="highlight-list" class="highlight-list"></ul>
 
-          <input type="hidden" id="subseqEditId" value="" />
+          <input type="hidden" id="subseqEditId" value="">
 
           <div class="highlightInput">
             <div>
@@ -283,14 +255,14 @@
             <div>
               <label for="subseqRange">Range</label>
               <div class="input-wrap">
-                <input type="text" id="subseqRange" placeholder="e.g. 3-8" />
+                <input type="text" id="subseqRange" placeholder="e.g. 3-8">
                 <span class="field-tooltip"></span>
               </div>
             </div>
             <div>
               <label for="subseqColor">Color</label>
               <div class="input-wrap">
-                <input type="color" id="subseqColor" />
+                <input type="color" id="subseqColor">
                 <span class="field-tooltip"></span>
               </div>
             </div>
@@ -316,7 +288,7 @@
 
           <div class="action-row">
             <button id="highlightSubmitBtn" class="btn btn-primary btn-sm" type="button">Add</button>
-            <button id="highlightCancelBtn" class="btn btn-sm" type="button" style="background:#d8e5f1;color:#1c2b39">Clear</button>
+            <button id="highlightCancelBtn" class="btn btn-secondary btn-sm" type="button">Clear</button>
           </div>
         </div>
       </details>
@@ -325,7 +297,7 @@
     <!-- ================================================================== -->
     <!-- Profile panel                                                 -->
     <!-- ================================================================== -->
-    <aside class="panel control-panel">
+    <aside class="panel control-panel" aria-label="Probability profiles">
       <details class="control-group">
         <summary>
           Probability Profiles <small>(Accessibility, ...)</small>
@@ -336,37 +308,37 @@
           <!-- Profile data input fields -->
           <label><small>Space-separated CSV; # starts comment line</small></label>
           <div class="row-2">
-            <label for="profileData1" class="profile-label-with-color">
-              <span>Seq. 1 profile</span>
-              <input type="color" id="profileColor1" class="profile-color-picker" title="Accessibility color for sequence 1" />
+            <div class="profile-label-with-color">
+              <label for="profileData1">Seq. 1 profile</label>
+              <input type="color" id="profileColor1" class="profile-color-picker" title="Accessibility color for sequence 1" aria-label="Accessibility color for sequence 1">
               <span class="profile-color-mode-wrap">
-                <span class="profile-color-mode-text">=1</span>
-                <input type="checkbox" id="profileColorRepresentsOne1" class="profile-color-mode-checkbox" />
+                <label for="profileColorRepresentsOne1" class="profile-color-mode-text">=1</label>
+                <input type="checkbox" id="profileColorRepresentsOne1" class="profile-color-mode-checkbox" aria-label="Map the sequence 1 profile color to value one">
               </span>
-            </label>
-            <label for="profileData2" class="profile-label-with-color">
-              <span>Seq. 2 profile</span>
-              <input type="color" id="profileColor2" class="profile-color-picker" title="Accessibility color for sequence 2" />
+            </div>
+            <div class="profile-label-with-color">
+              <label for="profileData2">Seq. 2 profile</label>
+              <input type="color" id="profileColor2" class="profile-color-picker" title="Accessibility color for sequence 2" aria-label="Accessibility color for sequence 2">
               <span class="profile-color-mode-wrap">
-                <span class="profile-color-mode-text">=1</span>
-                <input type="checkbox" id="profileColorRepresentsOne2" class="profile-color-mode-checkbox" />
+                <label for="profileColorRepresentsOne2" class="profile-color-mode-text">=1</label>
+                <input type="checkbox" id="profileColorRepresentsOne2" class="profile-color-mode-checkbox" aria-label="Map the sequence 2 profile color to value one">
               </span>
-            </label>
+            </div>
           </div>
           <div class="row-2">
             <div class="input-wrap">
-              <textarea id="profileData1" name="profileData1" rows="10" cols="10" wrap='off'></textarea>
+              <textarea id="profileData1" name="profileData1" rows="10" cols="10"></textarea>
               <span class="field-tooltip"></span>
             </div>
             <div class="input-wrap">
-              <textarea id="profileData2" name="profileData2" rows="10" cols="10" wrap='off'></textarea>
+              <textarea id="profileData2" name="profileData2" rows="10" cols="10"></textarea>
               <span class="field-tooltip"></span>
             </div>
           </div>
 
           <!-- index reference -->
           <div class="row-2">
-            <div class="checkbox-row"">
+            <div class="checkbox-row">
               <label for="profileIdxRef1">Index&nbsp;wrt.</label>
               <select id="profileIdxRef1">
                 <option value="1" selected>1st nt</option>
@@ -385,26 +357,26 @@
           <!-- Apply button -->
           <div class="action-row">
             <button id="profileApplyBtn" class="btn btn-primary btn-sm" type="button">Apply</button>
-            <button id="profileClearBtn" class="btn btn-sm" type="button" style="background:#d8e5f1;color:#1c2b39">Clear</button>
+            <button id="profileClearBtn" class="btn btn-secondary btn-sm" type="button">Clear</button>
           </div>
 
         </div>
       </details>
     </aside>
-    
+
     <!-- ================================================================== -->
     <!-- Mutation panel                                                 -->
     <!-- ================================================================== -->
-    <aside class="panel control-panel">
+    <aside class="panel control-panel" aria-label="Point mutations">
       <details class="control-group">
         <summary>
           Point Mutations
           <span id="mutationCounterUI" class="list-counter"></span>
         </summary>
         <div class="control-group-body">
-          <ul id="mutation-list" class="highlight-list" aria-label="Registered point mutations"></ul>
+          <ul id="mutation-list" class="highlight-list"></ul>
 
-          <input type="hidden" id="mutationEditId" value="" />
+          <input type="hidden" id="mutationEditId" value="">
 
           <div class="mutationInput">
             <div>
@@ -420,21 +392,21 @@
             <div>
               <label for="mutationPosition">Position</label>
               <div class="input-wrap">
-                <input type="text" id="mutationPosition" inputmode="text" autocomplete="off" spellcheck="false" placeholder="e.g. -2" />
+                <input type="text" id="mutationPosition" inputmode="text" autocomplete="off" spellcheck="false" placeholder="e.g. -2">
                 <span class="field-tooltip"></span>
               </div>
             </div>
             <div>
               <label for="mutationBase">To</label>
               <div class="input-wrap">
-                <input type="text" id="mutationBase" maxlength="1" inputmode="text" autocomplete="off" spellcheck="false" placeholder="A"/>
+                <input type="text" id="mutationBase" maxlength="1" inputmode="text" autocomplete="off" spellcheck="false" placeholder="A">
                 <span class="field-tooltip"></span>
               </div>
             </div>
             <div>
               <label for="mutationColor">Color</label>
               <div class="input-wrap">
-                <input type="color" id="mutationColor" />
+                <input type="color" id="mutationColor">
                 <span class="field-tooltip"></span>
               </div>
             </div>
@@ -442,17 +414,16 @@
 
           <div class="action-row">
             <button id="mutationSubmitBtn" class="btn btn-primary btn-sm" type="button">Add</button>
-            <button id="mutationCancelBtn" class="btn btn-sm" type="button" style="background:#d8e5f1;color:#1c2b39">Clear</button>
+            <button id="mutationCancelBtn" class="btn btn-secondary btn-sm" type="button">Clear</button>
           </div>
         </div>
       </details>
     </aside>
 
-   
     <!-- ================================================================== -->
     <!-- Link to help and documentation                                     -->
     <!-- ================================================================== -->
-    <aside class="panel control-panel">
+    <aside class="panel control-panel" aria-label="Help and documentation">
       <details class="control-group">
         <summary>
           <a href="README.html" target="_blank" rel="noopener noreferrer">
@@ -464,37 +435,30 @@
 
   </div> <!-- end of control panel -->
 
-
-
-
   <!-- ================================================================== -->
   <!-- Result panel                                                         -->
   <!-- ================================================================== -->
   <section class="result-panel">
-    <div id="rna_ss" tabindex="1"></div>
+    <div id="rna_ss" tabindex="0"></div>
 
     <div class="viz-control">
       <label for="rotationSlider">Rotate</label>
-      <input type="range" id="rotationSlider" min="-180" max="180" step="1" value="0" />
-      <label for="cropping">Crop: 
-        <!-- dummy element to show the value of cropping input slider-->
-         <span id="cropping-value" style="font-weight:600; color:#1c2b39; margin-left:0.3em;">0</span>
-      </label>
-         <div class="input-wrap">
-      <input type="range" id="cropping" class="form-control-range" min="-1" max="10" value="-1" title="-1 disables cropping. Higher values crop the ends to resp. unpaired positions.">
-      <span class="field-tooltip"></span>
+      <input type="range" id="rotationSlider" min="-180" max="180" step="1" value="0">
+      <label for="cropping">Crop: <span id="cropping-value" class="cropping-value">0</span></label>
+      <div class="input-wrap">
+        <input type="range" id="cropping" min="-1" max="10" value="-1" title="-1 disables cropping. Higher values crop the ends to resp. unpaired positions.">
+        <span class="field-tooltip"></span>
       </div>
     </div>
 
     <!-- Export bar -->
     <div class="export-bar">
       <span>Export:</span>
-      <button class="btn btn-success btn-sm" onclick="exportSVG()">⬇ SVG</button>
-      <button class="btn btn-info btn-sm"    onclick="exportPNG()">⬇ PNG</button>
-      <button class="btn btn-primary btn-sm" onclick="generateShareableURL(this)">🔗 Share Link</button>
+      <button id="exportSvgBtn" class="btn btn-success btn-sm" type="button">⬇ SVG</button>
+      <button id="exportPngBtn" class="btn btn-info btn-sm" type="button">⬇ PNG</button>
+      <button id="shareLinkBtn" class="btn btn-primary btn-sm" type="button">🔗 Share Link</button>
       <!-- right-aligned note to cite varri-->
-      <span class="cite-note" style="text-align:right; font-size:0.8em; color:#666; margin-left:auto;"
-      >Please 
+      <span class="cite-note">Please
       <a href="citation.html" class="btn btn-cite btn-sm">🔖 cite vaRRI-js</a></span>
     </div>
 
@@ -508,7 +472,8 @@
       Disclaimer: This service is provided "as is" without any warranties or guarantees.
     </p>
     <p>
-      For comments or feedback, please contact 
+      For comments or feedback, please contact
+
       <a href="https://www.bioinf.uni-freiburg.de/" target="_blank" rel="noopener noreferrer">Freiburg Bioinformatics Group of the University of Freiburg</a>.
     </p>
     <p>
@@ -517,13 +482,6 @@
     </p>
   </div>
 </footer>
-
-<!-- ====================================================================== -->
-<!-- Scripts                                                                  -->
-<!-- ====================================================================== -->
-<script>
-
-</script>
 
 </body>
 </html>

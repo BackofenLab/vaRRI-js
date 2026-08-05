@@ -1,246 +1,216 @@
+# vaRRI-js JavaScript API
 
-## `vaRRI-js` JavaScript Library API
+`src/vaRRI.js` exposes one global object, `window.vaRRI`. In CommonJS test
+code, `require('./src/vaRRI.js')` returns the same object.
 
-Include `src/vaRRI.js` after the Fornac dependencies.  The library exposes a
-single global object `vaRRI` with the following functions.
+Load Fornac and D3 before vaRRI:
 
----
+```html
+<link rel="stylesheet" href="fornac/fornac.css" />
+<script src="fornac/d3.js"></script>
+<script src="fornac/fornac.js"></script>
+<script src="dist/vaRRI.min.js"></script>
+```
 
-### Core Functions
+Use `src/vaRRI.js` instead of the minified file while developing.
 
-#### `vaRRI.validate(args)` → `Object`
+## Core workflow
 
-Validates all user-supplied input parameters and returns a normalised
-`validated` dictionary ready for `vaRRI.render()`.
+### `vaRRI.validate(args)`
 
-**Parameters (`args` object):**
+Validates and normalizes input, applies optional end cropping, and returns the
+object expected by `render()`.
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `structure` | `string` | *(required)* | Dot-bracket structure string. May contain `&` to separate two molecules. |
-| `sequence` | `string` | *(required)* | RNA/DNA sequence (IUPAC characters). May contain `&`. |
-| `cropping` | `string\|number` | `"0"` | Number of unpaired nucleotides to crop from each end of the structure. `"0"` disables cropping. |
-| `startIndex1` | `string\|number` | `"1"` | Start index for molecule 1. |
-| `startIndex2` | `string\|number` | `"1"` | Start index for molecule 2. |
-| `labelInterval` | `string\|number` | `"10"` | Interval for displayed index labels. |
-| `coloring` | `string` | `"strand"` | `"strand"` or `"loop"`. |
-| `highlighting` | `string` | `"region"` | `"nothing"`, `"basepairs"`, or `"region"`. |
-| `backgroundhighlighting` | `string` | `"basepairs"` | `"nothing"`, `"basepairs"`, or `"region"`. |
-| `guBasepairs` | `boolean` | `true` | Show G-U basepairs as dashed lines. |
-
-**Returns:** A validated parameter object.  
-**Throws:** `Error` on any invalid input.
+| `sequence` | `string` | required | IUPAC sequence; separate two molecules with `&`. |
+| `structure` | `string` | required | Dot-bracket structure; separate two molecules with `&`. |
+| `startIndex1` | `string\|number` | `1` | First index of molecule 1; zero is invalid. |
+| `startIndex2` | `string\|number` | `1` | First index of molecule 2; zero is invalid. |
+| `cropping` | `string\|number` | `-1` | Negative disables cropping; non-negative values retain that many terminal unpaired bases. |
+| `labelInterval` | `string\|number` | `10` | Interval between index labels. |
+| `coloring` | `string` | `strand` | `strand` or `loop`. |
+| `highlighting` | `string` | `region` | `nothing`, `basepairs`, or `region`. |
+| `backgroundhighlighting` | `string` | `basepairs` | `nothing`, `basepairs`, or `region`. |
+| `guBasepairs` | `boolean` | `true` | Render G-U pairs with dashed links. |
+| `subsequenceHighlights` | `Array` | `[]` | Subsequence highlight definitions. |
+| `regionHighlights` | `Array` | `[]` | Region highlight definitions. |
+| `pointMutations` | `Array` | `[]` | Point-mutation definitions. |
 
 ```javascript
-const v = vaRRI.validate({
-  structure: '..((((...))))...((...((...((..&............))...))...))..',
-  sequence:  'ACGAUCAGAGAUCAGAGCAUACGACAGCAG&ACGAAAAAAAGAGCAUACGACAGCAG',
+const validated = vaRRI.validate({
+  sequence: 'ACGU&UGCA',
+  structure: '((((&))))',
+  startIndex1: -2,
+  startIndex2: 10,
 });
 ```
 
----
+### `vaRRI.render(containerId, validated, options?)`
 
-#### `vaRRI.render(containerId, v, options)` → `Promise<{ cancelled: boolean }>`
+Creates a Fornac visualization, then applies labels, coloring, annotations,
+profiles, and link styling. It returns a promise resolving to
+`{ cancelled: boolean }`. Starting a newer render cancels pending
+post-processing from the previous render.
 
-Builds the Fornac visualisation and applies all vaRRI modifications. The returned promise resolves after the delayed post-processing step finishes. If a newer render supersedes a pending one, the older promise resolves with `{ cancelled: true }`.
-
-**Parameters:**
-
-| Parameter | Type | Description |
-|---|---|---|
-| `containerId` | `string` | The **id** of the DOM element that will host the Fornac SVG. The element must already exist in the DOM. |
-| `v` | `Object` | Validated parameter dictionary from `vaRRI.validate()`. |
-| `options` | `Object` | Optional settings (see below). |
-
-**`options` properties:**
-
-| Property | Type | Default | Description |
+| Option | Type | Default | Description |
 |---|---|---|---|
-| `forceLayout` | `boolean` | `false` | Enable Fornac force-layout animation. When `true` and background highlighting is active, the highlight polygon is redrawn on every animation frame to stay in sync with the force layout. |
-| `accessData` | `Object\|null` | `null` | Accessibility data: `{ nodeId: probability, … }`. |
+| `forceLayout` | `boolean` | `false` | Enable Fornac force-layout animation. |
+| `freeTrailingEnds` | `boolean` | `false` | Relax the external-loop closure scaffold when force layout is active. |
+| `pullPseudoknotBasepairs` | `boolean` | `false` | Increase pseudoknot link strength when force layout is active. |
+| `accessData` | `Object<number, number>\|null` | `null` | Node-ID to probability map. |
+| `accessColors` | `Object\|null` | `null` | Optional `sequence1` and `sequence2` overlay colors. |
+| `accessColorMode` | `Object\|null` | `null` | Optional `sequence1RepresentsOne` and `sequence2RepresentsOne` flags. |
 
 ```javascript
-const container = document.getElementById('rna_ss');
-container.innerHTML = '';
-
-const v = vaRRI.validate({ structure: '((...))', sequence: 'GGGCCC' });
-await vaRRI.render('rna_ss', v);
+const state = await vaRRI.render('rna_ss', validated, {
+  forceLayout: true,
+  accessData: { 1: 0.8, 2: 0.3 },
+});
 ```
 
----
+### Rotation
 
-### Validation Helpers
+- `vaRRI.normaliseRotationDegrees(degrees)` returns an angle in `[-180, 180]`.
+- `vaRRI.rotateVisualization(containerId, degrees, options?)` rotates the
+  current SVG. `options.mode` is `delta` by default or `absolute`.
 
-These functions are used internally by `validate()` but are also exported for
-advanced use.
+Text labels are counter-rotated to remain readable.
 
-#### `vaRRI.checkStructureInputSimple(structure)` → `void`
-Checks bracket balance for `()`, `[]`, `{}`, `<>`.  Throws `Error` on mismatch.
+## Colors
 
-#### `vaRRI.validateSequenceInput(sequence)` → `string`
-Validates IUPAC sequence characters.  Returns the sequence or throws `Error`.
+- `vaRRI.getColors()` returns a copy of the current color settings.
+- `vaRRI.setColors(overrides)` updates only the supplied keys.
 
-#### `vaRRI.validateStructureInput(structure, sequence)` → `string`
-Validates structure string and checks length parity with sequence.
+Supported keys are `sequence1`, `sequence2`, `seq1profileColor`,
+`seq2profileColor`, `mutationColor`, `intermolecularHighlight`,
+`backgroundHighlight`, `subsequenceHighlight`, and `basepair`.
 
-#### `vaRRI.validateOffset(offsetStr)` → `number`
-Parses and validates a start-index string.  Rejects `"0"`.
+## Annotation registries
 
-#### `vaRRI.validateHighlighting(value)` → `string`
-Returns `value` if it is `"nothing"`, `"basepairs"`, or `"region"`.
+The UI registries return clones, so mutating a returned object does not modify
+library state. IDs start at `1` and reset after the corresponding `clear...()`
+call.
 
-#### `vaRRI.validateBackgroundhighlighting(value)` → `string`
-Same as above for background highlighting.
+### Subsequence highlights
 
-#### `vaRRI.splitAtAmpersand(str)` → `[string, string]`
-Splits a string at the first `&`.  Always returns two strings.
+A definition has `{ sequence, range, color?, alpha? }`. `sequence` is `1` or
+`2`; `range` is a `"start-end"` string, a comma-separated range string, or an
+array of `[start, end]` pairs.
 
-#### `vaRRI.findBasePairs(structure)` → `Array<[number, number]>`
-Returns zero-based `[open, close]` index pairs for all matched brackets.
+- `vaRRI.createSubsequenceHighlight(input, sequenceContext?)`
+- `vaRRI.registerSubsequenceHighlight(input, sequenceContext?)`
+- `vaRRI.updateSubsequenceHighlight(id, patch, sequenceContext?)`
+- `vaRRI.removeSubsequenceHighlight(id)`
+- `vaRRI.clearSubsequenceHighlights()`
+- `vaRRI.getSubsequenceHighlights()`
 
-#### `vaRRI.formatStructure(structure)` → `Object`
-Returns `{ structure1, structure2, structure, structure_dict }` after applying
-the Fornac `&...` fix.
+### Region highlights
 
-#### `vaRRI.formatSequence(sequence)` → `Object`
-Returns `{ sequence1, sequence2, sequence, sequence_dict }` after applying
-the Fornac `&...` fix.
+A definition has
+`{ sequence1Range, sequence2Range, color?, alpha?, generated? }`. Each range is
+a `"start-end"` string or `[start, end]` pair.
 
-#### `vaRRI.getMolecules(validated)` → `"1"|"2"`
-Returns `"2"` if `validated.sequence2` is non-empty, otherwise `"1"`.
+- `vaRRI.createRegionHighlight(input, sequenceContext?)`
+- `vaRRI.registerRegionHighlight(input, sequenceContext?)`
+- `vaRRI.registerGeneratedRegionHighlight(validated, spec)`
+- `vaRRI.updateRegionHighlight(id, patch, sequenceContext?)`
+- `vaRRI.removeRegionHighlight(id)`
+- `vaRRI.clearRegionHighlights()`
+- `vaRRI.getRegionHighlights()`
+- `vaRRI.computeBackgroundRegionRanges(validated)`
+- `vaRRI.getRegionHighlightNodePath(validated, highlight)`
 
-#### `vaRRI.getIndexDictionary(v)` → `Object.<number, [string, number]>`
-Builds a Fornac-node-ID → `[sequenceId, position]` mapping that accounts for
-gap nodes and RNA-style numbering (no zero).
+Generated highlights represent the automatic whole-RRI background region and
+can be excluded from persisted user state.
 
-#### `vaRRI.getSequenceIndices(seqId, offset, length)` → `Array<[string, number]>`
-Produces `(seqId, index)` tuples starting at `offset`, skipping 0.
+### Point mutations
 
-#### `vaRRI.parseSubsequences(input, startIndex?, sequenceLength?)` → `Array<[number, number]>|null`
-Parses a comma-separated list of `"start-end"` strings (including negative indices) into numeric pairs.
-When `startIndex` and `sequenceLength` are provided, range endpoints are validated against
-the sequence's valid RNA-style indices (no index `0`).
+A definition has `{ sequence, position, replacement, color? }`.
 
----
+- `vaRRI.createPointMutation(input, sequenceContext?)`
+- `vaRRI.registerPointMutation(input, sequenceContext?)`
+- `vaRRI.updatePointMutation(id, patch, sequenceContext?)`
+- `vaRRI.removePointMutation(id)`
+- `vaRRI.clearPointMutations()`
+- `vaRRI.getPointMutations()`
 
-### Rendering & Modification Helpers
+A `sequenceContext` uses molecule keys and visible sequence metadata:
 
-These functions directly manipulate the live DOM SVG produced by Fornac.  They
-are called automatically by `render()` but can also be invoked individually for
-fine-grained control.
+```javascript
+const sequenceContext = {
+  '1': { offset: -2, length: 4, sequence: 'ACGU' },
+  '2': { offset: 10, length: 4, sequence: 'UGCA' },
+};
+```
 
-#### `vaRRI.setLinksId()` → `void`
-Parses Fornac tooltip text on `<line>` elements and assigns `start`/`end` attributes.
+## Validation and formatting helpers
 
-#### `vaRRI.setLabelsId()` → `void`
-Assigns sequential `label_gnum` / `label_num` IDs to label elements.
+| Function | Purpose |
+|---|---|
+| `checkStructureInputSimple(structure)` | Check bracket balance for `()`, `[]`, `{}`, and `<>`. |
+| `findBasePairs(structure)` | Return zero-based matched bracket pairs. |
+| `formatSequence(sequence)` | Return Fornac-ready sequence fields for one or two molecules. |
+| `formatStructure(structure)` | Return Fornac-ready structure fields for one or two molecules. |
+| `getIndexDictionary(validated)` | Map Fornac node IDs to molecule IDs and biological positions. |
+| `getMolecules(validated)` | Return `"1"` or `"2"`. |
+| `getSequenceIndices(seqId, offset, length)` | Generate biological indices while skipping zero. |
+| `parseSubsequences(input, startIndex?, sequenceLength?)` | Parse and optionally bounds-check range strings. |
+| `splitAtAmpersand(value)` | Split once and always return two strings. |
+| `validateBackgroundhighlighting(value)` | Validate a background-highlighting mode. |
+| `validateCroppingInput(structure, cropping)` | Validate and normalize cropping. |
+| `validateHighlighting(value)` | Validate a nucleotide-highlighting mode. |
+| `validateOffset(value)` | Parse a non-zero biological index. |
+| `validateSequenceInput(sequence)` | Validate IUPAC sequence input. |
+| `validateStructureInput(structure, sequence)` | Validate structure syntax and sequence-length parity. |
 
-#### `vaRRI.changeBackgroundColor(v)` → `void`
-Colors all nucleotide circles using strand coloring (mol. 1 = lightblue, mol. 2 = #F4BB44).
+## Base-pair utilities
 
-#### `vaRRI.updateNodeToolTips(v)` → `void`
-Updates `<title>` text of each node circle to show `seqId[position]`.
+- `vaRRI.getIntermolBasepairRegion(structure1, structure2)`
+- `vaRRI.listBasepairs(structureDictionary)`
+- `vaRRI.listIntermolNodes(structure, shift?)`
+- `vaRRI.listIntermolPairs(validated)`
+- `vaRRI.sequenceColoring(sequence1, sequence2)`
 
-#### `vaRRI.updateLinkTooltips(v)` → `void`
-Updates `<title>` text of each link line to show correct indices.
+## DOM modification helpers
 
-#### `vaRRI.setIndexLabels(v)` → `void`
-Displays index labels at sequence boundaries, basepair region boundaries, and
-every `labelInterval`-th position.
+These advanced functions operate on the current Fornac SVG. Normal consumers
+should call `render()` and let it coordinate them.
 
-#### `vaRRI.highlightingRegion(v)` → `void`
-Adds a red stroke to all nodes in the intermolecular basepair region.
+| Function | Purpose |
+|---|---|
+| `addElement(elementType, attributes)` | Insert an SVG element in the plot. |
+| `addStyleToNodes(nodeIds, style)` | Append inline style to nucleotide nodes. |
+| `applyPointMutations(validated)` | Apply validated mutation overlays. |
+| `applyRegionHighlights(validated)` | Draw registered or validated region polygons. |
+| `applySubsequenceHighlights(validated)` | Draw validated subsequence overlays. |
+| `backgroundhighlightBasepairs(validated)` | Draw backgrounds around intermolecular stacks. |
+| `backgroundhighlightRegion(validated)` | Draw the automatic whole-RRI background. |
+| `changeBackgroundColor(validated)` | Apply strand colors. |
+| `closePolygonPoints(points)` | Close a polygon point list. |
+| `getPositionOfNode(nodeId)` | Read a node's `[x, y]` coordinates. |
+| `highlightBasepairs(validated)` | Highlight individual intermolecular nodes. |
+| `highlightRegion(validated)` | Highlight the intermolecular region. |
+| `highlightSubsequence(validated, sequence, ranges, color, alpha)` | Draw a subsequence overlay. |
+| `polyline(indices, style, attributes?)` | Draw an SVG polyline through node IDs. |
+| `removeDummyNodes(sequence)` | Remove Fornac gap nodes. |
+| `removeSecondLink()` | Remove duplicate intermolecular links. |
+| `setAttributeForElements(targetAttr, targetValue, attr, value)` | Update matching DOM elements. |
+| `setIndexLabels(validated)` | Configure biological index labels. |
+| `setLabelsId()` | Assign stable IDs to Fornac labels. |
+| `setLinksId()` | Assign endpoint metadata to Fornac links. |
+| `styleBasepairs(validated)` | Apply base-pair colors and G-U dashing. |
+| `updateLinkTooltips(validated)` | Add biological positions to link tooltips. |
+| `updateNodeToolTips(validated)` | Add biological positions to node tooltips. |
+| `visualiseAccessibility(data, sequence1Length, colors?, colorMode?)` | Draw probability overlays. |
 
-#### `vaRRI.highlightingBasepairs(v)` → `void`
-Adds a red stroke to individual intermolecular basepair nodes.
+## Export
 
-#### `vaRRI.backgroundhighlightingRegion(v)` → `void`
-Draws a translucent red polyline over the entire intermolecular region.
+- `vaRRI.buildSVGString(containerId)` returns a self-contained SVG string with
+  computed presentation styles and explicit dimensions.
+- `vaRRI.downloadSVG(containerId, filename = 'vaRRI_output.svg')` downloads the
+  self-contained SVG.
+- `vaRRI.downloadPNG(containerId, filename = 'vaRRI_output.png', scale = 2)`
+  rasterizes the same SVG onto a white canvas and downloads a PNG.
 
-#### `vaRRI.backgroundhighlightingBasepairs(v)` → `void`
-Draws translucent red polylines around individual basepair stacks.
-
-#### `vaRRI.visualiseBasepairStrength(v)` → `void`
-Applies a dashed stroke to G-U basepair links.
-
-#### `vaRRI.highlightSubsequence(v, seq)` → `void`
-Draws a purple polyline or circle over the specified subsequence range.
-`seq` is `"1"` or `"2"`.
-
-#### `vaRRI.removeDummyNodes(sequence)` → `void`
-Removes the Fornac gap nodes that separate two molecules.
-
-#### `vaRRI.removeSecondLink()` → `void`
-Removes duplicate basepair links (keeps only link where `start < end`).
-
-#### `vaRRI.addStyleToNodes(nodeIds, style)` → `void`
-Appends `style` to the `style` attribute of the specified node circles.
-
-#### `vaRRI.polyline(indices, style, extraAttrs?)` → `void`
-Draws an SVG polyline connecting the given Fornac node positions.
-An optional `extraAttrs` object (e.g. `{ 'data-varri-bg': 'true' }`) sets additional attributes on the created `<polyline>` element.
-
-#### `vaRRI.addElement(elementType, attr)` → `void`
-Inserts a new SVG element with the given attributes at the top of the Fornac plot group.
-
-#### `vaRRI.getPositionOfNode(nodeId)` → `number[]`
-Returns the `[x, y]` coordinates of a Fornac node by reading its `transform` attribute.
-
-#### `vaRRI.setAttributeForElements(targetAttr, targetValue, setAttr, setValue)` → `void`
-Sets an attribute on all elements matching `[targetAttr="targetValue"]`.
-
-#### `vaRRI.visualiseAccessibility(accessData, lenSeq)` → `void`
-Overlays coloured circles encoding accessibility probability.
-`accessData` is `{ nodeId: probability }` with values in `[0, 1]`.
-Nodes in sequence 1 (`index <= lenSeq`) are colored purple; sequence 2 nodes red.
-Higher probability → lower opacity.
-
----
-
-### Export Helpers
-
-#### `vaRRI.downloadSVG(containerId, filename?)` → `void`
-Downloads a self-contained SVG file.  Embedded Fornac CSS is included in a
-`<style>` block so the file renders correctly when opened standalone.
-
-**Parameters:**
-
-| Parameter | Type | Default |
-|---|---|---|
-| `containerId` | `string` | *(required)* |
-| `filename` | `string` | `"vaRRI_output.svg"` |
-
-#### `vaRRI.downloadPNG(containerId, filename?, scale?)` → `void`
-Rasterises the SVG to a `<canvas>` and triggers a PNG download.
-
-| Parameter | Type | Default |
-|---|---|---|
-| `containerId` | `string` | *(required)* |
-| `filename` | `string` | `"vaRRI_output.png"` |
-| `scale` | `number` | `2` (retina quality) |
-
-#### `vaRRI.buildSVGString(containerId)` → `string`
-Returns the full SVG markup as a string without triggering a download.
-Useful for programmatic use (e.g., posting to a server or displaying in another element).
-
----
-
-### Utility Functions
-
-#### `vaRRI.listIntermolNodes(struc, shift?)` → `Array<[number, string]>`
-Identifies positions of intermolecular basepairs in a dot-bracket structure.
-Returns sorted `[1-based index, bracket-char]` pairs.
-
-#### `vaRRI.getIntermolBasepairRegion(structure1, structure2)` → `Array<[number, number]>`
-Returns `[start, end]` ranges of the intermolecular basepair region for each structure.
-
-#### `vaRRI.listIntermolPairs(v)` → `Array<[number, number]>`
-Returns all intermolecular basepair `[open, close]` index pairs from the
-combined structure.
-
-#### `vaRRI.listBasepairs(struc)` → `Array<[number, number]>`
-Parses basepairs from a `{position: bracket}` structure dictionary.
-
-#### `vaRRI.sequenceColoring(seq1, seq2)` → `string[]`
-Returns a color array: `"lightblue"` for each character of `seq1`,
-`"#F4BB44"` for each character of `seq2`.
+All three functions throw if the container does not contain an SVG.
