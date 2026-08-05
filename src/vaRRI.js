@@ -2408,7 +2408,7 @@
      * @param {string} containerId  CSS selector or element ID of the Fornac container.
      * @param {Object} v  Validated parameter dictionary (from `validate()`).
      * @param {Object} [options]
-     * @param {boolean} [options.animation=false]  Enable Fornac force-layout animation.
+     * @param {boolean} [options.forceLayout=false]  Enable Fornac force-layout animation.
     * @param {boolean} [options.freeTrailingEnds=false]  Remove Fornac's external-loop circularisation constraint (the "closure" scaffold linking the sequence ends) from the force graph, leaving all other loop constraints intact.
     * @param {boolean} [options.pullPseudoknotBasepairs=false]  Set Fornac's pseudoknot link force strength to 10 (default 0), pulling pseudoknot basepairs together in the force layout.
      * @param {boolean} [options.legend=false]  Whether to also render the legend.
@@ -2435,7 +2435,7 @@
         }
 
         const {
-            animation = false,
+            forceLayout = false,
             freeTrailingEnds = false,
             pullPseudoknotBasepairs = false,
             accessData = null,
@@ -2446,15 +2446,15 @@
         // Build molecules via Fornac
         const container = new fornac.FornaContainer(
             `#${containerId}`,
-            { animation: animation, labelInterval: 1 }
+            { forceLayout: forceLayout, labelInterval: 1 }
         );
         container.addRNA(v.structure, { structure: v.structure, sequence: v.sequence });
 
-        if (animation && freeTrailingEnds) {
+        if (forceLayout && freeTrailingEnds) {
             relaxForceGraphScaffold(container, v);
         }
 
-        if (animation && pullPseudoknotBasepairs) {
+        if (forceLayout && pullPseudoknotBasepairs) {
             applyPseudoknotLinkStrength(container, true);
         }
 
@@ -2508,7 +2508,7 @@
 
             // When animation is on, keep the background-highlight polygon in sync
             // with the force-layout by redrawing it on every animation frame.
-            if (animation) {
+            if (forceLayout) {
                 function highlightSyncLoop() {
                     document.querySelectorAll('[data-varri-region]').forEach(el => el.remove());
                     document.querySelectorAll('[data-varri-subseq]').forEach(el => el.remove());

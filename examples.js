@@ -22,16 +22,16 @@ const EXAMPLES = [
     vaRRIParams: {
       sequence:  "AAUUCUAUCUGAAAGAUGUGUGGGGCAUCGUUAUUUUAGGUGGAUAUGAGCAAUUUAUUAAAAGUCAUUUACGGAAAAUAUAUAUAGACGGGGUGAGUAAUAUGCAAGAACAUUUGGUGGUUACACUUGAUAGCAAAGGAGAAGAACUU&UUGAAAAUGAUUAUCAAUACCACAUAGAACAUCCCCCCCACAACGUUUCGUUCUUGUUGGAUUGGUCAUUUUCAAAUAUUCCCCUUUUAUAUGCCCGUAAAAGACAAUAUACGUUAUAACAACGUUUUAUAAAAGCAGUAAACCCUUACGACACUUUAGGUUUACUGCUUUUGU",
       structure: "...............................................................(((.(((((((......((((((((.((((.((((((.(((.............................................&..................................................................))))......))))))))))))))))).))))))).))).....................................................................",
-      "color-seq1":"c9c1c9",
-      "color-seq2":"c9c1c9",
+      colorSeq1:"c9c1c9",
+      colorSeq2:"c9c1c9",
       startIndex1: 1,
       startIndex2: 1,
       cropping: 3,
-      animation: "off",
+      forceLayout: "off",
       backgroundhighlighting: "nothing",
       highlighting: "basepairs",
-      highlights: "1:88-93:0f50b8:1,1:102-104:0e7a06:1,2:81-84:e012dd:1,2:94-96:e012dd:1",
-      "profile-data-1":`61 0.6
+      subseqHighlights: "1:88-93:0f50b8:1,1:102-104:0e7a06:1,2:81-84:e012dd:1,2:94-96:e012dd:1",
+      profileData1:`61 0.6
 62 1
 63 0.6
 64 0.2
@@ -78,9 +78,9 @@ const EXAMPLES = [
 105 0
 106 0.2
 107 0.2`,
-      "profile-color-1-represents-one": "on",
-      "profile-color-1" : "ea373c",
-      "profile-data-2": `64 0.6
+      profileColorRepresentsOne1: 1,
+      profileColor1 : "ea373c",
+      profileData2: `64 0.6
 65 0.2
 66 0.2
 67 0
@@ -124,8 +124,8 @@ const EXAMPLES = [
 105 0
 106 0
 107 0.6`,          
-      "profile-color-2-represents-one": "on",
-      "profile-color-2" : "ea373c",
+      profileColorRepresentsOne2: 1,
+      profileColor2 : "ea373c",
 
 
     }
@@ -152,9 +152,9 @@ const EXAMPLES = [
       structure: "....((((((.((((.....((((((((....&.))))))))..))))......))))))..",
       startIndex1: -35,
       startIndex2: 2,
-      highlights: "1:-12--6:0dec3f:0.9",
+      subseqHighlights: "1:-12--6:0dec3f:0.9",
       mutations: "1:-14G:fb0bcb,1:-13G:fb0bcb,2:8C:fb0bcb,2:9C:fb0bcb",
-      animation: "off"
+      forceLayout: "off"
     }
   }
 ];
