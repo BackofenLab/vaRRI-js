@@ -78,9 +78,6 @@ vaRRI-js/
 ├── src/
 │   ├── vaRRI.js         # JavaScript library (vaRRI API)
 │   └── README.md        # JavaScript library documentation
-├── dist/
-│   ├── vaRRI.min.js     # Minified JavaScript library (vaRRI API for production)
-│   └── vaRRI.min.js.map # Source map for the minified JavaScript library
 ├── tests/
 │   └── vaRRI.test.js    # Jest unit tests for the vaRRI library
 │
@@ -124,8 +121,7 @@ To use the library in your own HTML page, include the dependencies in the follow
 <link rel="stylesheet" href="fornac/fornac.css" />
 <script src="fornac/d3.js"></script>
 <script src="fornac/fornac.js"></script>
-<script src="dist/vaRRI.min.js"></script> 
-<!-- or use the unminified version for development: src/vaRRI.js -->
+<script src="src/vaRRI.js"></script>  <!-- or use a minified version for deployment -->
 ```
 
 
@@ -510,7 +506,7 @@ position-based annotations, including highlightings, point mutations, and probab
 
 ## JavaScript Library API
 
-Include `dist/vaRRI.min.js` (or `src/vaRRI.js`) after the Fornac dependencies.  
+Include `src/vaRRI.js` after the Fornac dependencies.  
 The library exposes a single global object `vaRRI` with the a set of respective functions.
 
 The `src` directory provides a [detailed vaRRI-js Library API documentation](src/README.md)
