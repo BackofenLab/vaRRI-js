@@ -32,6 +32,9 @@
     /** Vertical separation between the north and south interaction rails. */
     const LINEAR_RRI_TRACK_GAP_UNITS = 1;
 
+    /** Outward rise per horizontal unit for terminal zipper ends. */
+    const LINEAR_RRI_TAIL_SLOPE = 0.35;
+
     /** Active requestAnimationFrame ID for the background-highlight animation loop (null when idle). */
     let _animFrameId = null;
 
@@ -2265,6 +2268,107 @@
     }
 
     /**
+     * Place directly attached terminal unpaired runs as diverging zipper ends.
+     *
+     * A terminal run is constrained only when its neighbouring nucleotide is
+     * an outer RRI rail node. Terminal dots separated from the interaction by
+     * other structure remain fully force-directed.
+     *
+     * @param {Object} v
+     * @param {Object.<number,{x:number,y:number,sequence:string}>} railPositions
+     * @param {number} nucleotideSpacing
+     * @returns {Object.<number,{x:number,y:number,sequence:string,side:string}>}
+     */
+    function getLinearRriTailPositions(v, railPositions, nucleotideSpacing) {
+        const spacing = Number(nucleotideSpacing);
+        if (!Number.isFinite(spacing) || spacing <= 0) return {};
+
+        const tailPositions = {};
+        const horizontalUnit = 1 / Math.hypot(1, LINEAR_RRI_TAIL_SLOPE);
+        const verticalUnit = LINEAR_RRI_TAIL_SLOPE * horizontalUnit;
+        const sequence2Start = v.sequence1.length + GAP + 1;
+        const specs = [
+            {
+                sequence: '1',
+                structure: v.structure1,
+                firstNode: 1,
+                planeDirection: -1,
+            },
+            {
+                sequence: '2',
+                structure: v.structure2,
+                firstNode: sequence2Start,
+                planeDirection: 1,
+            },
+        ];
+
+        specs.forEach(spec => {
+            if (
+                typeof spec.structure !== 'string' ||
+                spec.structure.length === 0
+            ) {
+                return;
+            }
+
+            const pairNumbers = Object.entries(railPositions)
+                .filter(([, point]) => point.sequence === spec.sequence)
+                .map(([nodeNumber]) => Number(nodeNumber))
+                .sort((a, b) => a - b);
+            if (pairNumbers.length === 0) return;
+
+            const addTail = (side, count, anchorLocalNumber) => {
+                if (count <= 0) return;
+
+                const anchorNumber = spec.firstNode + anchorLocalNumber - 1;
+                const anchor = railPositions[anchorNumber];
+                if (!anchor) return;
+
+                const neighbourNumber = side === 'leading'
+                    ? pairNumbers.find(nodeNumber => nodeNumber > anchorNumber)
+                    : pairNumbers.slice().reverse().find(
+                        nodeNumber => nodeNumber < anchorNumber
+                    );
+                const neighbour = railPositions[neighbourNumber];
+                let horizontalDirection = neighbour
+                    ? Math.sign(anchor.x - neighbour.x)
+                    : (side === 'leading' ? -1 : 1);
+                if (horizontalDirection === 0) {
+                    horizontalDirection = side === 'leading' ? -1 : 1;
+                }
+
+                for (let step = 1; step <= count; step++) {
+                    const localNumber = side === 'leading'
+                        ? anchorLocalNumber - step
+                        : anchorLocalNumber + step;
+                    const nodeNumber = spec.firstNode + localNumber - 1;
+                    tailPositions[nodeNumber] = {
+                        x: anchor.x +
+                            horizontalDirection * horizontalUnit * spacing * step,
+                        y: anchor.y +
+                            spec.planeDirection * verticalUnit * spacing * step,
+                        sequence: spec.sequence,
+                        side,
+                    };
+                }
+            };
+
+            const leadingMatch = spec.structure.match(/^\.+/);
+            const leadingCount = leadingMatch ? leadingMatch[0].length : 0;
+            addTail('leading', leadingCount, leadingCount + 1);
+
+            const trailingMatch = spec.structure.match(/\.+$/);
+            const trailingCount = trailingMatch ? trailingMatch[0].length : 0;
+            addTail(
+                'trailing',
+                trailingCount,
+                spec.structure.length - trailingCount
+            );
+        });
+
+        return tailPositions;
+    }
+
+    /**
      * Calculate a horizontal two-rail RRI scaffold.
      *
      * Only intermolecularly paired nucleotides are rail nodes. Intervening
@@ -2401,9 +2505,16 @@
             }
         }
 
+        const tailPositions = getLinearRriTailPositions(
+            v,
+            positions,
+            spacing
+        );
+
         return {
             positions,
             bridgePositions,
+            tailPositions,
             pairs,
             interactionRanges,
             northY,
@@ -2550,17 +2661,20 @@
     }
 
     /**
-     * Restore exact interaction-rail coordinates after a Fornac collision pass.
+     * Restore exact rail and terminal zipper-end coordinates after a collision
+     * pass.
      *
      * @param {Object} graph
      * @param {Object} layout
      */
-    function enforceLinearRriInteractionRails(graph, layout) {
+    function enforceLinearRriPinnedGeometry(graph, layout) {
         if (!graph || !Array.isArray(graph.nodes) || !layout) return;
 
-        Object.entries(layout.positions).forEach(([nodeNumber, point]) => {
-            const node = getGraphNucleotideByNumber(graph, Number(nodeNumber));
-            pinLinearRriNode(node, point);
+        [layout.positions, layout.tailPositions].forEach(positionMap => {
+            Object.entries(positionMap || {}).forEach(([nodeNumber, point]) => {
+                const node = getGraphNucleotideByNumber(graph, Number(nodeNumber));
+                pinLinearRriNode(node, point);
+            });
         });
     }
 
@@ -2596,9 +2710,9 @@
      * Build a horizontal two-rail interaction scaffold.
      *
      * Intermolecularly paired nodes form rigid horizontal rails: molecule 1
-     * to the north and molecule 2 to the south. Intervening and external
-     * backbone regions remain force-directed in their respective outer
-     * half-planes, preserving the loop structures shown in Figure 6B.
+     * to the north and molecule 2 to the south. Intervening backbones remain
+     * force-directed as outward loops, while directly attached terminal runs
+     * form straight, diverging zipper ends in their respective half-planes.
      *
      * @param {Object} container  Live Fornac container.
      * @param {Object} v  Validated parameter dictionary.
@@ -2635,10 +2749,7 @@
         );
         if (!layout) return false;
 
-        Object.entries(layout.positions).forEach(([nodeNumber, point]) => {
-            const node = getGraphNucleotideByNumber(graph, Number(nodeNumber));
-            pinLinearRriNode(node, point);
-        });
+        enforceLinearRriPinnedGeometry(graph, layout);
         seedLinearRriBridgeNodes(graph, layout);
 
         const halfPlaneClearance = 0;
@@ -2663,7 +2774,7 @@
         }
         if (container.force && typeof container.force.on === 'function') {
             const enforceAndSync = () => {
-                enforceLinearRriInteractionRails(graph, layout);
+                enforceLinearRriPinnedGeometry(graph, layout);
                 enforceLinearRriHalfPlanes(graph, v, layout, halfPlaneClearance);
                 syncLinearRriDom(graph);
             };
@@ -2999,7 +3110,7 @@
      * @param {Object} v  Validated parameter dictionary (from `validate()`).
      * @param {Object} [options]
      * @param {boolean} [options.forceLayout=false]  Enable Fornac force-layout animation.
-     * @param {boolean} [options.forceLayoutLinear=false]  Pin intermolecularly paired nucleotides to horizontal north/south rails while retaining intervening and external structures in their respective outer half-planes.
+     * @param {boolean} [options.forceLayoutLinear=false]  Pin intermolecularly paired nucleotides to horizontal north/south rails, retain intervening structures in their outer half-planes, and extend directly attached terminal runs as diverging zipper ends.
      * @param {boolean} [options.freeTrailingEnds=false]  Remove Fornac's external-loop circularisation constraint (the "closure" scaffold linking the sequence ends) from the force graph, leaving all other loop constraints intact.
      * @param {boolean} [options.pullPseudoknotBasepairs=false]  Set Fornac's pseudoknot link force strength to 10 (default 0), pulling pseudoknot basepairs together in the force layout.
      * @param {Object.<number,number>|null} [options.accessData=null]  Accessibility data map.

@@ -1067,6 +1067,63 @@ describe('getLinearRriInteractionLayout', () => {
             .toBeCloseTo(120 / Math.PI, 10);
     });
 
+    test('extends directly attached terminal runs as four straight zipper ends', () => {
+        const v = vaRRI.validate({
+            sequence: 'AAAACCCC&UUUUGGGG',
+            structure: '...((((.&.))))...',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+        const layout = vaRRI.getLinearRriInteractionLayout(v, 10, 20);
+
+        expect(Object.keys(layout.tailPositions).map(Number).sort((a, b) => a - b))
+            .toEqual([1, 2, 3, 8, 12, 17, 18, 19]);
+
+        const assertStraightTail = (
+            anchorNumber,
+            tailNumbers,
+            horizontalDirection,
+            verticalDirection
+        ) => {
+            const points = [
+                layout.positions[anchorNumber],
+                ...tailNumbers.map(nodeNumber => layout.tailPositions[nodeNumber]),
+            ];
+            const vectors = points.slice(1).map((point, index) => ({
+                x: point.x - points[index].x,
+                y: point.y - points[index].y,
+            }));
+
+            vectors.forEach(vector => {
+                expect(Math.sign(vector.x)).toBe(horizontalDirection);
+                expect(Math.sign(vector.y)).toBe(verticalDirection);
+                expect(Math.hypot(vector.x, vector.y)).toBeCloseTo(10, 10);
+                expect(vector.x * vectors[0].y - vector.y * vectors[0].x)
+                    .toBeCloseTo(0, 10);
+            });
+        };
+
+        assertStraightTail(4, [3, 2, 1], -1, -1);
+        assertStraightTail(7, [8], 1, -1);
+        assertStraightTail(13, [12], 1, 1);
+        assertStraightTail(16, [17, 18, 19], -1, 1);
+    });
+
+    test('does not straighten terminal dots separated from the RRI by structure', () => {
+        const v = vaRRI.validate({
+            sequence: 'AAAAAAAAAAAA&UUUUUUUUUUUU',
+            structure: '..(())((((..&.)))).......',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+        const layout = vaRRI.getLinearRriInteractionLayout(v, 10, 20);
+
+        expect(layout.tailPositions[1]).toBeUndefined();
+        expect(layout.tailPositions[2]).toBeUndefined();
+        expect(layout.tailPositions[11]).toBeDefined();
+        expect(layout.tailPositions[12]).toBeDefined();
+    });
+
     test('keeps crossing pair nodes distinct and leaves their loops force-directed', () => {
         const v = vaRRI.validate({
             structure: '([{&)}]',

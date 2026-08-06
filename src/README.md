@@ -56,7 +56,7 @@ post-processing from the previous render.
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `forceLayout` | `boolean` | `false` | Enable Fornac force-layout animation. |
-| `forceLayoutLinear` | `boolean` | `false` | Place only intermolecularly paired nucleotides on horizontal north/south rails. Intervening backbones fold outward and remain force-directed with all other molecule structure in the respective half-plane. Requires `forceLayout`. |
+| `forceLayoutLinear` | `boolean` | `false` | Place only intermolecularly paired nucleotides on horizontal north/south rails. Intervening backbones fold outward and remain force-directed with all other molecule structure in the respective half-plane; directly attached terminal unpaired runs extend as straight, diverging zipper ends. Requires `forceLayout`. |
 | `freeTrailingEnds` | `boolean` | `false` | Relax the external-loop closure scaffold when force layout is active. |
 | `pullPseudoknotBasepairs` | `boolean` | `false` | Increase pseudoknot link strength when force layout is active. |
 | `accessData` | `Object<number, number>\|null` | `null` | Node-ID to probability map. |
