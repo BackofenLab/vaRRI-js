@@ -154,7 +154,8 @@ const EXAMPLES = [
       startIndex2: 2,
       subseqHighlights: "1:-12--6:0dec3f:0.9",
       mutations: "1:-14G:fb0bcb,1:-13G:fb0bcb,2:8C:fb0bcb,2:9C:fb0bcb",
-      forceLayout: "off"
+      forceLayout: "on",
+      forceLayoutLinear: "on"
     }
   }
 ];

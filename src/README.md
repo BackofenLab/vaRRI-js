@@ -56,7 +56,7 @@ post-processing from the previous render.
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `forceLayout` | `boolean` | `false` | Enable Fornac force-layout animation. |
-| `forceLayoutLinear` | `boolean` | `false` | Keep intermolecularly paired nucleotides on two rigid parallel rails. Loop bridges derive from the larger strand's arc length and retain bending slack on the shorter strand. Requires `forceLayout`. |
+| `forceLayoutLinear` | `boolean` | `false` | Keep intermolecularly paired nucleotides on two rigid parallel rails. Both rail spans use the same chord derived from the larger intervening loop's semicircular arc. Requires `forceLayout`. |
 | `freeTrailingEnds` | `boolean` | `false` | Relax the external-loop closure scaffold when force layout is active. |
 | `pullPseudoknotBasepairs` | `boolean` | `false` | Increase pseudoknot link strength when force layout is active. |
 | `accessData` | `Object<number, number>\|null` | `null` | Node-ID to probability map. |

@@ -2061,10 +2061,8 @@
      * RRI pairs are ordered along sequence 1. For each two neighbouring pair
      * columns, both strand-spanning constraints receive the same length. The
      * larger loop is treated as a semicircular backbone arc and converted to
-     * its chord length. That chord is capped by the shorter side so at least
-     * one backbone unit remains available for bending whenever both sides
-     * contain unpaired nucleotides. This avoids stretching the shorter side
-     * taut while retaining equal rail spans and aligned basepair columns.
+     * its chord length. That larger-loop chord is applied to both strands so
+     * neighbouring basepair columns retain equal rail spans and stay aligned.
      *
      * @param {Object} v  Validated parameter dictionary.
      * @returns {Array<{source:number,target:number,distanceUnits:number,sequence:"1"|"2"}>}
@@ -2079,20 +2077,10 @@
             const sequence1LoopSize = Math.max(0, Math.abs(current[0] - previous[0]) - 1);
             const sequence2LoopSize = Math.max(0, Math.abs(current[1] - previous[1]) - 1);
             const largerLoopSize = Math.max(sequence1LoopSize, sequence2LoopSize);
-            const shorterLoopSize = Math.min(sequence1LoopSize, sequence2LoopSize);
 
             // A semicircle with contour length L has chord 2L / PI. The
             // contour contains one more backbone bond than internal nodes.
-            const largerLoopChordUnits = 2 * (largerLoopSize + 1) / Math.PI;
-
-            // When both strands contain unpaired nodes, leave at least one
-            // backbone unit of slack on the shorter side. For a true bulge,
-            // the paired/adjacent side retains its normal one-unit spacing.
-            const shorterRelaxedLimit = Math.max(1, shorterLoopSize);
-            const distanceUnits = Math.max(
-                1,
-                Math.min(largerLoopChordUnits, shorterRelaxedLimit)
-            );
+            const distanceUnits = Math.max(1, 2 * (largerLoopSize + 1) / Math.PI);
 
             constraints.push({
                 source: previous[0],

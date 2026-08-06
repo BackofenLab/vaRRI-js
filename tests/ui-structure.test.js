@@ -7,6 +7,7 @@ const html = fs.readFileSync(path.resolve(__dirname, '../index.html'), 'utf8');
 const css = fs.readFileSync(path.resolve(__dirname, '../style.css'), 'utf8');
 const library = fs.readFileSync(path.resolve(__dirname, '../src/vaRRI.js'), 'utf8');
 const apiDocs = fs.readFileSync(path.resolve(__dirname, '../src/README.md'), 'utf8');
+const examplesScript = fs.readFileSync(path.resolve(__dirname, '../examples.js'), 'utf8');
 
 describe('UI document structure', () => {
   test('loads scripts explicitly and in dependency order', () => {
@@ -64,5 +65,15 @@ describe('UI document structure', () => {
     exportedFunctions.forEach(functionName => {
       expect(apiDocs).toContain(functionName);
     });
+  });
+
+  test('enables force-based linearization in the second literature example', () => {
+    const secondExample = examplesScript.match(
+      /id: "wu-2024",[\s\S]*?vaRRIParams:\s*\{([\s\S]*?)\n\s*\}\n\s*\}/
+    );
+
+    expect(secondExample).not.toBeNull();
+    expect(secondExample[1]).toMatch(/forceLayout:\s*"on"/);
+    expect(secondExample[1]).toMatch(/forceLayoutLinear:\s*"on"/);
   });
 });

@@ -364,7 +364,7 @@ See descriptions above and the [Input Format Reference](#input-format-reference)
 | **`colorRriNodes` / `colorRriRegion` / `colorBasepair`** | Hex color codes for nucleotide highlights, background highlights, and base pairs. |
 | **`guBasepairs`** | Toggle display of G-U Wobble base pairs as dashed lines (`true` / `false`). |
 | **`forceLayout`** | Enable or disable Fornac force-layout physics simulation (`true` / `false`). |
-| **`forceLayoutLinear`** | Keep RRI base-paired nucleotides on two parallel linear rails. Enabling it also enables `forceLayout`. |
+| **`forceLayoutLinear`** | Keep RRI base-paired nucleotides on two parallel linear rails. Between neighbouring pair columns, both rail spans use the chord derived from the larger intervening loop. Enabling it also enables `forceLayout`. |
 
 
 > [!IMPORTANT]
