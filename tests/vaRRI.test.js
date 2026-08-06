@@ -913,7 +913,6 @@ describe('getLinearRriConstraintSpecs', () => {
         expect(constraints[3]).toMatchObject({ source: 20, target: 14, sequence: '2' });
         expect(constraints[2].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 12 / Math.PI, 10);
         expect(constraints[3].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 12 / Math.PI, 10);
-
     });
 
     test('returns no constraints for fewer than two intermolecular pairs', () => {
@@ -925,6 +924,48 @@ describe('getLinearRriConstraintSpecs', () => {
         });
 
         expect(vaRRI.getLinearRriConstraintSpecs(v)).toEqual([]);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// getLinearRriBridgePositions
+// ---------------------------------------------------------------------------
+
+describe('getLinearRriBridgePositions', () => {
+    test('distributes larger-loop nodes evenly on an outward semicircle', () => {
+        const bondLength = 13.5;
+        const internalNodeCount = 6;
+        const chordLength = 2 * (internalNodeCount + 1) * bondLength / Math.PI;
+        const positions = vaRRI.getLinearRriBridgePositions(
+            { x: 0, y: 0 },
+            { x: chordLength, y: 0 },
+            internalNodeCount,
+            bondLength,
+            { x: 0, y: 1 }
+        );
+
+        expect(positions).toHaveLength(internalNodeCount);
+        expect(positions.every(point => point.y > 0)).toBe(true);
+
+        const allPoints = [{ x: 0, y: 0 }, ...positions, { x: chordLength, y: 0 }];
+        const segmentLengths = allPoints.slice(1).map((point, index) =>
+            Math.hypot(point.x - allPoints[index].x, point.y - allPoints[index].y)
+        );
+        segmentLengths.forEach(length => {
+            expect(length).toBeCloseTo(segmentLengths[0], 10);
+        });
+    });
+
+    test('distributes an undersized pseudobulge side evenly on the straight chord', () => {
+        const positions = vaRRI.getLinearRriBridgePositions(
+            { x: 0, y: 0 },
+            { x: 60, y: 0 },
+            1,
+            13.5,
+            { x: 0, y: -1 }
+        );
+
+        expect(positions).toEqual([{ x: 30, y: 0 }]);
     });
 });
 

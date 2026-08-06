@@ -2079,11 +2079,11 @@
             const sequence1LoopSize = Math.max(0, Math.abs(current[0] - previous[0]) - 1);
             const sequence2LoopSize = Math.max(0, Math.abs(current[1] - previous[1]) - 1);
             const largerLoopSize = Math.max(sequence1LoopSize, sequence2LoopSize);
-            const scalingFactor = LINEAR_RRI_LINK_DISTANCE_SCALE; 
 
             // A semicircle with contour length L has chord 2L / PI. The
             // contour contains one more backbone bond than internal nodes.
-            const distanceUnits = scalingFactor * Math.max(1, 2 * (largerLoopSize + 1) / Math.PI);
+            const distanceUnits = LINEAR_RRI_LINK_DISTANCE_SCALE *
+                Math.max(1, 2 * (largerLoopSize + 1) / Math.PI);
 
             constraints.push({
                 source: previous[0],
@@ -2103,6 +2103,127 @@
     }
 
     /**
+     * Return evenly spaced internal positions for one RRI loop bridge.
+     *
+     * When the scaled backbone contour can span the chord, nodes follow a
+     * circular arc on the requested outward side. If the chord is longer than
+     * that side's contour (an asymmetric pseudobulge), nodes are distributed
+     * evenly along the straight chord instead of being left to collapse under
+     * the force solver.
+     *
+     * @param {{x:number,y:number}} startPoint
+     * @param {{x:number,y:number}} endPoint
+     * @param {number} internalNodeCount
+     * @param {number} bondLength
+     * @param {{x:number,y:number}} outwardHint
+     * @returns {Array<{x:number,y:number}>}
+     */
+    function getLinearRriBridgePositions(
+        startPoint,
+        endPoint,
+        internalNodeCount,
+        bondLength,
+        outwardHint
+    ) {
+        const rawCount = Number(internalNodeCount);
+        const count = Number.isFinite(rawCount) ? Math.max(0, Math.trunc(rawCount)) : 0;
+        if (count === 0) return [];
+
+        const startX = Number(startPoint && startPoint.x);
+        const startY = Number(startPoint && startPoint.y);
+        const endX = Number(endPoint && endPoint.x);
+        const endY = Number(endPoint && endPoint.y);
+        if (![startX, startY, endX, endY].every(Number.isFinite)) return [];
+
+        const deltaX = endX - startX;
+        const deltaY = endY - startY;
+        const chordLength = Math.hypot(deltaX, deltaY);
+        const straightPositions = Array.from({ length: count }, (_, index) => {
+            const fraction = (index + 1) / (count + 1);
+            return {
+                x: startX + deltaX * fraction,
+                y: startY + deltaY * fraction,
+            };
+        });
+
+        const scaledBondLength = Number(bondLength);
+        const contourLength = (count + 1) * scaledBondLength;
+        if (
+            chordLength < 1e-6 ||
+            !Number.isFinite(scaledBondLength) ||
+            scaledBondLength <= 0 ||
+            contourLength <= chordLength + 1e-6
+        ) {
+            return straightPositions;
+        }
+
+        const axisX = deltaX / chordLength;
+        const axisY = deltaY / chordLength;
+        let outwardX = -axisY;
+        let outwardY = axisX;
+        const hintX = Number(outwardHint && outwardHint.x) || 0;
+        const hintY = Number(outwardHint && outwardHint.y) || 0;
+        if (outwardX * hintX + outwardY * hintY < 0) {
+            outwardX *= -1;
+            outwardY *= -1;
+        }
+
+        // Solve chord / contour = 2 sin(theta / 2) / theta for the minor arc.
+        // The larger-loop bridge is a semicircle; shorter sides produce a
+        // shallower arc or a straight, evenly distributed bridge.
+        const targetRatio = chordLength / contourLength;
+        const semicircleRatio = 2 / Math.PI;
+        let angle = Math.PI;
+        if (targetRatio > semicircleRatio) {
+            let lower = 0;
+            let upper = Math.PI;
+            for (let iteration = 0; iteration < 60; iteration++) {
+                const candidate = (lower + upper) / 2;
+                const ratio = candidate < 1e-9
+                    ? 1
+                    : 2 * Math.sin(candidate / 2) / candidate;
+                if (ratio > targetRatio) lower = candidate;
+                else upper = candidate;
+            }
+            angle = (lower + upper) / 2;
+        }
+
+        const radius = chordLength / (2 * Math.sin(angle / 2));
+        const midpointX = (startX + endX) / 2;
+        const midpointY = (startY + endY) / 2;
+        const halfAngleCosine = Math.cos(angle / 2);
+
+        return Array.from({ length: count }, (_, index) => {
+            const fraction = (index + 1) / (count + 1);
+            const pointAngle = -angle / 2 + angle * fraction;
+            const along = radius * Math.sin(pointAngle);
+            const outward = radius * (Math.cos(pointAngle) - halfAngleCosine);
+            return {
+                x: midpointX + axisX * along + outwardX * outward,
+                y: midpointY + axisY * along + outwardY * outward,
+            };
+        });
+    }
+
+    /**
+     * Return nucleotide numbers strictly between two paired endpoints.
+     *
+     * @param {number} source
+     * @param {number} target
+     * @returns {number[]}
+     */
+    function getIntermediateNodeNumbers(source, target) {
+        const step = Math.sign(target - source);
+        if (step === 0) return [];
+
+        const nodeNumbers = [];
+        for (let nodeNumber = source + step; nodeNumber !== target; nodeNumber += step) {
+            nodeNumbers.push(nodeNumber);
+        }
+        return nodeNumbers;
+    }
+
+    /**
      * Resolve a nucleotide node by its 1-based Fornac node number.
      *
      * @param {Object} graph
@@ -2117,8 +2238,93 @@
     }
 
     /**
-     * Pin all intermolecularly paired nucleotides to two parallel rails and
-     * add layout-only links representing the equal bridge distances.
+     * Fix a nucleotide at one deterministic linear-RRI scaffold position.
+     *
+     * @param {Object} node
+     * @param {{x:number,y:number}} point
+     * @param {boolean} isBridgeNode
+     * @returns {boolean}
+     */
+    function pinLinearRriNode(node, point, isBridgeNode = false) {
+        if (
+            !node ||
+            !point ||
+            !Number.isFinite(point.x) ||
+            !Number.isFinite(point.y)
+        ) {
+            return false;
+        }
+
+        node.x = node.px = point.x;
+        node.y = node.py = point.y;
+        node.fixed = (node.fixed || 0) | 1;
+        node.varriLinearRri = true;
+        if (isBridgeNode) node.varriLinearRriBridge = true;
+        return true;
+    }
+
+    /**
+     * Place every nucleotide inside RRI loops on stable outward bridges.
+     *
+     * @param {Object} graph
+     * @param {Array<[number,number]>} pairs
+     * @param {Array<{sequence1:Object,sequence2:Object}>} pairNodes
+     * @param {number} bondLength
+     * @param {number} normalX
+     * @param {number} normalY
+     */
+    function positionLinearRriBridgeNodes(
+        graph,
+        pairs,
+        pairNodes,
+        bondLength,
+        normalX,
+        normalY
+    ) {
+        for (let index = 1; index < pairs.length; index++) {
+            const previousPair = pairs[index - 1];
+            const currentPair = pairs[index];
+            const previousNodes = pairNodes[index - 1];
+            const currentNodes = pairNodes[index];
+            const bridges = [
+                {
+                    source: previousPair[0],
+                    target: currentPair[0],
+                    start: previousNodes.sequence1,
+                    end: currentNodes.sequence1,
+                    outward: { x: -normalX, y: -normalY },
+                },
+                {
+                    source: previousPair[1],
+                    target: currentPair[1],
+                    start: previousNodes.sequence2,
+                    end: currentNodes.sequence2,
+                    outward: { x: normalX, y: normalY },
+                },
+            ];
+
+            bridges.forEach(bridge => {
+                const nodeNumbers = getIntermediateNodeNumbers(bridge.source, bridge.target);
+                const positions = getLinearRriBridgePositions(
+                    bridge.start,
+                    bridge.end,
+                    nodeNumbers.length,
+                    bondLength,
+                    bridge.outward
+                );
+
+                nodeNumbers.forEach((nodeNumber, nodeIndex) => {
+                    const node = getGraphNucleotideByNumber(graph, nodeNumber);
+                    pinLinearRriNode(node, positions[nodeIndex], true);
+                });
+            });
+        }
+    }
+
+    /**
+     * Pin all intermolecularly paired nucleotides to two parallel rails,
+     * distribute loop nucleotides evenly on outward bridges, and add layout-only
+     * links representing the equal bridge distances.
      *
      * D3 v3 link distances are springs rather than rigid constraints. Pinning
      * the RRI scaffold supplies the rigidity requested by the linear layout,
@@ -2206,12 +2412,18 @@
             ];
 
             targets.forEach(([node, x, y]) => {
-                node.x = node.px = x;
-                node.y = node.py = y;
-                node.fixed = (node.fixed || 0) | 1;
-                node.varriLinearRri = true;
+                pinLinearRriNode(node, { x, y });
             });
         });
+
+        positionLinearRriBridgeNodes(
+            graph,
+            pairs,
+            pairNodes,
+            LINEAR_RRI_LINK_DISTANCE_SCALE * linkDistanceMultiplier,
+            normalX,
+            normalY
+        );
 
         constraints.forEach(spec => {
             const source = getGraphNucleotideByNumber(graph, spec.source);
@@ -3107,6 +3319,7 @@
 
         // Base-pair utilities
         getIntermolBasepairRegion,
+        getLinearRriBridgePositions,
         getLinearRriConstraintSpecs,
         listBasepairs,
         listIntermolNodes,
