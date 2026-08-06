@@ -360,7 +360,7 @@ See descriptions above and the [Input Format Reference](#input-format-reference)
 | **`colorRriNodes` / `colorRriRegion` / `colorBasepair`** | Hex color codes for nucleotide highlights, background highlights, and base pairs. |
 | **`guBasepairs`** | Toggle display of G-U Wobble base pairs as dashed lines (`true` / `false`). |
 | **`forceLayout`** | Enable or disable Fornac force-layout physics simulation (`true` / `false`). |
-| **`forceLayoutLinear`** | Keep RRI base-paired nucleotides on two parallel linear rails. Both spans use the larger loop's scaled chord, while internal bulge nucleotides are evenly distributed on stable outward bridges. Enabling it also enables `forceLayout`. |
+| **`forceLayoutLinear`** | Place the complete interaction region on two horizontal rails: molecule 1 on the northern rail and molecule 2 on the southern rail. Interaction bulges are distributed along the rails, while the remaining structures stay force-directed in their respective outer half-planes. Enabling it also enables `forceLayout`. |
 
 
 > [!IMPORTANT]

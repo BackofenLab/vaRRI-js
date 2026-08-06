@@ -56,7 +56,7 @@ post-processing from the previous render.
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `forceLayout` | `boolean` | `false` | Enable Fornac force-layout animation. |
-| `forceLayoutLinear` | `boolean` | `false` | Keep intermolecularly paired nucleotides on two rigid parallel rails. Both rail spans use the larger loop's scaled semicircular chord; internal bulge nucleotides are evenly distributed on stable outward arcs or straight bridges. Requires `forceLayout`. |
+| `forceLayoutLinear` | `boolean` | `false` | Place the complete interaction region on horizontal north/south rails. Molecule 1 remains above the interaction and molecule 2 below it; external structures stay force-directed in their respective half-planes. Requires `forceLayout`. |
 | `freeTrailingEnds` | `boolean` | `false` | Relax the external-loop closure scaffold when force layout is active. |
 | `pullPseudoknotBasepairs` | `boolean` | `false` | Increase pseudoknot link strength when force layout is active. |
 | `accessData` | `Object<number, number>\|null` | `null` | Node-ID to probability map. |
@@ -169,8 +169,9 @@ const sequenceContext = {
 ## Base-pair utilities
 
 - `vaRRI.getIntermolBasepairRegion(structure1, structure2)`
-- `vaRRI.getLinearRriBridgePositions(startPoint, endPoint, internalNodeCount, bondLength, outwardHint)`
+- `vaRRI.enforceLinearRriHalfPlanes(graph, validated, layout, clearance)`
 - `vaRRI.getLinearRriConstraintSpecs(validated)`
+- `vaRRI.getLinearRriInteractionLayout(validated, nucleotideSpacing, trackGap, center?)`
 - `vaRRI.listBasepairs(structureDictionary)`
 - `vaRRI.listIntermolNodes(structure, shift?)`
 - `vaRRI.listIntermolPairs(validated)`

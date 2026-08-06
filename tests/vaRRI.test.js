@@ -886,7 +886,7 @@ describe('getIntermolBasepairRegion', () => {
 // ---------------------------------------------------------------------------
 
 describe('getLinearRriConstraintSpecs', () => {
-    test('uses the larger loop to derive equal chords for both rails', () => {
+    test('uses the larger interval to derive equal horizontal spans for both rails', () => {
         const v = vaRRI.validate({
             structure: '(..(.....(&).....)....)',
             sequence: 'AAAAAAAAAA&AAAAAAAAAAAA',
@@ -904,15 +904,15 @@ describe('getLinearRriConstraintSpecs', () => {
         expect(constraints).toHaveLength(4);
         expect(constraints[0]).toMatchObject({ source: 1, target: 4, sequence: '1' });
         expect(constraints[1]).toMatchObject({ source: 25, target: 20, sequence: '2' });
-        // The first interval has 2 unpaired nodes on sequence 1 and 4 on
-        // sequence 2, so both rails use the chord derived from the larger loop.
-        expect(constraints[0].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 10 / Math.PI, 10);
-        expect(constraints[1].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 10 / Math.PI, 10);
+        // The first interval has 3 backbone bonds on sequence 1 and 5 on
+        // sequence 2, so both rails reserve five horizontal spacing units.
+        expect(constraints[0].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 5, 10);
+        expect(constraints[1].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 5, 10);
 
         expect(constraints[2]).toMatchObject({ source: 4, target: 10, sequence: '1' });
         expect(constraints[3]).toMatchObject({ source: 20, target: 14, sequence: '2' });
-        expect(constraints[2].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 12 / Math.PI, 10);
-        expect(constraints[3].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 12 / Math.PI, 10);
+        expect(constraints[2].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 6, 10);
+        expect(constraints[3].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 6, 10);
     });
 
     test('returns no constraints for fewer than two intermolecular pairs', () => {
@@ -928,44 +928,129 @@ describe('getLinearRriConstraintSpecs', () => {
 });
 
 // ---------------------------------------------------------------------------
-// getLinearRriBridgePositions
+// getLinearRriInteractionLayout
 // ---------------------------------------------------------------------------
 
-describe('getLinearRriBridgePositions', () => {
-    test('distributes larger-loop nodes evenly on an outward semicircle', () => {
-        const bondLength = 13.5;
-        const internalNodeCount = 6;
-        const chordLength = 2 * (internalNodeCount + 1) * bondLength / Math.PI;
-        const positions = vaRRI.getLinearRriBridgePositions(
-            { x: 0, y: 0 },
-            { x: chordLength, y: 0 },
-            internalNodeCount,
-            bondLength,
-            { x: 0, y: 1 }
+describe('getLinearRriInteractionLayout', () => {
+    const asymmetricInteraction = () => vaRRI.validate({
+        structure: '(..(.....(&).....)....)',
+        sequence: 'AAAAAAAAAA&AAAAAAAAAAAA',
+        startIndex1: '1',
+        startIndex2: '1',
+    });
+
+    test('places the complete interaction on horizontal north and south rails', () => {
+        const v = asymmetricInteraction();
+        const layout = vaRRI.getLinearRriInteractionLayout(
+            v,
+            10,
+            40,
+            { x: 100, y: 100 }
         );
 
-        expect(positions).toHaveLength(internalNodeCount);
-        expect(positions.every(point => point.y > 0)).toBe(true);
+        expect(layout.interactionRanges).toEqual({
+            sequence1: [1, 10],
+            sequence2: [14, 25],
+        });
+        expect(layout.northY).toBe(80);
+        expect(layout.southY).toBe(120);
+        expect(layout.northY).toBeLessThan(layout.southY);
 
-        const allPoints = [{ x: 0, y: 0 }, ...positions, { x: chordLength, y: 0 }];
-        const segmentLengths = allPoints.slice(1).map((point, index) =>
-            Math.hypot(point.x - allPoints[index].x, point.y - allPoints[index].y)
-        );
-        segmentLengths.forEach(length => {
-            expect(length).toBeCloseTo(segmentLengths[0], 10);
+        const sequence1Points = Object.values(layout.positions)
+            .filter(point => point.sequence === '1');
+        const sequence2Points = Object.values(layout.positions)
+            .filter(point => point.sequence === '2');
+        expect(sequence1Points).toHaveLength(10);
+        expect(sequence2Points).toHaveLength(12);
+        expect(sequence1Points.every(point => point.y === layout.northY)).toBe(true);
+        expect(sequence2Points.every(point => point.y === layout.southY)).toBe(true);
+
+        layout.pairs.forEach(([sequence1Node, sequence2Node]) => {
+            expect(layout.positions[sequence1Node].x)
+                .toBeCloseTo(layout.positions[sequence2Node].x, 10);
         });
     });
 
-    test('distributes an undersized pseudobulge side evenly on the straight chord', () => {
-        const positions = vaRRI.getLinearRriBridgePositions(
-            { x: 0, y: 0 },
-            { x: 60, y: 0 },
-            1,
-            13.5,
-            { x: 0, y: -1 }
+    test('reserves the larger interval and distributes each bulge evenly', () => {
+        const layout = vaRRI.getLinearRriInteractionLayout(
+            asymmetricInteraction(),
+            10,
+            40
         );
 
-        expect(positions).toEqual([{ x: 30, y: 0 }]);
+        const sequence1FirstInterval = [1, 2, 3, 4].map(
+            nodeNumber => layout.positions[nodeNumber].x
+        );
+        const sequence2FirstInterval = [25, 24, 23, 22, 21, 20].map(
+            nodeNumber => layout.positions[nodeNumber].x
+        );
+        const deltas = values => values.slice(1).map(
+            (value, index) => value - values[index]
+        );
+
+        const sequence1Deltas = deltas(sequence1FirstInterval);
+        const sequence2Deltas = deltas(sequence2FirstInterval);
+        sequence1Deltas.forEach(delta => {
+            expect(delta).toBeCloseTo(sequence1Deltas[0], 10);
+            expect(delta).toBeGreaterThanOrEqual(10);
+        });
+        sequence2Deltas.forEach(delta => {
+            expect(delta).toBeCloseTo(sequence2Deltas[0], 10);
+            expect(delta).toBeGreaterThanOrEqual(10);
+        });
+    });
+
+    test('keeps crossing interactions ordered without nucleotide overlap', () => {
+        const v = vaRRI.validate({
+            structure: '([{&)}]',
+            sequence: 'AAA&AAA',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+        const layout = vaRRI.getLinearRriInteractionLayout(v, 12, 36);
+
+        expect(layout.pairOrderMonotonic).toBe(false);
+        for (const sequence of ['1', '2']) {
+            const xs = Object.values(layout.positions)
+                .filter(point => point.sequence === sequence)
+                .map(point => point.x);
+            expect(new Set(xs).size).toBe(xs.length);
+            const ordered = xs.slice().sort((a, b) => a - b);
+            for (let index = 1; index < ordered.length; index++) {
+                expect(ordered[index] - ordered[index - 1]).toBeCloseTo(12, 10);
+            }
+        }
+    });
+});
+
+// ---------------------------------------------------------------------------
+// enforceLinearRriHalfPlanes
+// ---------------------------------------------------------------------------
+
+describe('enforceLinearRriHalfPlanes', () => {
+    test('projects only external nodes out of the protected rail corridor', () => {
+        const v = { sequence1: 'AAAAA', sequence2: 'UUUUU' };
+        const layout = {
+            interactionRanges: { sequence1: [2, 4], sequence2: [10, 12] },
+            northY: 20,
+            southY: 60,
+        };
+        const nodes = [
+            { nodeType: 'nucleotide', num: 1, y: 30, py: 29 },
+            { nodeType: 'nucleotide', num: 2, y: 999, py: 999 },
+            { nodeType: 'nucleotide', num: 5, y: -20, py: -20 },
+            { nodeType: 'nucleotide', num: 9, y: 50, py: 51 },
+            { nodeType: 'nucleotide', num: 10, y: -999, py: -999 },
+            { nodeType: 'nucleotide', num: 13, y: 80, py: 80 },
+        ];
+
+        expect(vaRRI.enforceLinearRriHalfPlanes({ nodes }, v, layout, 5)).toBe(2);
+        expect(nodes[0]).toMatchObject({ y: 15, py: 15 });
+        expect(nodes[1]).toMatchObject({ y: 999, py: 999 });
+        expect(nodes[2]).toMatchObject({ y: -20, py: -20 });
+        expect(nodes[3]).toMatchObject({ y: 65, py: 65 });
+        expect(nodes[4]).toMatchObject({ y: -999, py: -999 });
+        expect(nodes[5]).toMatchObject({ y: 80, py: 80 });
     });
 });
 
