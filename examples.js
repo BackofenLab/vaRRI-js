@@ -135,7 +135,7 @@ const EXAMPLES = [
     title: "RNA interactome of hypervirulent Klebsiella pneumoniae reveals a small RNA inhibitor of capsular mucoviscosity and virulence",
     authors: "Wu et al., 2024",
     doi: "https://doi.org/10.1101/2024.06.23.600155",
-    description: "Reproduction of Figure 4C showing an interaction with 4 mutations and a subsequence highlighting within a sequence context upstream of the start codon.",
+    description: "Reproduction of Figure 4C showing an interaction with 4 mutations and a subsequence highlighting within a sequence context upstream of the start codon. The interaction helices are shown in a linear layout to better visualize the interaction.",
     originalFigure: {
       title: "Original Figure 4C",
       url: "https://www.biorxiv.org/content/10.1101/2024.06.23.600155v1.full#F4",

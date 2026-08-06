@@ -2077,10 +2077,11 @@
             const sequence1LoopSize = Math.max(0, Math.abs(current[0] - previous[0]) - 1);
             const sequence2LoopSize = Math.max(0, Math.abs(current[1] - previous[1]) - 1);
             const largerLoopSize = Math.max(sequence1LoopSize, sequence2LoopSize);
+            const scalingFactor = 0.9; 
 
             // A semicircle with contour length L has chord 2L / PI. The
             // contour contains one more backbone bond than internal nodes.
-            const distanceUnits = Math.max(1, 2 * (largerLoopSize + 1) / Math.PI);
+            const distanceUnits = scalingFactor * Math.max(1, 2 * (largerLoopSize + 1) / Math.PI);
 
             constraints.push({
                 source: previous[0],
