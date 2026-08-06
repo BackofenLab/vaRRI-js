@@ -30,7 +30,7 @@
     const LINEAR_RRI_LINK_DISTANCE_SCALE = 0.9;
 
     /** Vertical separation between the north and south interaction rails. */
-    const LINEAR_RRI_TRACK_GAP_UNITS = 3;
+    const LINEAR_RRI_TRACK_GAP_UNITS = 1;
 
     /** Active requestAnimationFrame ID for the background-highlight animation loop (null when idle). */
     let _animFrameId = null;
@@ -2061,12 +2061,12 @@
     }
 
     /**
-     * Build invisible same-strand constraints for the horizontal RRI rails.
+     * Build invisible same-strand distance constraints between neighbouring
+     * RRI base-pair columns.
      *
-     * Both rails use the backbone-bond count of the larger side between
-     * neighbouring base-pair columns. This guarantees enough horizontal room
-     * for every interaction nucleotide and prevents asymmetric bulges from
-     * overlapping.
+     * Both strands receive the same chord. Its length is derived from the
+     * larger intervening loop, as required by Issue 59, so asymmetric bulges
+     * cannot pull one rail interval shorter than the other.
      *
      * @param {Object} v  Validated parameter dictionary.
      * @returns {Array<{source:number,target:number,distanceUnits:number,sequence:"1"|"2"}>}
@@ -2075,13 +2075,23 @@
         const pairs = listIntermolPairs(v).slice().sort((a, b) => a[0] - b[0]);
         const constraints = [];
 
-        for (let i = 1; i < pairs.length; i++) {
-            const previous = pairs[i - 1];
-            const current = pairs[i];
-            const sequence1BondCount = Math.max(1, Math.abs(current[0] - previous[0]));
-            const sequence2BondCount = Math.max(1, Math.abs(current[1] - previous[1]));
+        for (let index = 1; index < pairs.length; index++) {
+            const previous = pairs[index - 1];
+            const current = pairs[index];
+            const sequence1LoopSize = Math.max(
+                0,
+                Math.abs(current[0] - previous[0]) - 1
+            );
+            const sequence2LoopSize = Math.max(
+                0,
+                Math.abs(current[1] - previous[1]) - 1
+            );
+            const largerLoopSize = Math.max(sequence1LoopSize, sequence2LoopSize);
+
+            // A semicircle with contour length L has chord 2L / PI. The
+            // contour contains one more backbone bond than internal nodes.
             const distanceUnits = LINEAR_RRI_LINK_DISTANCE_SCALE *
-                Math.max(sequence1BondCount, sequence2BondCount);
+                Math.max(1, 2 * (largerLoopSize + 1) / Math.PI);
 
             constraints.push({
                 source: previous[0],
@@ -2098,6 +2108,122 @@
         }
 
         return constraints;
+    }
+
+    /**
+     * Return evenly spaced positions for one outward RRI loop bridge.
+     *
+     * When its backbone contour can span the shared chord, the bridge follows
+     * a circular arc. A shorter asymmetric side is distributed evenly along
+     * the chord instead of being allowed to collapse at one endpoint.
+     *
+     * @param {{x:number,y:number}} startPoint
+     * @param {{x:number,y:number}} endPoint
+     * @param {number} internalNodeCount
+     * @param {number} bondLength
+     * @param {{x:number,y:number}} outwardHint
+     * @returns {Array<{x:number,y:number}>}
+     */
+    function getLinearRriBridgePositions(
+        startPoint,
+        endPoint,
+        internalNodeCount,
+        bondLength,
+        outwardHint
+    ) {
+        const rawCount = Number(internalNodeCount);
+        const count = Number.isFinite(rawCount) ? Math.max(0, Math.trunc(rawCount)) : 0;
+        if (count === 0) return [];
+
+        const startX = Number(startPoint && startPoint.x);
+        const startY = Number(startPoint && startPoint.y);
+        const endX = Number(endPoint && endPoint.x);
+        const endY = Number(endPoint && endPoint.y);
+        if (![startX, startY, endX, endY].every(Number.isFinite)) return [];
+
+        const deltaX = endX - startX;
+        const deltaY = endY - startY;
+        const chordLength = Math.hypot(deltaX, deltaY);
+        const straightPositions = Array.from({ length: count }, (_, index) => {
+            const fraction = (index + 1) / (count + 1);
+            return {
+                x: startX + deltaX * fraction,
+                y: startY + deltaY * fraction,
+            };
+        });
+
+        const scaledBondLength = Number(bondLength);
+        const contourLength = (count + 1) * scaledBondLength;
+        if (
+            chordLength < 1e-6 ||
+            !Number.isFinite(scaledBondLength) ||
+            scaledBondLength <= 0 ||
+            contourLength <= chordLength + 1e-6
+        ) {
+            return straightPositions;
+        }
+
+        const axisX = deltaX / chordLength;
+        const axisY = deltaY / chordLength;
+        let outwardX = -axisY;
+        let outwardY = axisX;
+        const hintX = Number(outwardHint && outwardHint.x) || 0;
+        const hintY = Number(outwardHint && outwardHint.y) || 0;
+        if (outwardX * hintX + outwardY * hintY < 0) {
+            outwardX *= -1;
+            outwardY *= -1;
+        }
+
+        const targetRatio = chordLength / contourLength;
+        const semicircleRatio = 2 / Math.PI;
+        let angle = Math.PI;
+        if (targetRatio > semicircleRatio) {
+            let lower = 0;
+            let upper = Math.PI;
+            for (let iteration = 0; iteration < 60; iteration++) {
+                const candidate = (lower + upper) / 2;
+                const ratio = candidate < 1e-9
+                    ? 1
+                    : 2 * Math.sin(candidate / 2) / candidate;
+                if (ratio > targetRatio) lower = candidate;
+                else upper = candidate;
+            }
+            angle = (lower + upper) / 2;
+        }
+
+        const radius = chordLength / (2 * Math.sin(angle / 2));
+        const midpointX = (startX + endX) / 2;
+        const midpointY = (startY + endY) / 2;
+        const halfAngleCosine = Math.cos(angle / 2);
+
+        return Array.from({ length: count }, (_, index) => {
+            const fraction = (index + 1) / (count + 1);
+            const pointAngle = -angle / 2 + angle * fraction;
+            const along = radius * Math.sin(pointAngle);
+            const outward = radius * (Math.cos(pointAngle) - halfAngleCosine);
+            return {
+                x: midpointX + axisX * along + outwardX * outward,
+                y: midpointY + axisY * along + outwardY * outward,
+            };
+        });
+    }
+
+    /**
+     * Return nucleotide numbers strictly between two paired endpoints.
+     *
+     * @param {number} source
+     * @param {number} target
+     * @returns {number[]}
+     */
+    function getIntermediateNodeNumbers(source, target) {
+        const step = Math.sign(target - source);
+        if (step === 0) return [];
+
+        const nodeNumbers = [];
+        for (let nodeNumber = source + step; nodeNumber !== target; nodeNumber += step) {
+            nodeNumbers.push(nodeNumber);
+        }
+        return nodeNumbers;
     }
 
     /**
@@ -2139,55 +2265,15 @@
     }
 
     /**
-     * Interpolate all nucleotide positions between pair anchors on one rail.
+     * Calculate a horizontal two-rail RRI scaffold.
      *
-     * @param {[number,number]} range  Inclusive interaction range.
-     * @param {Array<{nodeNumber:number,x:number}>} anchors
-     * @param {number} y
-     * @returns {Object.<number,{x:number,y:number}>|null}
-     */
-    function getLinearRriStrandPositions(range, anchors, y) {
-        const positions = {};
-        const orderedAnchors = anchors.slice().sort((a, b) => a.nodeNumber - b.nodeNumber);
-
-        for (let index = 1; index < orderedAnchors.length; index++) {
-            const previous = orderedAnchors[index - 1];
-            const current = orderedAnchors[index];
-            const nodeSpan = current.nodeNumber - previous.nodeNumber;
-            if (nodeSpan <= 0) continue;
-
-            for (let step = 0; step <= nodeSpan; step++) {
-                const fraction = step / nodeSpan;
-                positions[previous.nodeNumber + step] = {
-                    x: previous.x + (current.x - previous.x) * fraction,
-                    y,
-                };
-            }
-        }
-
-        if (orderedAnchors.length === 1) {
-            positions[orderedAnchors[0].nodeNumber] = {
-                x: orderedAnchors[0].x,
-                y,
-            };
-        }
-
-        for (let nodeNumber = range[0]; nodeNumber <= range[1]; nodeNumber++) {
-            if (!positions[nodeNumber]) return null;
-        }
-        return positions;
-    }
-
-    /**
-     * Calculate horizontal north/south rails for the complete interaction.
-     *
-     * Only nucleotide spans bounded by intermolecular pairs are linearised.
-     * Ordinary monotonic interactions align paired nucleotides into vertical
-     * columns. Crossing interactions keep both strand orders collision-free
-     * and express the crossing through their base-pair links.
+     * Only intermolecularly paired nucleotides are rail nodes. Intervening
+     * nucleotides receive outward seed positions in `bridgePositions`, but
+     * remain available to Fornac's force field so their backbone loops and any
+     * intramolecular structure are retained.
      *
      * @param {Object} v  Validated parameter dictionary.
-     * @param {number} nucleotideSpacing
+     * @param {number} nucleotideSpacing  Effective backbone bond length.
      * @param {number} trackGap
      * @param {{x:number,y:number}} [center]
      * @returns {Object|null}
@@ -2208,7 +2294,7 @@
         const centerY = Number.isFinite(Number(center && center.y)) ? Number(center.y) : 0;
         const requestedGap = Number(trackGap);
         const effectiveTrackGap = Math.max(
-            2 * spacing,
+            spacing,
             Number.isFinite(requestedGap) && requestedGap > 0
                 ? requestedGap
                 : LINEAR_RRI_TRACK_GAP_UNITS * spacing
@@ -2235,82 +2321,89 @@
         const pairOrderMonotonic = sequence2Deltas.every(delta => delta > 0) ||
             sequence2Deltas.every(delta => delta < 0);
 
-        let sequence1Positions;
-        let sequence2Positions;
-
-        if (pairs.length === 1 || pairOrderMonotonic) {
-            const columnOffsets = [0];
-            for (let index = 1; index < pairs.length; index++) {
-                const sequence1BondCount = Math.abs(pairs[index][0] - pairs[index - 1][0]);
-                const sequence2BondCount = Math.abs(pairs[index][1] - pairs[index - 1][1]);
-                columnOffsets.push(
-                    columnOffsets[columnOffsets.length - 1] +
-                    Math.max(1, sequence1BondCount, sequence2BondCount) * spacing
-                );
-            }
-            const columnCenter =
-                (columnOffsets[0] + columnOffsets[columnOffsets.length - 1]) / 2;
-            const columnXs = columnOffsets.map(offset => centerX + offset - columnCenter);
-
-            sequence1Positions = getLinearRriStrandPositions(
-                interactionRanges.sequence1,
-                pairs.map((pair, index) => ({ nodeNumber: pair[0], x: columnXs[index] })),
-                northY
+        const columnOffsets = [0];
+        for (let index = 1; index < pairs.length; index++) {
+            const sequence1LoopSize = Math.max(
+                0,
+                Math.abs(pairs[index][0] - pairs[index - 1][0]) - 1
             );
-            sequence2Positions = getLinearRriStrandPositions(
-                interactionRanges.sequence2,
-                pairs.map((pair, index) => ({ nodeNumber: pair[1], x: columnXs[index] })),
-                southY
+            const sequence2LoopSize = Math.max(
+                0,
+                Math.abs(pairs[index][1] - pairs[index - 1][1]) - 1
             );
-        } else {
-            const sequence1Midpoint =
-                (interactionRanges.sequence1[0] + interactionRanges.sequence1[1]) / 2;
-            const sequence2Midpoint =
-                (interactionRanges.sequence2[0] + interactionRanges.sequence2[1]) / 2;
-            sequence1Positions = {};
-            sequence2Positions = {};
-
-            for (
-                let nodeNumber = interactionRanges.sequence1[0];
-                nodeNumber <= interactionRanges.sequence1[1];
-                nodeNumber++
-            ) {
-                sequence1Positions[nodeNumber] = {
-                    x: centerX + (nodeNumber - sequence1Midpoint) * spacing,
-                    y: northY,
-                };
-            }
-            for (
-                let nodeNumber = interactionRanges.sequence2[0];
-                nodeNumber <= interactionRanges.sequence2[1];
-                nodeNumber++
-            ) {
-                sequence2Positions[nodeNumber] = {
-                    x: centerX - (nodeNumber - sequence2Midpoint) * spacing,
-                    y: southY,
-                };
-            }
-
-            const averagePairOffset = pairs.reduce((sum, pair) =>
-                sum + sequence1Positions[pair[0]].x - sequence2Positions[pair[1]].x
-            , 0) / pairs.length;
-            Object.values(sequence2Positions).forEach(point => {
-                point.x += averagePairOffset;
-            });
+            const largerLoopSize = Math.max(sequence1LoopSize, sequence2LoopSize);
+            const chordLength = spacing *
+                Math.max(1, 2 * (largerLoopSize + 1) / Math.PI);
+            columnOffsets.push(columnOffsets[columnOffsets.length - 1] + chordLength);
         }
 
-        if (!sequence1Positions || !sequence2Positions) return null;
-
+        const columnCenter =
+            (columnOffsets[0] + columnOffsets[columnOffsets.length - 1]) / 2;
+        const columnXs = columnOffsets.map(offset => centerX + offset - columnCenter);
         const positions = {};
-        Object.entries(sequence1Positions).forEach(([nodeNumber, point]) => {
-            positions[nodeNumber] = { ...point, sequence: '1' };
+
+        pairs.forEach((pair, index) => {
+            positions[pair[0]] = {
+                x: columnXs[index],
+                y: northY,
+                sequence: '1',
+            };
+            positions[pair[1]] = {
+                x: columnXs[index],
+                y: southY,
+                sequence: '2',
+            };
         });
-        Object.entries(sequence2Positions).forEach(([nodeNumber, point]) => {
-            positions[nodeNumber] = { ...point, sequence: '2' };
-        });
+
+        const bridgePositions = {};
+        if (pairOrderMonotonic) {
+            for (let index = 1; index < pairs.length; index++) {
+                const previousPair = pairs[index - 1];
+                const currentPair = pairs[index];
+                const bridges = [
+                    {
+                        source: previousPair[0],
+                        target: currentPair[0],
+                        start: positions[previousPair[0]],
+                        end: positions[currentPair[0]],
+                        sequence: '1',
+                        outward: { x: 0, y: -1 },
+                    },
+                    {
+                        source: previousPair[1],
+                        target: currentPair[1],
+                        start: positions[previousPair[1]],
+                        end: positions[currentPair[1]],
+                        sequence: '2',
+                        outward: { x: 0, y: 1 },
+                    },
+                ];
+
+                bridges.forEach(bridge => {
+                    const nodeNumbers = getIntermediateNodeNumbers(
+                        bridge.source,
+                        bridge.target
+                    );
+                    const seededPositions = getLinearRriBridgePositions(
+                        bridge.start,
+                        bridge.end,
+                        nodeNumbers.length,
+                        spacing,
+                        bridge.outward
+                    );
+                    nodeNumbers.forEach((nodeNumber, nodeIndex) => {
+                        bridgePositions[nodeNumber] = {
+                            ...seededPositions[nodeIndex],
+                            sequence: bridge.sequence,
+                        };
+                    });
+                });
+            }
+        }
 
         return {
             positions,
+            bridgePositions,
             pairs,
             interactionRanges,
             northY,
@@ -2318,6 +2411,24 @@
             trackGap: effectiveTrackGap,
             pairOrderMonotonic,
         };
+    }
+
+    /**
+     * Seed intervening RRI backbone nodes without fixing them.
+     *
+     * @param {Object} graph
+     * @param {Object} layout
+     */
+    function seedLinearRriBridgeNodes(graph, layout) {
+        if (!graph || !Array.isArray(graph.nodes) || !layout) return;
+
+        Object.entries(layout.bridgePositions || {}).forEach(([nodeNumber, point]) => {
+            const node = getGraphNucleotideByNumber(graph, Number(nodeNumber));
+            if (!node || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+            node.x = node.px = point.x;
+            node.y = node.py = point.y;
+            node.varriLinearRriBridge = true;
+        });
     }
 
     /**
@@ -2346,7 +2457,7 @@
     }
 
     /**
-     * Keep non-interaction nucleotides in their molecule's outer half-plane.
+     * Keep every non-rail nucleotide in its molecule's outer half-plane.
      *
      * @param {Object} graph
      * @param {Object} v
@@ -2371,10 +2482,14 @@
             const isSequence2 = node.num >= sequence2Start && node.num <= sequence2End;
             if (!isSequence1 && !isSequence2) return;
 
-            const range = isSequence1
-                ? layout.interactionRanges.sequence1
-                : layout.interactionRanges.sequence2;
-            if (node.num >= range[0] && node.num <= range[1]) return;
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    layout.positions || {},
+                    node.num
+                )
+            ) {
+                return;
+            }
 
             if (isSequence1 && node.y > northBoundary) {
                 node.y = node.py = northBoundary;
@@ -2480,10 +2595,10 @@
     /**
      * Build a horizontal two-rail interaction scaffold.
      *
-     * The complete interaction interval of molecule 1 is pinned to the northern
-     * rail and molecule 2 to the southern rail. Non-interaction structures
-     * remain force-directed but are constrained to their respective outer
-     * half-planes, leaving the rail corridor free of overlap.
+     * Intermolecularly paired nodes form rigid horizontal rails: molecule 1
+     * to the north and molecule 2 to the south. Intervening and external
+     * backbone regions remain force-directed in their respective outer
+     * half-planes, preserving the loop structures shown in Figure 6B.
      *
      * @param {Object} container  Live Fornac container.
      * @param {Object} v  Validated parameter dictionary.
@@ -2524,8 +2639,9 @@
             const node = getGraphNucleotideByNumber(graph, Number(nodeNumber));
             pinLinearRriNode(node, point);
         });
+        seedLinearRriBridgeNodes(graph, layout);
 
-        const halfPlaneClearance = linkDistanceMultiplier;
+        const halfPlaneClearance = 0;
         prepareLinearRriExternalStructures(graph, v, layout, halfPlaneClearance);
 
         const constraints = getLinearRriConstraintSpecs(v);
@@ -2883,7 +2999,7 @@
      * @param {Object} v  Validated parameter dictionary (from `validate()`).
      * @param {Object} [options]
      * @param {boolean} [options.forceLayout=false]  Enable Fornac force-layout animation.
-     * @param {boolean} [options.forceLayoutLinear=false]  Pin the complete interaction region to horizontal north/south rails while constraining the remaining molecule structures to their respective outer half-planes.
+     * @param {boolean} [options.forceLayoutLinear=false]  Pin intermolecularly paired nucleotides to horizontal north/south rails while retaining intervening and external structures in their respective outer half-planes.
      * @param {boolean} [options.freeTrailingEnds=false]  Remove Fornac's external-loop circularisation constraint (the "closure" scaffold linking the sequence ends) from the force graph, leaving all other loop constraints intact.
      * @param {boolean} [options.pullPseudoknotBasepairs=false]  Set Fornac's pseudoknot link force strength to 10 (default 0), pulling pseudoknot basepairs together in the force layout.
      * @param {Object.<number,number>|null} [options.accessData=null]  Accessibility data map.
@@ -3434,6 +3550,7 @@
         // Base-pair utilities
         enforceLinearRriHalfPlanes,
         getIntermolBasepairRegion,
+        getLinearRriBridgePositions,
         getLinearRriConstraintSpecs,
         getLinearRriInteractionLayout,
         listBasepairs,
