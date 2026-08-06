@@ -26,6 +26,8 @@
     /** Match Fornac's strong backbone/basepair link strength. */
     const LINEAR_RRI_LINK_STRENGTH = 10;
 
+    const LINEAR_RRI_LINK_DISTANCE_SCALE = 0.9; 
+
     /** Active requestAnimationFrame ID for the background-highlight animation loop (null when idle). */
     let _animFrameId = null;
 
@@ -2077,7 +2079,7 @@
             const sequence1LoopSize = Math.max(0, Math.abs(current[0] - previous[0]) - 1);
             const sequence2LoopSize = Math.max(0, Math.abs(current[1] - previous[1]) - 1);
             const largerLoopSize = Math.max(sequence1LoopSize, sequence2LoopSize);
-            const scalingFactor = 0.9; 
+            const scalingFactor = LINEAR_RRI_LINK_DISTANCE_SCALE; 
 
             // A semicircle with contour length L has chord 2L / PI. The
             // contour contains one more backbone bond than internal nodes.
@@ -3049,6 +3051,10 @@
     // -----------------------------------------------------------------------
 
     const vaRRI = {
+
+        // Constants
+        LINEAR_RRI_LINK_DISTANCE_SCALE,
+
         // Core
         normaliseRotationDegrees,
         render,

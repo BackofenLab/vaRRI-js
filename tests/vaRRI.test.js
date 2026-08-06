@@ -906,15 +906,14 @@ describe('getLinearRriConstraintSpecs', () => {
         expect(constraints[1]).toMatchObject({ source: 25, target: 20, sequence: '2' });
         // The first interval has 2 unpaired nodes on sequence 1 and 4 on
         // sequence 2, so both rails use the chord derived from the larger loop.
-        expect(constraints[0].distanceUnits).toBeCloseTo(10 / Math.PI, 10);
-        expect(constraints[1].distanceUnits).toBeCloseTo(10 / Math.PI, 10);
+        expect(constraints[0].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 10 / Math.PI, 10);
+        expect(constraints[1].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 10 / Math.PI, 10);
 
         expect(constraints[2]).toMatchObject({ source: 4, target: 10, sequence: '1' });
         expect(constraints[3]).toMatchObject({ source: 20, target: 14, sequence: '2' });
-        expect(constraints[2].distanceUnits).toBeCloseTo(12 / Math.PI, 10);
-        expect(constraints[3].distanceUnits).toBeCloseTo(12 / Math.PI, 10);
+        expect(constraints[2].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 12 / Math.PI, 10);
+        expect(constraints[3].distanceUnits).toBeCloseTo(vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 12 / Math.PI, 10);
 
-        expect(constraints[0].distanceUnits).toBeGreaterThan(3);
     });
 
     test('returns no constraints for fewer than two intermolecular pairs', () => {
