@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>vaRRI literature benchmark</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../../fornac/fornac.css">
+  <style>
+    html, body { margin: 0; background: #f5f7fa; color: #18212b; font-family: system-ui, sans-serif; }
+    main { padding: 12px; }
+    #status { margin: 0 0 8px; font: 13px/1.4 ui-monospace, monospace; white-space: pre-wrap; }
+    #rna-benchmark { width: 1180px; height: 760px; overflow: hidden; background: white; border: 1px solid #cbd3dc; }
+    #rna-benchmark svg { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <main>
+    <pre id="status">Loading literature fixtures…</pre>
+    <div id="rna-benchmark" aria-label="vaRRI literature benchmark rendering"></div>
+  </main>
+  <script src="../../fornac/d3.js"></script>
+  <script src="../../fornac/fornac.js"></script>
+  <script src="../../src/vaRRI.js"></script>
+  <script src="benchmark.js"></script>
+</body>
+</html>
