@@ -906,15 +906,13 @@ describe('getLinearRriConstraintSpecs', () => {
         expect(constraints[1]).toMatchObject({ source: 25, target: 20, sequence: '2' });
         // The first interval has 2 unpaired nodes on sequence 1 and 4 on
         // sequence 2, so both rails use the chord derived from the larger loop.
-        expect(constraints[0].distanceUnits).toBeCloseTo(10 / Math.PI, 10);
-        expect(constraints[1].distanceUnits).toBeCloseTo(10 / Math.PI, 10);
+        expect(constraints[0].distanceUnits).toBeCloseTo(9 / Math.PI, 10);
+        expect(constraints[1].distanceUnits).toBeCloseTo(9 / Math.PI, 10);
 
         expect(constraints[2]).toMatchObject({ source: 4, target: 10, sequence: '1' });
         expect(constraints[3]).toMatchObject({ source: 20, target: 14, sequence: '2' });
-        expect(constraints[2].distanceUnits).toBeCloseTo(12 / Math.PI, 10);
-        expect(constraints[3].distanceUnits).toBeCloseTo(12 / Math.PI, 10);
-
-        expect(constraints[0].distanceUnits).toBeGreaterThan(3);
+        expect(constraints[2].distanceUnits).toBeCloseTo(10.8 / Math.PI, 10);
+        expect(constraints[3].distanceUnits).toBeCloseTo(10.8 / Math.PI, 10);
     });
 
     test('returns no constraints for fewer than two intermolecular pairs', () => {
@@ -926,6 +924,48 @@ describe('getLinearRriConstraintSpecs', () => {
         });
 
         expect(vaRRI.getLinearRriConstraintSpecs(v)).toEqual([]);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// getLinearRriBridgePositions
+// ---------------------------------------------------------------------------
+
+describe('getLinearRriBridgePositions', () => {
+    test('distributes larger-loop nodes evenly on an outward semicircle', () => {
+        const bondLength = 13.5;
+        const internalNodeCount = 6;
+        const chordLength = 2 * (internalNodeCount + 1) * bondLength / Math.PI;
+        const positions = vaRRI.getLinearRriBridgePositions(
+            { x: 0, y: 0 },
+            { x: chordLength, y: 0 },
+            internalNodeCount,
+            bondLength,
+            { x: 0, y: 1 }
+        );
+
+        expect(positions).toHaveLength(internalNodeCount);
+        expect(positions.every(point => point.y > 0)).toBe(true);
+
+        const allPoints = [{ x: 0, y: 0 }, ...positions, { x: chordLength, y: 0 }];
+        const segmentLengths = allPoints.slice(1).map((point, index) =>
+            Math.hypot(point.x - allPoints[index].x, point.y - allPoints[index].y)
+        );
+        segmentLengths.forEach(length => {
+            expect(length).toBeCloseTo(segmentLengths[0], 10);
+        });
+    });
+
+    test('distributes an undersized pseudobulge side evenly on the straight chord', () => {
+        const positions = vaRRI.getLinearRriBridgePositions(
+            { x: 0, y: 0 },
+            { x: 60, y: 0 },
+            1,
+            13.5,
+            { x: 0, y: -1 }
+        );
+
+        expect(positions).toEqual([{ x: 30, y: 0 }]);
     });
 });
 
