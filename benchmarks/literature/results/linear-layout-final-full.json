@@ -1,0 +1,1041 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-08-06T22:56:35.953Z",
+  "finishedAt": "2026-08-06T22:57:02.315Z",
+  "wallMs": 26362,
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+  "options": {
+    "croppedRepeats": 0,
+    "fullRepeats": 1,
+    "croppedContext": 20,
+    "settleMs": 650
+  },
+  "fixtureCount": 113,
+  "executedRenders": 9,
+  "browserErrors": [],
+  "results": [
+    {
+      "mode": "full-context",
+      "repeat": 1,
+      "id": "meyer-005-chix-chbc",
+      "title": "ChiX–chbC",
+      "category": "experimentally-validated-srna-mrna",
+      "inputCombinedLength": 1743,
+      "renderedCombinedLength": 1743,
+      "interactionPairs": 19,
+      "cropping": -1,
+      "validationMs": 1,
+      "renderPromiseMs": 2940.300000000745,
+      "observedMs": 3727.5,
+      "jsHeapBytes": 61045619,
+      "rotationDegrees": 80.8137931034463,
+      "geometry": {
+        "visibleNucleotideNodes": 1743,
+        "expectedVisibleNucleotideNodes": 1743,
+        "basepairLinks": 19,
+        "expectedBasepairLinks": 19,
+        "missingRailNodes": 0,
+        "topRailMaximumDeviationPx": 0.00006424753291867091,
+        "bottomRailMaximumDeviationPx": 0.00005621659130383705,
+        "maximumPairHorizontalOffsetPx": 0,
+        "minimumPairVerticalGapPx": 3.7999114990234375,
+        "medianPairVerticalGapPx": 3.79998779296875,
+        "topRailAboveBottomRail": true,
+        "orderReversals": 0,
+        "structuredHalfPlaneNodes": 0,
+        "structuredHalfPlaneViolations": 0,
+        "supplementaryLinks": 179,
+        "supplementaryOutwardViolations": 0,
+        "nucleotideOverlaps": 0,
+        "minimumNucleotideDistancePx": 3.2657878820638078,
+        "nucleotideOverlapPairs": [],
+        "longestVisibleLinks": [
+          {
+            "linkType": "label_link",
+            "start": 88,
+            "end": 1,
+            "distancePx": 157.91821995993385
+          },
+          {
+            "linkType": "label_link",
+            "start": 907,
+            "end": 1,
+            "distancePx": 7.750912186753118
+          },
+          {
+            "linkType": "label_link",
+            "start": 218,
+            "end": 1,
+            "distancePx": 7.712665077605589
+          },
+          {
+            "linkType": "label_link",
+            "start": 897,
+            "end": 1,
+            "distancePx": 7.701697522924478
+          },
+          {
+            "linkType": "label_link",
+            "start": 887,
+            "end": 1,
+            "distancePx": 7.687828590234268
+          },
+          {
+            "linkType": "label_link",
+            "start": 877,
+            "end": 1,
+            "distancePx": 7.676326325891159
+          },
+          {
+            "linkType": "label_link",
+            "start": 867,
+            "end": 1,
+            "distancePx": 7.667039690804657
+          },
+          {
+            "linkType": "label_link",
+            "start": 857,
+            "end": 1,
+            "distancePx": 7.650182470392538
+          },
+          {
+            "linkType": "label_link",
+            "start": 1,
+            "end": 1,
+            "distancePx": 7.623176320040091
+          },
+          {
+            "linkType": "label_link",
+            "start": 847,
+            "end": 1,
+            "distancePx": 7.586710570541825
+          }
+        ],
+        "nonFiniteSvgElements": 0,
+        "visibleGhostElements": 0,
+        "outOfViewportNodes": 1292,
+        "minimumReadableViewApplied": true,
+        "plotTransform": "translate(-839.3921330073993,-373.93468183804146) scale(0.1)"
+      },
+      "browserErrors": [],
+      "problems": []
+    },
+    {
+      "mode": "full-context",
+      "repeat": 1,
+      "id": "meyer-012-cyar-yqae",
+      "title": "CyaR–yqaE",
+      "category": "experimentally-validated-srna-mrna",
+      "inputCombinedLength": 546,
+      "renderedCombinedLength": 546,
+      "interactionPairs": 12,
+      "cropping": -1,
+      "validationMs": 0.19999999925494194,
+      "renderPromiseMs": 606.3000000007451,
+      "observedMs": 1290.1000000014901,
+      "jsHeapBytes": 38987560,
+      "rotationDegrees": 29.664804469277556,
+      "geometry": {
+        "visibleNucleotideNodes": 546,
+        "expectedVisibleNucleotideNodes": 546,
+        "basepairLinks": 12,
+        "expectedBasepairLinks": 12,
+        "missingRailNodes": 0,
+        "topRailMaximumDeviationPx": 0,
+        "bottomRailMaximumDeviationPx": 0,
+        "maximumPairHorizontalOffsetPx": 0.00006103515625,
+        "minimumPairVerticalGapPx": 3.79998779296875,
+        "medianPairVerticalGapPx": 3.79998779296875,
+        "topRailAboveBottomRail": true,
+        "orderReversals": 0,
+        "structuredHalfPlaneNodes": 0,
+        "structuredHalfPlaneViolations": 0,
+        "supplementaryLinks": 59,
+        "supplementaryOutwardViolations": 0,
+        "nucleotideOverlaps": 0,
+        "minimumNucleotideDistancePx": 3.0790693752942726,
+        "nucleotideOverlapPairs": [],
+        "longestVisibleLinks": [
+          {
+            "linkType": "label_link",
+            "start": 91,
+            "end": 1,
+            "distancePx": 200.10436484143705
+          },
+          {
+            "linkType": "label_link",
+            "start": 549,
+            "end": 1,
+            "distancePx": 7.7186628236463175
+          },
+          {
+            "linkType": "label_link",
+            "start": 261,
+            "end": 1,
+            "distancePx": 7.681431508267074
+          },
+          {
+            "linkType": "label_link",
+            "start": 387,
+            "end": 1,
+            "distancePx": 7.615485651256685
+          },
+          {
+            "linkType": "label_link",
+            "start": 470,
+            "end": 1,
+            "distancePx": 7.608121216242446
+          },
+          {
+            "linkType": "label_link",
+            "start": 1,
+            "end": 1,
+            "distancePx": 7.474880541155698
+          },
+          {
+            "linkType": "label_link",
+            "start": 60,
+            "end": 1,
+            "distancePx": 7.44161016010891
+          },
+          {
+            "linkType": "label_link",
+            "start": 20,
+            "end": 1,
+            "distancePx": 7.40717332710192
+          },
+          {
+            "linkType": "label_link",
+            "start": 271,
+            "end": 1,
+            "distancePx": 7.3994387489925035
+          },
+          {
+            "linkType": "label_link",
+            "start": 87,
+            "end": 1,
+            "distancePx": 7.3382161029927975
+          }
+        ],
+        "nonFiniteSvgElements": 0,
+        "visibleGhostElements": 0,
+        "outOfViewportNodes": 121,
+        "minimumReadableViewApplied": true,
+        "plotTransform": "translate(56.080430326064615,184.683350452708) scale(0.1)"
+      },
+      "browserErrors": [],
+      "problems": []
+    },
+    {
+      "mode": "full-context",
+      "repeat": 1,
+      "id": "meyer-019-fnrs-mete",
+      "title": "FnrS–metE",
+      "category": "experimentally-validated-srna-mrna",
+      "inputCombinedLength": 2684,
+      "renderedCombinedLength": 2684,
+      "interactionPairs": 25,
+      "cropping": -1,
+      "validationMs": 0.30000000074505806,
+      "renderPromiseMs": 8898.800000000745,
+      "observedMs": 9882.800000000745,
+      "jsHeapBytes": 85787168,
+      "rotationDegrees": 121.29593319765982,
+      "geometry": {
+        "visibleNucleotideNodes": 2684,
+        "expectedVisibleNucleotideNodes": 2684,
+        "basepairLinks": 25,
+        "expectedBasepairLinks": 25,
+        "missingRailNodes": 0,
+        "topRailMaximumDeviationPx": 0.000009765625009094947,
+        "bottomRailMaximumDeviationPx": 0.00002380371091703637,
+        "maximumPairHorizontalOffsetPx": 0.000244140625,
+        "minimumPairVerticalGapPx": 3.79998779296875,
+        "medianPairVerticalGapPx": 3.800018310546875,
+        "topRailAboveBottomRail": true,
+        "orderReversals": 0,
+        "structuredHalfPlaneNodes": 0,
+        "structuredHalfPlaneViolations": 0,
+        "supplementaryLinks": 276,
+        "supplementaryOutwardViolations": 0,
+        "nucleotideOverlaps": 0,
+        "minimumNucleotideDistancePx": 3.078950691980758,
+        "nucleotideOverlapPairs": [],
+        "longestVisibleLinks": [
+          {
+            "linkType": "label_link",
+            "start": 126,
+            "end": 1,
+            "distancePx": 165.54956849362307
+          },
+          {
+            "linkType": "backbone",
+            "start": 412,
+            "end": 413,
+            "distancePx": 10.88623046875
+          },
+          {
+            "linkType": "backbone",
+            "start": 47,
+            "end": 48,
+            "distancePx": 10.88616943359375
+          },
+          {
+            "linkType": "label_link",
+            "start": 2675,
+            "end": 1,
+            "distancePx": 8.220830269716455
+          },
+          {
+            "linkType": "label_link",
+            "start": 2685,
+            "end": 1,
+            "distancePx": 8.219611713794038
+          },
+          {
+            "linkType": "label_link",
+            "start": 2665,
+            "end": 1,
+            "distancePx": 8.216160997395898
+          },
+          {
+            "linkType": "label_link",
+            "start": 2655,
+            "end": 1,
+            "distancePx": 8.206298581173481
+          },
+          {
+            "linkType": "label_link",
+            "start": 2645,
+            "end": 1,
+            "distancePx": 8.195187883184198
+          },
+          {
+            "linkType": "label_link",
+            "start": 2635,
+            "end": 1,
+            "distancePx": 8.184649739382426
+          },
+          {
+            "linkType": "label_link",
+            "start": 2625,
+            "end": 1,
+            "distancePx": 8.177480740619256
+          }
+        ],
+        "nonFiniteSvgElements": 0,
+        "visibleGhostElements": 0,
+        "outOfViewportNodes": 2197,
+        "minimumReadableViewApplied": true,
+        "plotTransform": "translate(-2457.521561192775,-145.31403808588942) scale(0.1)"
+      },
+      "browserErrors": [],
+      "problems": []
+    },
+    {
+      "mode": "full-context",
+      "repeat": 1,
+      "id": "meyer-030-gcvb-glti",
+      "title": "GcvB–gltI",
+      "category": "experimentally-validated-srna-mrna",
+      "inputCombinedLength": 1428,
+      "renderedCombinedLength": 1428,
+      "interactionPairs": 12,
+      "cropping": -1,
+      "validationMs": 0.19999999925494194,
+      "renderPromiseMs": 2367.89999999851,
+      "observedMs": 3239.599999997765,
+      "jsHeapBytes": 151904791,
+      "rotationDegrees": 67.47800586509914,
+      "geometry": {
+        "visibleNucleotideNodes": 1428,
+        "expectedVisibleNucleotideNodes": 1428,
+        "basepairLinks": 12,
+        "expectedBasepairLinks": 12,
+        "missingRailNodes": 0,
+        "topRailMaximumDeviationPx": 0,
+        "bottomRailMaximumDeviationPx": 0,
+        "maximumPairHorizontalOffsetPx": 0,
+        "minimumPairVerticalGapPx": 3.8000030517578125,
+        "medianPairVerticalGapPx": 3.8000030517578125,
+        "topRailAboveBottomRail": true,
+        "orderReversals": 0,
+        "structuredHalfPlaneNodes": 0,
+        "structuredHalfPlaneViolations": 0,
+        "supplementaryLinks": 149,
+        "supplementaryOutwardViolations": 0,
+        "nucleotideOverlaps": 0,
+        "minimumNucleotideDistancePx": 3.4197870900048644,
+        "nucleotideOverlapPairs": [],
+        "longestVisibleLinks": [
+          {
+            "linkType": "label_link",
+            "start": 205,
+            "end": 1,
+            "distancePx": 113.16089187747261
+          },
+          {
+            "linkType": "label_link",
+            "start": 1424,
+            "end": 1,
+            "distancePx": 8.01349893244338
+          },
+          {
+            "linkType": "label_link",
+            "start": 1414,
+            "end": 1,
+            "distancePx": 7.988146527560326
+          },
+          {
+            "linkType": "label_link",
+            "start": 1404,
+            "end": 1,
+            "distancePx": 7.964161206120778
+          },
+          {
+            "linkType": "label_link",
+            "start": 1394,
+            "end": 1,
+            "distancePx": 7.941741538487083
+          },
+          {
+            "linkType": "label_link",
+            "start": 1384,
+            "end": 1,
+            "distancePx": 7.914707669681146
+          },
+          {
+            "linkType": "label_link",
+            "start": 1374,
+            "end": 1,
+            "distancePx": 7.895005360541719
+          },
+          {
+            "linkType": "label_link",
+            "start": 315,
+            "end": 1,
+            "distancePx": 7.884921141596287
+          },
+          {
+            "linkType": "label_link",
+            "start": 1364,
+            "end": 1,
+            "distancePx": 7.866390737210833
+          },
+          {
+            "linkType": "label_link",
+            "start": 874,
+            "end": 1,
+            "distancePx": 7.864258587945066
+          }
+        ],
+        "nonFiniteSvgElements": 0,
+        "visibleGhostElements": 0,
+        "outOfViewportNodes": 861,
+        "minimumReadableViewApplied": true,
+        "plotTransform": "translate(-508.1994879731893,-149.61454653155465) scale(0.1)"
+      },
+      "browserErrors": [],
+      "problems": []
+    },
+    {
+      "mode": "full-context",
+      "repeat": 1,
+      "id": "meyer-073-rpra-csgd",
+      "title": "RprA–csgD",
+      "category": "experimentally-validated-srna-mrna",
+      "inputCombinedLength": 1056,
+      "renderedCombinedLength": 1056,
+      "interactionPairs": 18,
+      "cropping": -1,
+      "validationMs": 0.10000000149011612,
+      "renderPromiseMs": 1560.7999999970198,
+      "observedMs": 2466,
+      "jsHeapBytes": 143612646,
+      "rotationDegrees": 112.85443146977452,
+      "geometry": {
+        "visibleNucleotideNodes": 1056,
+        "expectedVisibleNucleotideNodes": 1056,
+        "basepairLinks": 18,
+        "expectedBasepairLinks": 18,
+        "missingRailNodes": 0,
+        "topRailMaximumDeviationPx": 0,
+        "bottomRailMaximumDeviationPx": 0,
+        "maximumPairHorizontalOffsetPx": 0,
+        "minimumPairVerticalGapPx": 3.800018310546875,
+        "medianPairVerticalGapPx": 3.800018310546875,
+        "topRailAboveBottomRail": true,
+        "orderReversals": 0,
+        "structuredHalfPlaneNodes": 0,
+        "structuredHalfPlaneViolations": 0,
+        "supplementaryLinks": 112,
+        "supplementaryOutwardViolations": 0,
+        "nucleotideOverlaps": 0,
+        "minimumNucleotideDistancePx": 3.0790693752942726,
+        "nucleotideOverlapPairs": [],
+        "longestVisibleLinks": [
+          {
+            "linkType": "label_link",
+            "start": 109,
+            "end": 1,
+            "distancePx": 234.15009815281167
+          },
+          {
+            "linkType": "label_link",
+            "start": 1048,
+            "end": 1,
+            "distancePx": 8.089452851050613
+          },
+          {
+            "linkType": "label_link",
+            "start": 1038,
+            "end": 1,
+            "distancePx": 7.992585263650611
+          },
+          {
+            "linkType": "label_link",
+            "start": 1028,
+            "end": 1,
+            "distancePx": 7.967685240313394
+          },
+          {
+            "linkType": "label_link",
+            "start": 1018,
+            "end": 1,
+            "distancePx": 7.94523635666482
+          },
+          {
+            "linkType": "label_link",
+            "start": 1008,
+            "end": 1,
+            "distancePx": 7.917103894712441
+          },
+          {
+            "linkType": "label_link",
+            "start": 998,
+            "end": 1,
+            "distancePx": 7.885634375623547
+          },
+          {
+            "linkType": "label_link",
+            "start": 105,
+            "end": 1,
+            "distancePx": 7.870987749746679
+          },
+          {
+            "linkType": "label_link",
+            "start": 1059,
+            "end": 1,
+            "distancePx": 7.856296506128008
+          },
+          {
+            "linkType": "label_link",
+            "start": 988,
+            "end": 1,
+            "distancePx": 7.8556960778181395
+          }
+        ],
+        "nonFiniteSvgElements": 0,
+        "visibleGhostElements": 0,
+        "outOfViewportNodes": 584,
+        "minimumReadableViewApplied": true,
+        "plotTransform": "translate(-420.66249040784714,191.67742738268151) scale(0.1)"
+      },
+      "browserErrors": [],
+      "problems": []
+    },
+    {
+      "mode": "full-context",
+      "repeat": 1,
+      "id": "gallery-coronel-tellez-2022",
+      "title": "sRNA-controlled iron sparing response in Staphylococci",
+      "category": "published-gallery-reproduction",
+      "inputCombinedLength": 323,
+      "renderedCombinedLength": 323,
+      "interactionPairs": 31,
+      "cropping": -1,
+      "validationMs": 0.5,
+      "renderPromiseMs": 542.3000000007451,
+      "observedMs": 1502.9000000022352,
+      "jsHeapBytes": 55124515,
+      "rotationDegrees": -145.01833205619437,
+      "geometry": {
+        "visibleNucleotideNodes": 323,
+        "expectedVisibleNucleotideNodes": 323,
+        "basepairLinks": 31,
+        "expectedBasepairLinks": 31,
+        "missingRailNodes": 0,
+        "topRailMaximumDeviationPx": 0.000025595388081001147,
+        "bottomRailMaximumDeviationPx": 0.000030517578125,
+        "maximumPairHorizontalOffsetPx": 0.000030517578125,
+        "minimumPairVerticalGapPx": 4.10736083984375,
+        "medianPairVerticalGapPx": 4.107391357421875,
+        "topRailAboveBottomRail": true,
+        "orderReversals": 0,
+        "structuredHalfPlaneNodes": 0,
+        "structuredHalfPlaneViolations": 0,
+        "supplementaryLinks": 39,
+        "supplementaryOutwardViolations": 0,
+        "nucleotideOverlaps": 0,
+        "minimumNucleotideDistancePx": 3.3281255555054483,
+        "nucleotideOverlapPairs": [],
+        "longestVisibleLinks": [
+          {
+            "linkType": "label_link",
+            "start": 153,
+            "end": 1,
+            "distancePx": 24.316823443181356
+          },
+          {
+            "linkType": "backbone",
+            "start": 99,
+            "end": 100,
+            "distancePx": 16.4735107421875
+          },
+          {
+            "linkType": "label_link",
+            "start": 162,
+            "end": 1,
+            "distancePx": 8.536557423492125
+          },
+          {
+            "linkType": "label_link",
+            "start": 110,
+            "end": 1,
+            "distancePx": 8.48183941696884
+          },
+          {
+            "linkType": "label_link",
+            "start": 326,
+            "end": 1,
+            "distancePx": 8.457807786333884
+          },
+          {
+            "linkType": "label_link",
+            "start": 272,
+            "end": 1,
+            "distancePx": 8.399457098703486
+          },
+          {
+            "linkType": "label_link",
+            "start": 252,
+            "end": 1,
+            "distancePx": 8.384471982414317
+          },
+          {
+            "linkType": "label_link",
+            "start": 120,
+            "end": 1,
+            "distancePx": 8.358845850260062
+          },
+          {
+            "linkType": "label_link",
+            "start": 130,
+            "end": 1,
+            "distancePx": 8.350998126980693
+          },
+          {
+            "linkType": "label_link",
+            "start": 257,
+            "end": 1,
+            "distancePx": 8.322990478181415
+          }
+        ],
+        "nonFiniteSvgElements": 0,
+        "visibleGhostElements": 0,
+        "outOfViewportNodes": 0,
+        "minimumReadableViewApplied": false,
+        "plotTransform": "translate(134.12911987304688,65.60995483398438)scale(0.10808906704187393,0.10808906704187393)"
+      },
+      "browserErrors": [],
+      "problems": []
+    },
+    {
+      "mode": "full-context",
+      "repeat": 1,
+      "id": "gallery-wu-2024",
+      "title": "RNA interactome of hypervirulent Klebsiella pneumoniae reveals a small RNA inhibitor of capsular mucoviscosity and virulence",
+      "category": "published-gallery-reproduction",
+      "inputCombinedLength": 61,
+      "renderedCombinedLength": 61,
+      "interactionPairs": 18,
+      "cropping": -1,
+      "validationMs": 0.5,
+      "renderPromiseMs": 410.30000000074506,
+      "observedMs": 1215.6000000014901,
+      "jsHeapBytes": 130062578,
+      "rotationDegrees": 6.484413919262227,
+      "geometry": {
+        "visibleNucleotideNodes": 61,
+        "expectedVisibleNucleotideNodes": 61,
+        "basepairLinks": 18,
+        "expectedBasepairLinks": 18,
+        "missingRailNodes": 0,
+        "topRailMaximumDeviationPx": 0.00004153781469540263,
+        "bottomRailMaximumDeviationPx": 0,
+        "maximumPairHorizontalOffsetPx": 0.00006103515625,
+        "minimumPairVerticalGapPx": 20.735641479492188,
+        "medianPairVerticalGapPx": 20.735687255859375,
+        "topRailAboveBottomRail": true,
+        "orderReversals": 0,
+        "structuredHalfPlaneNodes": 0,
+        "structuredHalfPlaneViolations": 0,
+        "supplementaryLinks": 15,
+        "supplementaryOutwardViolations": 0,
+        "nucleotideOverlaps": 0,
+        "minimumNucleotideDistancePx": 18.44960018690872,
+        "nucleotideOverlapPairs": [],
+        "longestVisibleLinks": [
+          {
+            "linkType": "label_link",
+            "start": 44,
+            "end": 1,
+            "distancePx": 42.01712244436866
+          },
+          {
+            "linkType": "label_link",
+            "start": 43,
+            "end": 1,
+            "distancePx": 41.99718264677957
+          },
+          {
+            "linkType": "label_link",
+            "start": 16,
+            "end": 1,
+            "distancePx": 41.829326358827274
+          },
+          {
+            "linkType": "backbone",
+            "start": 11,
+            "end": 12,
+            "distancePx": 41.5822753906362
+          },
+          {
+            "linkType": "backbone",
+            "start": 10,
+            "end": 11,
+            "distancePx": 41.582275390625
+          },
+          {
+            "linkType": "label_link",
+            "start": 42,
+            "end": 1,
+            "distancePx": 41.23908608951933
+          },
+          {
+            "linkType": "label_link",
+            "start": 62,
+            "end": 1,
+            "distancePx": 39.64745289501961
+          },
+          {
+            "linkType": "label_link",
+            "start": 36,
+            "end": 1,
+            "distancePx": 39.396025071795904
+          },
+          {
+            "linkType": "label_link",
+            "start": 5,
+            "end": 1,
+            "distancePx": 39.18060633994142
+          },
+          {
+            "linkType": "label_link",
+            "start": 23,
+            "end": 1,
+            "distancePx": 38.34374482483973
+          }
+        ],
+        "nonFiniteSvgElements": 0,
+        "visibleGhostElements": 0,
+        "outOfViewportNodes": 0,
+        "minimumReadableViewApplied": false,
+        "plotTransform": "translate(5.454577922821045,73.81233215332031)scale(0.5456749200820923,0.5456749200820923)"
+      },
+      "browserErrors": [],
+      "problems": []
+    },
+    {
+      "mode": "full-context",
+      "repeat": 1,
+      "id": "hiv-dis-1xpf-subtype-a",
+      "title": "HIV-1 subtype A DIS kissing-loop homodimer",
+      "category": "experimentally-determined-kissing-loop",
+      "inputCombinedLength": 46,
+      "renderedCombinedLength": 46,
+      "interactionPairs": 6,
+      "cropping": -1,
+      "validationMs": 0.10000000149011612,
+      "renderPromiseMs": 589.6999999992549,
+      "observedMs": 1500.5,
+      "jsHeapBytes": 86644122,
+      "rotationDegrees": -98.1818181818182,
+      "geometry": {
+        "visibleNucleotideNodes": 46,
+        "expectedVisibleNucleotideNodes": 46,
+        "basepairLinks": 20,
+        "expectedBasepairLinks": 20,
+        "missingRailNodes": 0,
+        "topRailMaximumDeviationPx": 0.000012715657533135527,
+        "bottomRailMaximumDeviationPx": 0.000025431315123114473,
+        "maximumPairHorizontalOffsetPx": 0.000030517578125,
+        "minimumPairVerticalGapPx": 26.960357666015625,
+        "medianPairVerticalGapPx": 26.96038818359375,
+        "topRailAboveBottomRail": true,
+        "orderReversals": 0,
+        "structuredHalfPlaneNodes": 28,
+        "structuredHalfPlaneViolations": 0,
+        "supplementaryLinks": 10,
+        "supplementaryOutwardViolations": 0,
+        "nucleotideOverlaps": 0,
+        "minimumNucleotideDistancePx": 24.264312744159817,
+        "nucleotideOverlapPairs": [],
+        "longestVisibleLinks": [
+          {
+            "linkType": "label_link",
+            "start": 15,
+            "end": 1,
+            "distancePx": 54.1357187932541
+          },
+          {
+            "linkType": "label_link",
+            "start": 41,
+            "end": 1,
+            "distancePx": 53.62511188093634
+          },
+          {
+            "linkType": "label_link",
+            "start": 6,
+            "end": 1,
+            "distancePx": 53.51621840722501
+          },
+          {
+            "linkType": "label_link",
+            "start": 32,
+            "end": 1,
+            "distancePx": 52.50242368036612
+          },
+          {
+            "linkType": "label_link",
+            "start": 1,
+            "end": 1,
+            "distancePx": 51.30388317926099
+          },
+          {
+            "linkType": "label_link",
+            "start": 49,
+            "end": 1,
+            "distancePx": 51.285866772031945
+          },
+          {
+            "linkType": "label_link",
+            "start": 27,
+            "end": 1,
+            "distancePx": 50.545515842530484
+          },
+          {
+            "linkType": "label_link",
+            "start": 36,
+            "end": 1,
+            "distancePx": 48.907076373332124
+          },
+          {
+            "linkType": "label_link",
+            "start": 10,
+            "end": 1,
+            "distancePx": 48.796693571788936
+          },
+          {
+            "linkType": "label_link",
+            "start": 23,
+            "end": 1,
+            "distancePx": 48.76308118277255
+          }
+        ],
+        "nonFiniteSvgElements": 0,
+        "visibleGhostElements": 0,
+        "outOfViewportNodes": 0,
+        "minimumReadableViewApplied": false,
+        "plotTransform": "translate(95.37036895751953,58.07215881347656)scale(0.7094839811325073,0.7094839811325073)"
+      },
+      "browserErrors": [],
+      "problems": []
+    },
+    {
+      "mode": "full-context",
+      "repeat": 1,
+      "id": "hiv-dis-1xpe-subtype-b",
+      "title": "HIV-1 subtype B DIS kissing-loop homodimer",
+      "category": "experimentally-determined-kissing-loop",
+      "inputCombinedLength": 46,
+      "renderedCombinedLength": 46,
+      "interactionPairs": 6,
+      "cropping": -1,
+      "validationMs": 0.10000000149011612,
+      "renderPromiseMs": 407.79999999701977,
+      "observedMs": 1398.5999999977648,
+      "jsHeapBytes": 180032025,
+      "rotationDegrees": -98.1818181818182,
+      "geometry": {
+        "visibleNucleotideNodes": 46,
+        "expectedVisibleNucleotideNodes": 46,
+        "basepairLinks": 20,
+        "expectedBasepairLinks": 20,
+        "missingRailNodes": 0,
+        "topRailMaximumDeviationPx": 0,
+        "bottomRailMaximumDeviationPx": 0,
+        "maximumPairHorizontalOffsetPx": 0.00006103515625,
+        "minimumPairVerticalGapPx": 26.297225952148438,
+        "medianPairVerticalGapPx": 26.297225952148438,
+        "topRailAboveBottomRail": true,
+        "orderReversals": 0,
+        "structuredHalfPlaneNodes": 28,
+        "structuredHalfPlaneViolations": 0,
+        "supplementaryLinks": 10,
+        "supplementaryOutwardViolations": 0,
+        "nucleotideOverlaps": 0,
+        "minimumNucleotideDistancePx": 23.66748046875,
+        "nucleotideOverlapPairs": [],
+        "longestVisibleLinks": [
+          {
+            "linkType": "label_link",
+            "start": 15,
+            "end": 1,
+            "distancePx": 52.804136721284955
+          },
+          {
+            "linkType": "label_link",
+            "start": 41,
+            "end": 1,
+            "distancePx": 52.30606910192776
+          },
+          {
+            "linkType": "label_link",
+            "start": 6,
+            "end": 1,
+            "distancePx": 52.19987769340078
+          },
+          {
+            "linkType": "label_link",
+            "start": 32,
+            "end": 1,
+            "distancePx": 51.211011684969215
+          },
+          {
+            "linkType": "label_link",
+            "start": 1,
+            "end": 1,
+            "distancePx": 50.041944095244816
+          },
+          {
+            "linkType": "label_link",
+            "start": 49,
+            "end": 1,
+            "distancePx": 50.02438339892444
+          },
+          {
+            "linkType": "label_link",
+            "start": 27,
+            "end": 1,
+            "distancePx": 49.3022540332054
+          },
+          {
+            "linkType": "label_link",
+            "start": 36,
+            "end": 1,
+            "distancePx": 47.70409689800956
+          },
+          {
+            "linkType": "label_link",
+            "start": 10,
+            "end": 1,
+            "distancePx": 47.596438173949146
+          },
+          {
+            "linkType": "label_link",
+            "start": 23,
+            "end": 1,
+            "distancePx": 47.563646539610765
+          }
+        ],
+        "nonFiniteSvgElements": 0,
+        "visibleGhostElements": 0,
+        "outOfViewportNodes": 0,
+        "minimumReadableViewApplied": false,
+        "plotTransform": "translate(93.76241302490234,58.478660583496094)scale(0.6920324563980103,0.6920324563980103)"
+      },
+      "browserErrors": [],
+      "problems": []
+    }
+  ],
+  "protocolErrors": [],
+  "summary": {
+    "executedRenders": 9,
+    "completedRenders": 9,
+    "fatalRenders": 0,
+    "casesWithProblems": 0,
+    "problemCounts": {},
+    "protocolErrors": [],
+    "renderPromiseMs": {
+      "median": 606.3000000007451,
+      "p95": 8898.800000000745,
+      "maximum": 8898.800000000745
+    },
+    "observedMs": {
+      "median": 1502.9000000022352,
+      "p95": 9882.800000000745,
+      "maximum": 9882.800000000745
+    },
+    "repeatDegradation": {
+      "firstCroppedMedianMs": null,
+      "lastCroppedMedianMs": null,
+      "ratio": null
+    },
+    "jsHeapBytes": {
+      "first": 61045619,
+      "last": 180032025,
+      "maximum": 180032025
+    }
+  },
+  "screenshots": [
+    {
+      "id": "gallery-coronel-tellez-2022",
+      "filename": "benchmarks/literature/results/final-screenshots/gallery-coronel-tellez-2022.png",
+      "problems": []
+    },
+    {
+      "id": "gallery-wu-2024",
+      "filename": "benchmarks/literature/results/final-screenshots/gallery-wu-2024.png",
+      "problems": []
+    },
+    {
+      "id": "hiv-dis-1xpf-subtype-a",
+      "filename": "benchmarks/literature/results/final-screenshots/hiv-dis-1xpf-subtype-a.png",
+      "problems": []
+    },
+    {
+      "id": "hiv-dis-1xpe-subtype-b",
+      "filename": "benchmarks/literature/results/final-screenshots/hiv-dis-1xpe-subtype-b.png",
+      "problems": []
+    }
+  ],
+  "memoryAudit": {
+    "baseline": {
+      "usedJSHeapSize": 2075639,
+      "totalJSHeapSize": 2574023,
+      "domNodes": 16
+    },
+    "afterBenchmark": {
+      "usedJSHeapSize": 35671010,
+      "totalJSHeapSize": 56371394,
+      "domNodes": 527
+    },
+    "afterReleasingRenderedState": {
+      "usedJSHeapSize": 40387703,
+      "totalJSHeapSize": 57146923,
+      "domNodes": 16
+    },
+    "retainedGrowthBytes": 38312064
+  }
+}

@@ -87,11 +87,18 @@
     }
 
     function countCircleOverlaps(circles) {
-        const points = circles.map(centre).filter(Boolean);
+        const points = circles.map(circle => {
+            const point = centre(circle);
+            return point ? {
+                ...point,
+                nodeNumber: Number(circle.getAttribute('node_num')),
+            } : null;
+        }).filter(Boolean);
         const cellSize = 14;
         const cells = new Map();
         let overlaps = 0;
         let minimumDistance = Infinity;
+        const overlapPairs = [];
 
         points.forEach((point, index) => {
             const cellX = Math.floor(point.x / cellSize);
@@ -104,7 +111,15 @@
                         const distance = Math.hypot(point.x - other.x, point.y - other.y);
                         minimumDistance = Math.min(minimumDistance, distance);
                         const collisionDistance = 0.72 * (point.radius + other.radius);
-                        if (distance + 0.05 < collisionDistance) overlaps++;
+                        if (distance + 0.05 < collisionDistance) {
+                            overlaps++;
+                            overlapPairs.push({
+                                first: other.nodeNumber,
+                                second: point.nodeNumber,
+                                distancePx: distance,
+                                collisionDistancePx: collisionDistance,
+                            });
+                        }
                     });
                 }
             }
@@ -115,7 +130,8 @@
 
         return {
             overlaps,
-            minimumDistancePx: minimumDistance === Infinity ? null : minimumDistance
+            minimumDistancePx: minimumDistance === Infinity ? null : minimumDistance,
+            overlapPairs,
         };
     }
 
@@ -219,6 +235,24 @@
                 .join(' ')
         )).length;
 
+        const longestVisibleLinks = [...document.querySelectorAll(
+            `#${CONTAINER_ID} line.link`
+        )].map(line => {
+            const endpoints = screenLineEndpoints(line);
+            if (!endpoints) return null;
+            return {
+                linkType: line.getAttribute('link_type'),
+                start: Number(line.getAttribute('start')),
+                end: Number(line.getAttribute('end')),
+                distancePx: Math.hypot(
+                    endpoints.second.x - endpoints.first.x,
+                    endpoints.second.y - endpoints.first.y
+                ),
+            };
+        }).filter(Boolean).sort((first, second) =>
+            second.distancePx - first.distancePx
+        ).slice(0, 10);
+
         const overlap = countCircleOverlaps(nodeCircles);
         const basepairLinks = document.querySelectorAll(
             `#${CONTAINER_ID} line[link_type="basepair"], ` +
@@ -229,6 +263,10 @@
         ).length;
         const svg = document.querySelector(`#${CONTAINER_ID} svg`);
         const svgBounds = svg ? svg.getBoundingClientRect() : null;
+        const minimumReadableViewApplied =
+            svg?.getAttribute('data-varri-minimum-view-scale') === 'true';
+        const plotTransform = svg?.querySelector('.fornac-plot')
+            ?.getAttribute('transform') || null;
         const outOfViewportNodes = svgBounds ? nodeCircles.filter(circle => {
             const point = centre(circle);
             return point.x < svgBounds.left - 1 || point.x > svgBounds.right + 1 ||
@@ -258,9 +296,13 @@
             supplementaryOutwardViolations,
             nucleotideOverlaps: overlap.overlaps,
             minimumNucleotideDistancePx: overlap.minimumDistancePx,
+            nucleotideOverlapPairs: overlap.overlapPairs,
+            longestVisibleLinks,
             nonFiniteSvgElements,
             visibleGhostElements,
-            outOfViewportNodes
+            outOfViewportNodes,
+            minimumReadableViewApplied,
+            plotTransform,
         };
     }
 
@@ -284,7 +326,9 @@
         if (geometry.nucleotideOverlaps) problems.push('nucleotide-overlap');
         if (geometry.nonFiniteSvgElements) problems.push('non-finite-svg-geometry');
         if (geometry.visibleGhostElements) problems.push('terminal-ghost-became-visible');
-        if (geometry.outOfViewportNodes) problems.push('node-outside-svg-viewport');
+        if (geometry.outOfViewportNodes && !geometry.minimumReadableViewApplied) {
+            problems.push('node-outside-svg-viewport');
+        }
         return problems;
     }
 
@@ -302,7 +346,11 @@
         const validationMs = performance.now() - validationStart;
         const errorsBefore = capturedBrowserErrors.length;
         const renderStart = performance.now();
-        const renderState = await vaRRI.render(CONTAINER_ID, validated, fixture.renderOptions);
+        const renderOptions = { ...fixture.renderOptions };
+        if (runOptions.forceLayoutLinear !== undefined) {
+            renderOptions.forceLayoutLinear = runOptions.forceLayoutLinear;
+        }
+        const renderState = await vaRRI.render(CONTAINER_ID, validated, renderOptions);
         const promiseMs = performance.now() - renderStart;
         await sleep(runOptions.settleMs ?? 650);
         const observedMs = performance.now() - renderStart;
@@ -355,6 +403,7 @@
         const fullRepeats = options.fullRepeats ?? 1;
         const croppedContext = options.croppedContext ?? 20;
         const settleMs = options.settleMs ?? 650;
+        const forceLayoutLinear = options.forceLayoutLinear;
         const results = [];
         const startedAt = new Date().toISOString();
         const wallStart = performance.now();
@@ -366,7 +415,11 @@
                 for (const fixture of cases) {
                     status(`${completed}/${total} · ${mode} repeat ${repeat} · ${fixture.id}`);
                     try {
-                        const result = await renderFixture(fixture, { cropping, settleMs });
+                        const result = await renderFixture(fixture, {
+                            cropping,
+                            settleMs,
+                            forceLayoutLinear,
+                        });
                         results.push({ mode, repeat, ...result });
                     } catch (error) {
                         results.push({
@@ -395,7 +448,13 @@
             finishedAt: new Date().toISOString(),
             wallMs: performance.now() - wallStart,
             userAgent: navigator.userAgent,
-            options: { croppedRepeats, fullRepeats, croppedContext, settleMs },
+            options: {
+                croppedRepeats,
+                fullRepeats,
+                croppedContext,
+                settleMs,
+                forceLayoutLinear,
+            },
             fixtureCount: documentData.cases.length,
             executedRenders: results.length,
             browserErrors: capturedBrowserErrors.slice(),

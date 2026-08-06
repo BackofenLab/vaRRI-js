@@ -41,6 +41,9 @@
     /** Outward offset for index and mutation labels, in backbone units. */
     const LINEAR_RRI_SUPPLEMENTARY_OFFSET_UNITS = 1.8;
 
+    /** Never auto-fit a linear interaction below a readable zoom level. */
+    const LINEAR_RRI_MINIMUM_VIEW_SCALE = 0.1;
+
     /** Active requestAnimationFrame ID for the background-highlight animation loop (null when idle). */
     let _animFrameId = null;
 
@@ -2244,6 +2247,9 @@
      */
     function getGraphNucleotideByNumber(graph, nodeNumber) {
         if (!graph || !Array.isArray(graph.nodes)) return null;
+        if (graph.varriLinearRriNucleotideByNumber instanceof Map) {
+            return graph.varriLinearRriNucleotideByNumber.get(nodeNumber) || null;
+        }
         return graph.nodes.find(node =>
             node && node.nodeType === 'nucleotide' && node.num === nodeNumber
         ) || null;
@@ -2405,10 +2411,10 @@
     /**
      * Calculate a two-rail RRI scaffold along a requested local axis.
      *
-     * Only intermolecularly paired nucleotides are rail nodes. Intervening
-     * nucleotides receive outward seed positions in `bridgePositions`, but
-     * remain available to Fornac's force field so their backbone loops and any
-     * intramolecular structure are retained.
+     * Only intermolecularly paired nucleotides are rail nodes. Purely unpaired
+     * intervals receive deterministic outward bridge positions. Intervals that
+     * contain intramolecular pairs are recorded separately and retain Fornac's
+     * primary fold instead of being overwritten by a synthetic arc.
      *
      * @param {Object} v  Validated parameter dictionary.
      * @param {number} nucleotideSpacing  Effective backbone bond length.
@@ -2510,6 +2516,7 @@
         });
 
         const bridgePositions = {};
+        const structuredBridgeGroups = [];
         if (pairOrderMonotonic) {
             for (let index = 1; index < pairs.length; index++) {
                 const previousPair = pairs[index - 1];
@@ -2538,6 +2545,16 @@
                         bridge.source,
                         bridge.target
                     );
+                    const containsIntramolecularStructure = nodeNumbers.some(
+                        nodeNumber => v.structure_dict[String(nodeNumber)] !== '.'
+                    );
+                    if (containsIntramolecularStructure) {
+                        structuredBridgeGroups.push({
+                            sequence: bridge.sequence,
+                            nodeNumbers,
+                        });
+                        return;
+                    }
                     const seededPositions = getLinearRriBridgePositions(
                         bridge.start,
                         bridge.end,
@@ -2566,6 +2583,7 @@
         return {
             positions,
             bridgePositions,
+            structuredBridgeGroups,
             tailPositions,
             pairs,
             interactionRanges,
@@ -2577,6 +2595,7 @@
             northY,
             southY,
             trackGap: effectiveTrackGap,
+            nucleotideSpacing: spacing,
             rotationDegrees: normaliseRotationDegrees(
                 -Math.atan2(axisY, axisX) * 180 / Math.PI
             ),
@@ -2585,7 +2604,10 @@
     }
 
     /**
-     * Seed intervening RRI backbone nodes without fixing them.
+     * Pin purely unpaired RRI bulges to deterministic outward bridges.
+     *
+     * Structured intervals are absent from `bridgePositions`; their original
+     * Fornac fold therefore remains untouched.
      *
      * @param {Object} graph
      * @param {Object} layout
@@ -2596,14 +2618,14 @@
         Object.entries(layout.bridgePositions || {}).forEach(([nodeNumber, point]) => {
             const node = getGraphNucleotideByNumber(graph, Number(nodeNumber));
             if (!node || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
-            node.x = node.px = point.x;
-            node.y = node.py = point.y;
-            node.varriLinearRriBridge = true;
+            if (pinLinearRriNode(node, point)) {
+                node.varriLinearRriBridge = true;
+            }
         });
     }
 
     /**
-     * Seed terminal zipper nodes without fixing the primary layout.
+     * Pin directly attached terminal dots to straight outward zipper ends.
      *
      * @param {Object} graph
      * @param {Object} layout
@@ -2614,9 +2636,9 @@
         Object.entries(layout.tailPositions || {}).forEach(([nodeNumber, point]) => {
             const node = getGraphNucleotideByNumber(graph, Number(nodeNumber));
             if (!node || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
-            node.x = node.px = point.x;
-            node.y = node.py = point.y;
-            node.varriLinearRriTail = true;
+            if (pinLinearRriNode(node, point)) {
+                node.varriLinearRriTail = true;
+            }
         });
     }
 
@@ -2680,7 +2702,10 @@
      * Add one fixed, invisible continuation node beyond each molecular end.
      *
      * The nodes and links are appended after Fornac created the SVG, so they
-     * affect the force graph without creating visible elements.
+     * never create visible elements. A continuation spring is added only when
+     * the terminal nucleotide already belongs to a deterministic zipper tail
+     * or rail. Structured termini still receive the requested invisible node,
+     * but no extra spring is allowed to distort their primary fold.
      *
      * @param {Object} graph
      * @param {Object} v
@@ -2809,13 +2834,24 @@
                 varriLinearRriGhost: true,
             };
             graph.nodes.push(ghost);
-            graph.links.push({
-                source: terminal,
-                target: ghost,
-                value: 1,
-                linkType: LINEAR_RRI_GHOST_LINK_TYPE,
-                extraLinkType: 'constraint',
-            });
+            const terminalIsConstrained =
+                Object.prototype.hasOwnProperty.call(
+                    layout.tailPositions || {},
+                    terminal.num
+                ) ||
+                Object.prototype.hasOwnProperty.call(
+                    layout.positions || {},
+                    terminal.num
+                );
+            if (terminalIsConstrained) {
+                graph.links.push({
+                    source: terminal,
+                    target: ghost,
+                    value: 1,
+                    linkType: LINEAR_RRI_GHOST_LINK_TYPE,
+                    extraLinkType: 'constraint',
+                });
+            }
             ghosts.push(ghost);
         });
 
@@ -2886,7 +2922,7 @@
         frame
     ) {
         const positionedNodes = nodes.filter(node => Number.isFinite(node?.y));
-        if (positionedNodes.length === 0) return;
+        if (positionedNodes.length === 0) return 0;
 
         const projections = positionedNodes.map(node => {
             const x = Number.isFinite(node.x) ? node.x : frame.centerX;
@@ -2899,21 +2935,361 @@
         const shift = plane === 'north'
             ? Math.min(0, boundaryProjection - edgeProjection)
             : Math.max(0, boundaryProjection - edgeProjection);
-        if (shift === 0) return;
+        if (shift === 0) return 0;
 
         positionedNodes.forEach(node => {
             const shiftX = frame.normalX * shift;
             const shiftY = frame.normalY * shift;
             node.x = (Number.isFinite(node.x) ? node.x : frame.centerX) + shiftX;
             node.y += shiftY;
-            node.px = Number.isFinite(node.px) ? node.px + shiftX : node.x;
-            node.py = Number.isFinite(node.py) ? node.py + shiftY : node.y;
+            node.px = node.x;
+            node.py = node.y;
+        });
+        return positionedNodes.length;
+    }
+
+    /**
+     * Split each molecule into movable structural components.
+     *
+     * Rail nodes, deterministic pure-bulge nodes, and deterministic terminal
+     * tails act as boundaries. Backbone neighbours remain connected, and
+     * intramolecular basepairs reconnect stem halves that lie on opposite sides
+     * of an interaction rail. Moving each resulting component as one rigid
+     * group preserves Fornac's primary fold.
+     *
+     * @param {Object} graph
+     * @param {Object} v
+     * @param {Object} layout
+     * @returns {Array<{nodes:Object[],plane:"north"|"south"}>}
+     */
+    function getLinearRriMovableGroups(graph, v, layout) {
+        const nodeByNumber = new Map(
+            graph.nodes
+                .filter(node => node && node.nodeType === 'nucleotide')
+                .map(node => [node.num, node])
+        );
+        const constrainedNumbers = new Set(
+            [
+                ...Object.keys(layout.positions || {}),
+                ...Object.keys(layout.bridgePositions || {}),
+                ...Object.keys(layout.tailPositions || {}),
+                ...Object.keys(layout.structurePositions || {}),
+            ].map(Number)
+        );
+        const sequence2Start = v.sequence1.length + GAP + 1;
+        const specs = [
+            { start: 1, end: v.sequence1.length, plane: 'north' },
+            {
+                start: sequence2Start,
+                end: sequence2Start + v.sequence2.length - 1,
+                plane: 'south',
+            },
+        ];
+        const groups = [];
+
+        specs.forEach(spec => {
+            const movableNumbers = new Set();
+            for (let nodeNumber = spec.start; nodeNumber <= spec.end; nodeNumber++) {
+                const node = nodeByNumber.get(nodeNumber);
+                if (node && !constrainedNumbers.has(nodeNumber)) {
+                    movableNumbers.add(nodeNumber);
+                }
+            }
+            const adjacency = new Map(
+                [...movableNumbers].map(nodeNumber => [nodeNumber, new Set()])
+            );
+            const connect = (first, second) => {
+                if (!movableNumbers.has(first) || !movableNumbers.has(second)) return;
+                adjacency.get(first).add(second);
+                adjacency.get(second).add(first);
+            };
+
+            for (let nodeNumber = spec.start; nodeNumber < spec.end; nodeNumber++) {
+                connect(nodeNumber, nodeNumber + 1);
+            }
+            (graph.links || []).forEach(link => {
+                const sourceNumber = typeof link?.source === 'number'
+                    ? link.source
+                    : link?.source?.num;
+                const targetNumber = typeof link?.target === 'number'
+                    ? link.target
+                    : link?.target?.num;
+                if (!Number.isInteger(sourceNumber) || !Number.isInteger(targetNumber)) {
+                    return;
+                }
+                connect(sourceNumber, targetNumber);
+            });
+
+            const visited = new Set();
+            [...movableNumbers].sort((a, b) => a - b).forEach(startNumber => {
+                if (visited.has(startNumber)) return;
+                const componentNumbers = [];
+                const pending = [startNumber];
+                visited.add(startNumber);
+                while (pending.length > 0) {
+                    const nodeNumber = pending.pop();
+                    componentNumbers.push(nodeNumber);
+                    adjacency.get(nodeNumber).forEach(neighbour => {
+                        if (visited.has(neighbour)) return;
+                        visited.add(neighbour);
+                        pending.push(neighbour);
+                    });
+                }
+                componentNumbers.sort((a, b) => a - b);
+                groups.push({
+                    nodes: componentNumbers.map(nodeNumber => nodeByNumber.get(nodeNumber)),
+                    plane: spec.plane,
+                });
+            });
+        });
+
+        return groups;
+    }
+
+    /**
+     * Map every non-synthetic structural component from Fornac's original
+     * coordinates onto its new rail attachments with a rigid/similarity
+     * transform.
+     *
+     * Two or more attachments determine rotation and scale. The scale is never
+     * allowed below one, so linearization cannot compress a valid primary fold.
+     * A one-attachment component is translated only.
+     *
+     * @param {Object} graph
+     * @param {Object} v
+     * @param {Object} layout
+     * @param {Object.<number,{x:number,y:number}>} originalPositions
+     * @returns {number} Number of positioned structural nucleotides.
+     */
+    function alignLinearRriStructuralComponents(
+        graph,
+        v,
+        layout,
+        originalPositions
+    ) {
+        if (!graph || !layout || !originalPositions) return 0;
+        const targetPositions = {
+            ...(layout.positions || {}),
+            ...(layout.bridgePositions || {}),
+            ...(layout.tailPositions || {}),
+        };
+        const targetNumbers = new Set(Object.keys(targetPositions).map(Number));
+        let positioned = 0;
+
+        getLinearRriMovableGroups(graph, v, layout).forEach(group => {
+            const groupNumbers = new Set(group.nodes.map(node => node.num));
+            const attachmentsByKey = new Map();
+            const addAttachment = (componentNumber, targetNumber) => {
+                if (
+                    groupNumbers.has(componentNumber) &&
+                    targetNumbers.has(targetNumber) &&
+                    originalPositions[componentNumber] &&
+                    targetPositions[targetNumber]
+                ) {
+                    attachmentsByKey.set(
+                        `${componentNumber}:${targetNumber}`,
+                        { componentNumber, targetNumber }
+                    );
+                }
+            };
+
+            group.nodes.forEach(node => {
+                addAttachment(node.num, node.num - 1);
+                addAttachment(node.num, node.num + 1);
+            });
+            (graph.links || []).forEach(link => {
+                const sourceNumber = typeof link?.source === 'number'
+                    ? link.source
+                    : link?.source?.num;
+                const targetNumber = typeof link?.target === 'number'
+                    ? link.target
+                    : link?.target?.num;
+                addAttachment(sourceNumber, targetNumber);
+                addAttachment(targetNumber, sourceNumber);
+            });
+
+            const frame = getLinearRriFrame(layout);
+            const spacing = Number(layout.nucleotideSpacing) ||
+                Number(layout.trackGap) ||
+                1;
+            const outwardDirection = group.plane === 'north' ? -1 : 1;
+            const attachmentTarget = attachment => {
+                const target = targetPositions[attachment.targetNumber];
+                return {
+                    x: target.x + frame.normalX * outwardDirection * spacing,
+                    y: target.y + frame.normalY * outwardDirection * spacing,
+                };
+            };
+            const attachments = [...attachmentsByKey.values()];
+            let transformPoint = point => ({ x: point.x, y: point.y });
+            if (attachments.length === 1) {
+                const source = originalPositions[attachments[0].componentNumber];
+                const target = attachmentTarget(attachments[0]);
+                const shiftX = target.x - source.x;
+                const shiftY = target.y - source.y;
+                transformPoint = point => ({
+                    x: point.x + shiftX,
+                    y: point.y + shiftY,
+                });
+            } else if (attachments.length >= 2) {
+                let first = 0;
+                let second = 1;
+                let maximumDistance = -1;
+                for (let firstIndex = 0; firstIndex < attachments.length; firstIndex++) {
+                    for (
+                        let secondIndex = firstIndex + 1;
+                        secondIndex < attachments.length;
+                        secondIndex++
+                    ) {
+                        const firstPoint = originalPositions[
+                            attachments[firstIndex].componentNumber
+                        ];
+                        const secondPoint = originalPositions[
+                            attachments[secondIndex].componentNumber
+                        ];
+                        const distance = Math.hypot(
+                            secondPoint.x - firstPoint.x,
+                            secondPoint.y - firstPoint.y
+                        );
+                        if (distance > maximumDistance) {
+                            maximumDistance = distance;
+                            first = firstIndex;
+                            second = secondIndex;
+                        }
+                    }
+                }
+
+                const sourceFirst = originalPositions[
+                    attachments[first].componentNumber
+                ];
+                const sourceSecond = originalPositions[
+                    attachments[second].componentNumber
+                ];
+                const targetFirst = attachmentTarget(attachments[first]);
+                const targetSecond = attachmentTarget(attachments[second]);
+                const sourceX = sourceSecond.x - sourceFirst.x;
+                const sourceY = sourceSecond.y - sourceFirst.y;
+                const targetX = targetSecond.x - targetFirst.x;
+                const targetY = targetSecond.y - targetFirst.y;
+                const sourceLength = Math.hypot(sourceX, sourceY);
+                const targetLength = Math.hypot(targetX, targetY);
+
+                if (sourceLength > 1e-6 && targetLength > 1e-6) {
+                    const cosine =
+                        (sourceX * targetX + sourceY * targetY) /
+                        (sourceLength * targetLength);
+                    const sine =
+                        (sourceX * targetY - sourceY * targetX) /
+                        (sourceLength * targetLength);
+                    const scale = Math.max(1, targetLength / sourceLength);
+                    const sourceCenter = {
+                        x: (sourceFirst.x + sourceSecond.x) / 2,
+                        y: (sourceFirst.y + sourceSecond.y) / 2,
+                    };
+                    const targetCenter = {
+                        x: (targetFirst.x + targetSecond.x) / 2,
+                        y: (targetFirst.y + targetSecond.y) / 2,
+                    };
+                    transformPoint = point => {
+                        const relativeX = point.x - sourceCenter.x;
+                        const relativeY = point.y - sourceCenter.y;
+                        return {
+                            x: targetCenter.x + scale * (
+                                cosine * relativeX - sine * relativeY
+                            ),
+                            y: targetCenter.y + scale * (
+                                sine * relativeX + cosine * relativeY
+                            ),
+                        };
+                    };
+                }
+            }
+
+            const transformedNodes = group.nodes.map(node => {
+                const source = originalPositions[node.num];
+                if (!source || !Number.isFinite(source.x) || !Number.isFinite(source.y)) {
+                    return null;
+                }
+                return { node, target: transformPoint(source) };
+            }).filter(Boolean);
+            let reflectAcrossRailAxis = false;
+            let attachmentCenter = null;
+            if (attachments.length > 0 && transformedNodes.length > 0) {
+                const attachmentTargets = attachments.map(attachmentTarget);
+                attachmentCenter = attachmentTargets.reduce((sum, point) => ({
+                    x: sum.x + point.x,
+                    y: sum.y + point.y,
+                }), { x: 0, y: 0 });
+                attachmentCenter.x /= attachmentTargets.length;
+                attachmentCenter.y /= attachmentTargets.length;
+                const componentCenter = transformedNodes.reduce((sum, item) => ({
+                    x: sum.x + item.target.x,
+                    y: sum.y + item.target.y,
+                }), { x: 0, y: 0 });
+                componentCenter.x /= transformedNodes.length;
+                componentCenter.y /= transformedNodes.length;
+                const componentNormalOffset =
+                    (componentCenter.x - attachmentCenter.x) * frame.normalX +
+                    (componentCenter.y - attachmentCenter.y) * frame.normalY;
+                reflectAcrossRailAxis =
+                    componentNormalOffset * outwardDirection < 0;
+            }
+
+            transformedNodes.forEach(({ node, target: unreflectedTarget }) => {
+                let target = unreflectedTarget;
+                if (reflectAcrossRailAxis) {
+                    const normalOffset =
+                        (target.x - attachmentCenter.x) * frame.normalX +
+                        (target.y - attachmentCenter.y) * frame.normalY;
+                    target = {
+                        x: target.x - 2 * normalOffset * frame.normalX,
+                        y: target.y - 2 * normalOffset * frame.normalY,
+                    };
+                }
+                node.x = node.px = target.x;
+                node.y = node.py = target.y;
+                positioned++;
+            });
+        });
+
+        return positioned;
+    }
+
+    /**
+     * Capture and pin the structure-preserving coordinates after alignment and
+     * half-plane correction.
+     *
+     * @param {Object} graph
+     * @param {Object} layout
+     */
+    function captureLinearRriStructurePositions(graph, layout) {
+        const alreadyConstrained = new Set(
+            [
+                ...Object.keys(layout.positions || {}),
+                ...Object.keys(layout.bridgePositions || {}),
+                ...Object.keys(layout.tailPositions || {}),
+            ].map(Number)
+        );
+        layout.structurePositions = {};
+        graph.nodes.forEach(node => {
+            if (
+                !node ||
+                node.nodeType !== 'nucleotide' ||
+                alreadyConstrained.has(node.num) ||
+                !Number.isFinite(node.x) ||
+                !Number.isFinite(node.y)
+            ) {
+                return;
+            }
+            layout.structurePositions[node.num] = { x: node.x, y: node.y };
+            pinLinearRriNode(node, layout.structurePositions[node.num]);
+            node.varriLinearRriStructure = true;
         });
     }
 
     /**
-     * Keep every non-rail nucleotide in its molecule's scaffold-local outer
-     * half-plane.
+     * Keep every unconstrained fold in its molecule's scaffold-local outer
+     * half-plane without flattening individual nucleotides.
      *
      * @param {Object} graph
      * @param {Object} v
@@ -2928,49 +3304,18 @@
         const frame = getLinearRriFrame(layout);
         const northBoundary = frame.northOffset - safeClearance;
         const southBoundary = frame.southOffset + safeClearance;
-        const sequence2Start = v.sequence1.length + GAP + 1;
-        const sequence2End = sequence2Start + v.sequence2.length - 1;
         let changed = 0;
 
-        graph.nodes.forEach(node => {
-            if (
-                !node ||
-                node.nodeType !== 'nucleotide' ||
-                !Number.isFinite(node.y)
-            ) {
-                return;
-            }
-
-            const isSequence1 = node.num >= 1 && node.num <= v.sequence1.length;
-            const isSequence2 = node.num >= sequence2Start && node.num <= sequence2End;
-            if (!isSequence1 && !isSequence2) return;
-
-            if (
-                Object.prototype.hasOwnProperty.call(
-                    layout.positions || {},
-                    node.num
-                )
-            ) {
-                return;
-            }
-
-            const nodeX = Number.isFinite(node.x) ? node.x : frame.centerX;
-            const projection =
-                (nodeX - frame.centerX) * frame.normalX +
-                (node.y - frame.centerY) * frame.normalY;
-            let correction = 0;
-            if (isSequence1 && projection > northBoundary) {
-                correction = northBoundary - projection;
-            } else if (isSequence2 && projection < southBoundary) {
-                correction = southBoundary - projection;
-            }
-            if (correction === 0) return;
-
-            node.x = nodeX + frame.normalX * correction;
-            node.y += frame.normalY * correction;
-            node.px = node.x;
-            node.py = node.y;
-            changed++;
+        getLinearRriMovableGroups(graph, v, layout).forEach(group => {
+            const boundary = group.plane === 'north'
+                ? northBoundary
+                : southBoundary;
+            changed += translateLinearRriGroupIntoPlane(
+                group.nodes,
+                boundary,
+                group.plane,
+                frame
+            );
         });
 
         return changed;
@@ -2986,50 +3331,6 @@
      * @param {number} clearance
      */
     function prepareLinearRriExternalStructures(graph, v, layout, clearance) {
-        const frame = getLinearRriFrame(layout);
-        const sequence2Start = v.sequence1.length + GAP + 1;
-        const sequence2End = sequence2Start + v.sequence2.length - 1;
-        const nucleotideNodes = graph.nodes.filter(
-            node => node && node.nodeType === 'nucleotide'
-        );
-        const specs = [
-            {
-                start: 1,
-                end: v.sequence1.length,
-                range: layout.interactionRanges.sequence1,
-                boundaryProjection: frame.northOffset - clearance,
-                plane: 'north',
-            },
-            {
-                start: sequence2Start,
-                end: sequence2End,
-                range: layout.interactionRanges.sequence2,
-                boundaryProjection: frame.southOffset + clearance,
-                plane: 'south',
-            },
-        ];
-
-        specs.forEach(spec => {
-            const prefix = nucleotideNodes.filter(
-                node => node.num >= spec.start && node.num < spec.range[0]
-            );
-            const suffix = nucleotideNodes.filter(
-                node => node.num > spec.range[1] && node.num <= spec.end
-            );
-            translateLinearRriGroupIntoPlane(
-                prefix,
-                spec.boundaryProjection,
-                spec.plane,
-                frame
-            );
-            translateLinearRriGroupIntoPlane(
-                suffix,
-                spec.boundaryProjection,
-                spec.plane,
-                frame
-            );
-        });
-
         enforceLinearRriHalfPlanes(graph, v, layout, clearance);
     }
 
@@ -3119,9 +3420,16 @@
     function enforceLinearRriPinnedGeometry(graph, layout) {
         if (!graph || !Array.isArray(graph.nodes) || !layout) return;
 
-        Object.entries(layout.positions || {}).forEach(([nodeNumber, point]) => {
-            const node = getGraphNucleotideByNumber(graph, Number(nodeNumber));
-            pinLinearRriNode(node, point);
+        [
+            layout.positions || {},
+            layout.bridgePositions || {},
+            layout.tailPositions || {},
+            layout.structurePositions || {},
+        ].forEach(positionMap => {
+            Object.entries(positionMap).forEach(([nodeNumber, point]) => {
+                const node = getGraphNucleotideByNumber(graph, Number(nodeNumber));
+                pinLinearRriNode(node, point);
+            });
         });
     }
 
@@ -3184,6 +3492,11 @@
     function applyLinearRriLayout(container, v) {
         const graph = container && container.graph;
         if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.links)) return false;
+        graph.varriLinearRriNucleotideByNumber = new Map(
+            graph.nodes
+                .filter(node => node && node.nodeType === 'nucleotide')
+                .map(node => [node.num, node])
+        );
 
         const pairs = listIntermolPairs(v).slice().sort((a, b) => a[0] - b[0]);
         if (pairs.length === 0) return false;
@@ -3193,6 +3506,17 @@
             sequence2: getGraphNucleotideByNumber(graph, sequence2Node),
         }));
         if (pairNodes.some(pair => !pair.sequence1 || !pair.sequence2)) return false;
+        const originalPositions = {};
+        graph.nodes.forEach(node => {
+            if (
+                node &&
+                node.nodeType === 'nucleotide' &&
+                Number.isFinite(node.x) &&
+                Number.isFinite(node.y)
+            ) {
+                originalPositions[node.num] = { x: node.x, y: node.y };
+            }
+        });
 
         const linkDistanceMultiplier = Number(container.options?.linkDistanceMultiplier) || 15;
         const nucleotideSpacing = LINEAR_RRI_LINK_DISTANCE_SCALE * linkDistanceMultiplier;
@@ -3217,9 +3541,16 @@
         enforceLinearRriPinnedGeometry(graph, layout);
         seedLinearRriBridgeNodes(graph, layout);
         seedLinearRriTailNodes(graph, layout);
+        alignLinearRriStructuralComponents(
+            graph,
+            v,
+            layout,
+            originalPositions
+        );
 
-        const halfPlaneClearance = 0;
+        const halfPlaneClearance = 0.75 * nucleotideSpacing;
         prepareLinearRriExternalStructures(graph, v, layout, halfPlaneClearance);
+        captureLinearRriStructurePositions(graph, layout);
 
         const constraints = getLinearRriConstraintSpecs(v);
         constraints.forEach(spec => {
@@ -3245,7 +3576,6 @@
         if (container.force && typeof container.force.on === 'function') {
             const enforceAndSync = () => {
                 enforceLinearRriPinnedGeometry(graph, layout);
-                enforceLinearRriHalfPlanes(graph, v, layout, halfPlaneClearance);
                 enforceLinearRriSupplementaryNodes(
                     graph,
                     v,
@@ -3549,6 +3879,119 @@
     }
 
     /**
+     * Calculate the zoom transform that keeps the interaction focus centred
+     * after the SVG-only rail rotation.
+     *
+     * @param {{x:number,y:number}} focus
+     * @param {{x:number,y:number}} rotationCenter
+     * @param {number} rotationDegrees
+     * @param {number} width
+     * @param {number} height
+     * @param {number} scale
+     * @returns {{scale:number,translate:[number,number],rotatedFocus:{x:number,y:number}}}
+     */
+    function getLinearRriReadableViewTransform(
+        focus,
+        rotationCenter,
+        rotationDegrees,
+        width,
+        height,
+        scale
+    ) {
+        const radians = Number(rotationDegrees) * Math.PI / 180;
+        const cosine = Math.cos(radians);
+        const sine = Math.sin(radians);
+        const relativeX = Number(focus.x) - Number(rotationCenter.x);
+        const relativeY = Number(focus.y) - Number(rotationCenter.y);
+        const rotatedFocus = {
+            x: Number(rotationCenter.x) +
+                cosine * relativeX -
+                sine * relativeY,
+            y: Number(rotationCenter.y) +
+                sine * relativeX +
+                cosine * relativeY,
+        };
+        return {
+            scale,
+            translate: [
+                Number(width) / 2 - scale * rotatedFocus.x,
+                Number(height) / 2 - scale * rotatedFocus.y,
+            ],
+            rotatedFocus,
+        };
+    }
+
+    /**
+     * Run Fornac's normal fit, but keep extremely long linear interactions at
+     * a readable minimum zoom and centre the RRI rather than the remote tails.
+     *
+     * @param {Object} container
+     * @param {Object} layout
+     * @returns {number|null} Applied zoom scale.
+     */
+    function centerLinearRriView(container, layout) {
+        if (
+            !container ||
+            typeof container.centerView !== 'function' ||
+            !container.zoomer ||
+            typeof document === 'undefined'
+        ) {
+            return null;
+        }
+        container.centerView();
+        const fittedScale = Number(container.zoomer.scale());
+        if (
+            !Number.isFinite(fittedScale) ||
+            fittedScale >= LINEAR_RRI_MINIMUM_VIEW_SCALE
+        ) {
+            return fittedScale;
+        }
+
+        const svgSelection = container.options?.svg;
+        const svg = svgSelection && typeof svgSelection.node === 'function'
+            ? svgSelection.node()
+            : null;
+        const plot = svg && svg.querySelector('.fornac-plot');
+        const rotationLayer = plot &&
+            plot.querySelector('[data-varri-rotation-layer="true"]');
+        const rotationCenter = rotationLayer && getBBoxCenter(rotationLayer);
+        if (!svg || !plot || !rotationCenter || !layout?.center) {
+            return fittedScale;
+        }
+
+        const transform = getLinearRriReadableViewTransform(
+            layout.center,
+            rotationCenter,
+            layout.rotationDegrees || 0,
+            Number(container.options.svgW) || 300,
+            Number(container.options.svgH) || 300,
+            LINEAR_RRI_MINIMUM_VIEW_SCALE
+        );
+        const applyMinimumView = () => {
+            if (!svg.isConnected) return;
+            if (global.d3 && typeof global.d3.select === 'function') {
+                const selection = global.d3.select(plot);
+                if (typeof selection.interrupt === 'function') selection.interrupt();
+            }
+            plot.setAttribute(
+                'transform',
+                `translate(${transform.translate}) scale(${transform.scale})`
+            );
+            container.zoomer.translate(transform.translate);
+            container.zoomer.scale(transform.scale);
+            svg.setAttribute('data-varri-minimum-view-scale', 'true');
+        };
+        applyMinimumView();
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(() => {
+                applyMinimumView();
+                requestAnimationFrame(applyMinimumView);
+            });
+        }
+        return transform.scale;
+    }
+
+    /**
      * Override Fornac's "pseudoknot" link force strength on a live container.
      *
      * Fornac's `FornaContainer` sets `container.linkStrengths.pseudoknot = 0`
@@ -3700,8 +4143,8 @@
 
             // The fixed scaffold may extend beyond Fornac's initial bounds.
             // Refit after the first force ticks and all hidden nodes are removed.
-            if (forceLayout && forceLayoutLinear && typeof container.centerView === 'function') {
-                container.centerView();
+            if (forceLayout && forceLayoutLinear && container.varriLinearRriLayout) {
+                centerLinearRriView(container, container.varriLinearRriLayout);
             }
 
             // When animation is on, keep the background-highlight polygon in sync
@@ -4094,6 +4537,7 @@
 
         // Constants
         LINEAR_RRI_LINK_DISTANCE_SCALE,
+        LINEAR_RRI_MINIMUM_VIEW_SCALE,
         LINEAR_RRI_TRACK_GAP_UNITS,
 
         // Core
@@ -4147,6 +4591,7 @@
         validateStructureInput,
 
         // Base-pair utilities
+        alignLinearRriStructuralComponents,
         addLinearRriTerminalGhosts,
         enforceLinearRriHalfPlanes,
         enforceLinearRriSupplementaryNodes,
@@ -4154,6 +4599,7 @@
         getLinearRriBridgePositions,
         getLinearRriConstraintSpecs,
         getLinearRriInteractionLayout,
+        getLinearRriReadableViewTransform,
         getLinearRriScaffoldAxis,
         listBasepairs,
         listIntermolNodes,

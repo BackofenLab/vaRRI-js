@@ -26,6 +26,21 @@ const fullRepeats = Number(argument('full-repeats', '1'));
 const croppedContext = Number(argument('cropped-context', '20'));
 const settleMs = Number(argument('settle-ms', '650'));
 const maximumScreenshots = Number(argument('max-screenshots', '8'));
+const caseIds = argument('case-ids', '')
+    .split(',')
+    .map(value => value.trim())
+    .filter(Boolean);
+const linearLayoutArgument = argument('linear-layout', '');
+if (
+    linearLayoutArgument !== '' &&
+    linearLayoutArgument !== 'true' &&
+    linearLayoutArgument !== 'false'
+) {
+    throw new Error('--linear-layout must be true or false');
+}
+const forceLayoutLinear = linearLayoutArgument === ''
+    ? undefined
+    : linearLayoutArgument === 'true';
 const chromeExecutable = argument(
     'chrome',
     process.env.CHROME_BIN || '/usr/bin/google-chrome'
@@ -344,7 +359,9 @@ async function main() {
                 croppedRepeats,
                 fullRepeats,
                 croppedContext,
-                settleMs
+                settleMs,
+                caseIds: caseIds.length > 0 ? caseIds : undefined,
+                forceLayoutLinear,
             })})`);
         } finally {
             clearInterval(progressTimer);
