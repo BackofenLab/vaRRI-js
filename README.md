@@ -360,7 +360,7 @@ See descriptions above and the [Input Format Reference](#input-format-reference)
 | **`colorRriNodes` / `colorRriRegion` / `colorBasepair`** | Hex color codes for nucleotide highlights, background highlights, and base pairs. |
 | **`guBasepairs`** | Toggle display of G-U Wobble base pairs as dashed lines (`true` / `false`). |
 | **`forceLayout`** | Enable or disable Fornac force-layout physics simulation (`true` / `false`). |
-| **`forceLayoutLinear`** | Place only RRI-paired nucleotides on two horizontal rails: molecule 1 on the northern rail and molecule 2 on the southern rail. Intervening backbones form outward loop structures, while directly attached terminal unpaired runs extend as straight, diverging zipper ends and all remaining structure stays force-directed in its molecule's outer half-plane. Enabling it also enables `forceLayout`. |
+| **`forceLayoutLinear`** | Build two parallel RRI rails along Fornac's initial interaction axis, with molecule 1 on the outward northern side and molecule 2 on the southern side. Intervening backbones retain outward loop structures, terminal runs are guided by invisible continuation anchors, and indexes/mutations are displayed on the outer side. The existing SVG rotation layer performs the final horizontal alignment, so the force field does not rotate or translate the primary fold. Enabling it also enables `forceLayout`. |
 
 
 > [!IMPORTANT]

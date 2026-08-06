@@ -20,7 +20,11 @@ test('boots through bound UI actions without inline handlers', async () => {
   installDomGlobals(dom);
   global.vaRRI = vaRRI;
 
-  const renderSpy = jest.spyOn(vaRRI, 'render').mockResolvedValue({ cancelled: false });
+  const renderSpy = jest.spyOn(vaRRI, 'render').mockResolvedValue({
+    cancelled: false,
+    rotationDegrees: 35,
+  });
+  const rotationSpy = jest.spyOn(vaRRI, 'rotateVisualization').mockReturnValue(40);
   require('../index.js');
 
   window.dispatchEvent(new window.Event('load'));
@@ -32,6 +36,16 @@ test('boots through bound UI actions without inline handlers', async () => {
   expect(document.getElementById('subseqCounterUI').textContent).toBe('(2)');
   expect(document.getElementById('regionCounterUI').textContent).toBe('(1)');
   expect(document.getElementById('mutationCounterUI').textContent).toBe('(2)');
+
+  const rotationSlider = document.getElementById('rotationSlider');
+  document.getElementById('rna_ss').innerHTML = '<svg></svg>';
+  rotationSlider.value = '5';
+  rotationSlider.dispatchEvent(new window.Event('input'));
+  expect(rotationSpy).toHaveBeenLastCalledWith(
+    'rna_ss',
+    40,
+    { mode: 'absolute' }
+  );
 
   const linearLayout = document.getElementById('forceLayoutLinear');
   const forceLayout = document.getElementById('forceLayout');

@@ -50,13 +50,13 @@ const validated = vaRRI.validate({
 
 Creates a Fornac visualization, then applies labels, coloring, annotations,
 profiles, and link styling. It returns a promise resolving to
-`{ cancelled: boolean }`. Starting a newer render cancels pending
+`{ cancelled: boolean, rotationDegrees?: number }`. For a completed linear render, `rotationDegrees` is the automatic SVG-layer rotation committed by the renderer. Starting a newer render cancels pending
 post-processing from the previous render.
 
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `forceLayout` | `boolean` | `false` | Enable Fornac force-layout animation. |
-| `forceLayoutLinear` | `boolean` | `false` | Place only intermolecularly paired nucleotides on horizontal north/south rails. Intervening backbones fold outward and remain force-directed with all other molecule structure in the respective half-plane; directly attached terminal unpaired runs extend as straight, diverging zipper ends. Requires `forceLayout`. |
+| `forceLayoutLinear` | `boolean` | `false` | Build parallel RRI rails along Fornac's initial interaction axis. Internal structures remain force-directed in scaffold-local outer half-planes, four invisible terminal anchors guide open zipper ends, and indexes/mutations are displayed outward without changing their force coordinates. The existing SVG rotation layer then aligns the scaffold horizontally. Requires `forceLayout`. |
 | `freeTrailingEnds` | `boolean` | `false` | Relax the external-loop closure scaffold when force layout is active. |
 | `pullPseudoknotBasepairs` | `boolean` | `false` | Increase pseudoknot link strength when force layout is active. |
 | `accessData` | `Object<number, number>\|null` | `null` | Node-ID to probability map. |
@@ -169,10 +169,13 @@ const sequenceContext = {
 ## Base-pair utilities
 
 - `vaRRI.getIntermolBasepairRegion(structure1, structure2)`
+- `vaRRI.addLinearRriTerminalGhosts(graph, validated, layout, nucleotideSpacing)`
 - `vaRRI.enforceLinearRriHalfPlanes(graph, validated, layout, clearance)`
+- `vaRRI.enforceLinearRriSupplementaryNodes(graph, validated, layout, distance)`
 - `vaRRI.getLinearRriBridgePositions(startPoint, endPoint, internalNodeCount, bondLength, outwardHint)`
 - `vaRRI.getLinearRriConstraintSpecs(validated)`
-- `vaRRI.getLinearRriInteractionLayout(validated, nucleotideSpacing, trackGap, center?)`
+- `vaRRI.getLinearRriInteractionLayout(validated, nucleotideSpacing, trackGap, center?, axis?)`
+- `vaRRI.getLinearRriScaffoldAxis(pairNodes)`
 - `vaRRI.listBasepairs(structureDictionary)`
 - `vaRRI.listIntermolNodes(structure, shift?)`
 - `vaRRI.listIntermolPairs(validated)`

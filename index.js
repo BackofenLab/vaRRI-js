@@ -1335,6 +1335,11 @@ async function runVisualization() {
       accessColorMode,
     });
     if (runId !== latestVisualizationRunId || renderState?.cancelled) return;
+    if (Number.isFinite(Number(renderState?.rotationDegrees))) {
+      committedRotationDeg = vaRRI.normaliseRotationDegrees(
+        Number(renderState.rotationDegrees)
+      );
+    }
     container.style.visibility = '';
     renderRegionList();
     showMsg('Visualisation ready. Use the export buttons to save.', 'success');

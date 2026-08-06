@@ -23,6 +23,9 @@
     /** Force-graph link type reserved for invisible linear-RRI constraints. */
     const LINEAR_RRI_LINK_TYPE = 'rri_linear';
 
+    /** Force-graph link type for invisible terminal continuation anchors. */
+    const LINEAR_RRI_GHOST_LINK_TYPE = 'rri_linear_ghost';
+
     /** Match Fornac's strong backbone/basepair link strength. */
     const LINEAR_RRI_LINK_STRENGTH = 10;
 
@@ -34,6 +37,9 @@
 
     /** Outward rise per horizontal unit for terminal zipper ends. */
     const LINEAR_RRI_TAIL_SLOPE = 0.35;
+
+    /** Outward offset for index and mutation labels, in backbone units. */
+    const LINEAR_RRI_SUPPLEMENTARY_OFFSET_UNITS = 1.8;
 
     /** Active requestAnimationFrame ID for the background-highlight animation loop (null when idle). */
     let _animFrameId = null;
@@ -2277,11 +2283,34 @@
      * @param {Object} v
      * @param {Object.<number,{x:number,y:number,sequence:string}>} railPositions
      * @param {number} nucleotideSpacing
+     * @param {{x:number,y:number}} axis
+     * @param {{x:number,y:number}} normal
      * @returns {Object.<number,{x:number,y:number,sequence:string,side:string}>}
      */
-    function getLinearRriTailPositions(v, railPositions, nucleotideSpacing) {
+    function getLinearRriTailPositions(
+        v,
+        railPositions,
+        nucleotideSpacing,
+        axis,
+        normal
+    ) {
         const spacing = Number(nucleotideSpacing);
         if (!Number.isFinite(spacing) || spacing <= 0) return {};
+
+        const axisLength = Math.hypot(Number(axis?.x), Number(axis?.y));
+        const axisX = Number.isFinite(axisLength) && axisLength > 1e-6
+            ? Number(axis.x) / axisLength
+            : 1;
+        const axisY = Number.isFinite(axisLength) && axisLength > 1e-6
+            ? Number(axis.y) / axisLength
+            : 0;
+        const normalLength = Math.hypot(Number(normal?.x), Number(normal?.y));
+        const normalX = Number.isFinite(normalLength) && normalLength > 1e-6
+            ? Number(normal.x) / normalLength
+            : -axisY;
+        const normalY = Number.isFinite(normalLength) && normalLength > 1e-6
+            ? Number(normal.y) / normalLength
+            : axisX;
 
         const tailPositions = {};
         const horizontalUnit = 1 / Math.hypot(1, LINEAR_RRI_TAIL_SLOPE);
@@ -2330,7 +2359,10 @@
                     );
                 const neighbour = railPositions[neighbourNumber];
                 let horizontalDirection = neighbour
-                    ? Math.sign(anchor.x - neighbour.x)
+                    ? Math.sign(
+                        (anchor.x - neighbour.x) * axisX +
+                        (anchor.y - neighbour.y) * axisY
+                    )
                     : (side === 'leading' ? -1 : 1);
                 if (horizontalDirection === 0) {
                     horizontalDirection = side === 'leading' ? -1 : 1;
@@ -2343,9 +2375,11 @@
                     const nodeNumber = spec.firstNode + localNumber - 1;
                     tailPositions[nodeNumber] = {
                         x: anchor.x +
-                            horizontalDirection * horizontalUnit * spacing * step,
+                            axisX * horizontalDirection * horizontalUnit * spacing * step +
+                            normalX * spec.planeDirection * verticalUnit * spacing * step,
                         y: anchor.y +
-                            spec.planeDirection * verticalUnit * spacing * step,
+                            axisY * horizontalDirection * horizontalUnit * spacing * step +
+                            normalY * spec.planeDirection * verticalUnit * spacing * step,
                         sequence: spec.sequence,
                         side,
                     };
@@ -2369,7 +2403,7 @@
     }
 
     /**
-     * Calculate a horizontal two-rail RRI scaffold.
+     * Calculate a two-rail RRI scaffold along a requested local axis.
      *
      * Only intermolecularly paired nucleotides are rail nodes. Intervening
      * nucleotides receive outward seed positions in `bridgePositions`, but
@@ -2380,13 +2414,15 @@
      * @param {number} nucleotideSpacing  Effective backbone bond length.
      * @param {number} trackGap
      * @param {{x:number,y:number}} [center]
+     * @param {{x:number,y:number}} [requestedAxis]
      * @returns {Object|null}
      */
     function getLinearRriInteractionLayout(
         v,
         nucleotideSpacing,
         trackGap,
-        center = { x: 0, y: 0 }
+        center = { x: 0, y: 0 },
+        requestedAxis = { x: 1, y: 0 }
     ) {
         const spacing = Number(nucleotideSpacing);
         if (!Number.isFinite(spacing) || spacing <= 0) return null;
@@ -2396,6 +2432,18 @@
 
         const centerX = Number.isFinite(Number(center && center.x)) ? Number(center.x) : 0;
         const centerY = Number.isFinite(Number(center && center.y)) ? Number(center.y) : 0;
+        let axisX = Number(requestedAxis && requestedAxis.x);
+        let axisY = Number(requestedAxis && requestedAxis.y);
+        let axisLength = Math.hypot(axisX, axisY);
+        if (!Number.isFinite(axisLength) || axisLength < 1e-6) {
+            axisX = 1;
+            axisY = 0;
+            axisLength = 1;
+        }
+        axisX /= axisLength;
+        axisY /= axisLength;
+        const normalX = -axisY;
+        const normalY = axisX;
         const requestedGap = Number(trackGap);
         const effectiveTrackGap = Math.max(
             spacing,
@@ -2403,8 +2451,10 @@
                 ? requestedGap
                 : LINEAR_RRI_TRACK_GAP_UNITS * spacing
         );
-        const northY = centerY - effectiveTrackGap / 2;
-        const southY = centerY + effectiveTrackGap / 2;
+        const northOffset = -effectiveTrackGap / 2;
+        const southOffset = effectiveTrackGap / 2;
+        const northY = centerY + normalY * northOffset;
+        const southY = centerY + normalY * southOffset;
 
         const sequence1PairNumbers = pairs.map(pair => pair[0]);
         const sequence2PairNumbers = pairs.map(pair => pair[1]);
@@ -2443,18 +2493,18 @@
 
         const columnCenter =
             (columnOffsets[0] + columnOffsets[columnOffsets.length - 1]) / 2;
-        const columnXs = columnOffsets.map(offset => centerX + offset - columnCenter);
         const positions = {};
 
         pairs.forEach((pair, index) => {
+            const along = columnOffsets[index] - columnCenter;
             positions[pair[0]] = {
-                x: columnXs[index],
-                y: northY,
+                x: centerX + axisX * along + normalX * northOffset,
+                y: centerY + axisY * along + normalY * northOffset,
                 sequence: '1',
             };
             positions[pair[1]] = {
-                x: columnXs[index],
-                y: southY,
+                x: centerX + axisX * along + normalX * southOffset,
+                y: centerY + axisY * along + normalY * southOffset,
                 sequence: '2',
             };
         });
@@ -2471,7 +2521,7 @@
                         start: positions[previousPair[0]],
                         end: positions[currentPair[0]],
                         sequence: '1',
-                        outward: { x: 0, y: -1 },
+                        outward: { x: -normalX, y: -normalY },
                     },
                     {
                         source: previousPair[1],
@@ -2479,7 +2529,7 @@
                         start: positions[previousPair[1]],
                         end: positions[currentPair[1]],
                         sequence: '2',
-                        outward: { x: 0, y: 1 },
+                        outward: { x: normalX, y: normalY },
                     },
                 ];
 
@@ -2508,7 +2558,9 @@
         const tailPositions = getLinearRriTailPositions(
             v,
             positions,
-            spacing
+            spacing,
+            { x: axisX, y: axisY },
+            { x: normalX, y: normalY }
         );
 
         return {
@@ -2517,9 +2569,17 @@
             tailPositions,
             pairs,
             interactionRanges,
+            center: { x: centerX, y: centerY },
+            axis: { x: axisX, y: axisY },
+            normal: { x: normalX, y: normalY },
+            northOffset,
+            southOffset,
             northY,
             southY,
             trackGap: effectiveTrackGap,
+            rotationDegrees: normaliseRotationDegrees(
+                -Math.atan2(axisY, axisX) * 180 / Math.PI
+            ),
             pairOrderMonotonic,
         };
     }
@@ -2543,32 +2603,317 @@
     }
 
     /**
-     * Translate one flanking structure into its assigned half-plane.
+     * Seed terminal zipper nodes without fixing the primary layout.
+     *
+     * @param {Object} graph
+     * @param {Object} layout
+     */
+    function seedLinearRriTailNodes(graph, layout) {
+        if (!graph || !Array.isArray(graph.nodes) || !layout) return;
+
+        Object.entries(layout.tailPositions || {}).forEach(([nodeNumber, point]) => {
+            const node = getGraphNucleotideByNumber(graph, Number(nodeNumber));
+            if (!node || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+            node.x = node.px = point.x;
+            node.y = node.py = point.y;
+            node.varriLinearRriTail = true;
+        });
+    }
+
+    /**
+     * Derive the RRI axis from Fornac's existing pair-column orientation.
+     *
+     * @param {Array<{sequence1:Object,sequence2:Object}>} pairNodes
+     * @returns {{x:number,y:number}}
+     */
+    function getLinearRriScaffoldAxis(pairNodes) {
+        if (!Array.isArray(pairNodes) || pairNodes.length === 0) {
+            return { x: 1, y: 0 };
+        }
+
+        const pairCenter = pair => ({
+            x: (pair.sequence1.x + pair.sequence2.x) / 2,
+            y: (pair.sequence1.y + pair.sequence2.y) / 2,
+        });
+        const separation = pairNodes.reduce((sum, pair) => ({
+            x: sum.x + pair.sequence2.x - pair.sequence1.x,
+            y: sum.y + pair.sequence2.y - pair.sequence1.y,
+        }), { x: 0, y: 0 });
+        let axisX;
+        let axisY;
+
+        if (pairNodes.length === 1) {
+            axisX = separation.y;
+            axisY = -separation.x;
+        } else {
+            const first = pairCenter(pairNodes[0]);
+            const last = pairCenter(pairNodes[pairNodes.length - 1]);
+            axisX = last.x - first.x;
+            axisY = last.y - first.y;
+        }
+        let length = Math.hypot(axisX, axisY);
+
+        if (!Number.isFinite(length) || length < 1e-6) {
+            axisX = pairNodes[pairNodes.length - 1].sequence1.x -
+                pairNodes[0].sequence1.x;
+            axisY = pairNodes[pairNodes.length - 1].sequence1.y -
+                pairNodes[0].sequence1.y;
+            length = Math.hypot(axisX, axisY);
+        }
+        if (!Number.isFinite(length) || length < 1e-6) {
+            return { x: 1, y: 0 };
+        }
+
+        axisX /= length;
+        axisY /= length;
+        const normalDotSeparation =
+            (-axisY * separation.x) + (axisX * separation.y);
+        if (Number.isFinite(normalDotSeparation) && normalDotSeparation < 0) {
+            axisX *= -1;
+            axisY *= -1;
+        }
+
+        return { x: axisX, y: axisY };
+    }
+
+    /**
+     * Add one fixed, invisible continuation node beyond each molecular end.
+     *
+     * The nodes and links are appended after Fornac created the SVG, so they
+     * affect the force graph without creating visible elements.
+     *
+     * @param {Object} graph
+     * @param {Object} v
+     * @param {Object} layout
+     * @param {number} nucleotideSpacing
+     * @returns {number}
+     */
+    function addLinearRriTerminalGhosts(
+        graph,
+        v,
+        layout,
+        nucleotideSpacing
+    ) {
+        if (
+            !graph ||
+            !Array.isArray(graph.nodes) ||
+            !Array.isArray(graph.links) ||
+            graph.varriLinearRriGhosts
+        ) {
+            return 0;
+        }
+
+        const spacing = Number(nucleotideSpacing);
+        if (!Number.isFinite(spacing) || spacing <= 0) return 0;
+
+        const frame = getLinearRriFrame(layout);
+        let axisX = Number(layout?.axis?.x);
+        let axisY = Number(layout?.axis?.y);
+        let axisLength = Math.hypot(axisX, axisY);
+        if (!Number.isFinite(axisLength) || axisLength < 1e-6) {
+            axisX = frame.normalY;
+            axisY = -frame.normalX;
+            axisLength = 1;
+        }
+        axisX /= axisLength;
+        axisY /= axisLength;
+
+        const sequence2Start = v.sequence1.length + GAP + 1;
+        const sequence2End = sequence2Start + v.sequence2.length - 1;
+        const termini = [
+            {
+                sequence: '1',
+                side: 'leading',
+                terminal: 1,
+                adjacent: v.sequence1.length > 1 ? 2 : null,
+                planeDirection: -1,
+            },
+            {
+                sequence: '1',
+                side: 'trailing',
+                terminal: v.sequence1.length,
+                adjacent: v.sequence1.length > 1
+                    ? v.sequence1.length - 1
+                    : null,
+                planeDirection: -1,
+            },
+            {
+                sequence: '2',
+                side: 'leading',
+                terminal: sequence2Start,
+                adjacent: v.sequence2.length > 1 ? sequence2Start + 1 : null,
+                planeDirection: 1,
+            },
+            {
+                sequence: '2',
+                side: 'trailing',
+                terminal: sequence2End,
+                adjacent: v.sequence2.length > 1 ? sequence2End - 1 : null,
+                planeDirection: 1,
+            },
+        ];
+        const ghosts = [];
+
+        termini.forEach((spec, index) => {
+            const terminal = getGraphNucleotideByNumber(graph, spec.terminal);
+            const adjacent = spec.adjacent === null
+                ? null
+                : getGraphNucleotideByNumber(graph, spec.adjacent);
+            if (!terminal) return;
+
+            let directionX = adjacent ? terminal.x - adjacent.x : NaN;
+            let directionY = adjacent ? terminal.y - adjacent.y : NaN;
+            let directionLength = Math.hypot(directionX, directionY);
+            const outwardX = frame.normalX * spec.planeDirection;
+            const outwardY = frame.normalY * spec.planeDirection;
+            const outwardProjection = directionLength > 1e-6
+                ? (directionX * outwardX + directionY * outwardY) / directionLength
+                : -1;
+
+            if (
+                !Number.isFinite(directionLength) ||
+                directionLength < 1e-6 ||
+                outwardProjection < 0.1
+            ) {
+                const alongProjection =
+                    (terminal.x - frame.centerX) * axisX +
+                    (terminal.y - frame.centerY) * axisY;
+                const defaultAlongDirection = spec.side === 'leading' ? -1 : 1;
+                const alongDirection = adjacent
+                    ? (Math.sign(alongProjection) || defaultAlongDirection)
+                    : defaultAlongDirection;
+                directionX =
+                    axisX * alongDirection +
+                    outwardX * LINEAR_RRI_TAIL_SLOPE;
+                directionY =
+                    axisY * alongDirection +
+                    outwardY * LINEAR_RRI_TAIL_SLOPE;
+                directionLength = Math.hypot(directionX, directionY);
+            }
+
+            directionX /= directionLength;
+            directionY /= directionLength;
+            const ghost = {
+                uid: `varri-linear-ghost-${spec.sequence}-${spec.side}`,
+                num: -1000000 - index,
+                nodeType: 'middle',
+                name: '',
+                x: terminal.x + directionX * spacing,
+                y: terminal.y + directionY * spacing,
+                px: terminal.x + directionX * spacing,
+                py: terminal.y + directionY * spacing,
+                fixed: 1,
+                radius: 0,
+                sequence: spec.sequence,
+                side: spec.side,
+                varriLinearRriGhost: true,
+            };
+            graph.nodes.push(ghost);
+            graph.links.push({
+                source: terminal,
+                target: ghost,
+                value: 1,
+                linkType: LINEAR_RRI_GHOST_LINK_TYPE,
+                extraLinkType: 'constraint',
+            });
+            ghosts.push(ghost);
+        });
+
+        graph.varriLinearRriGhosts = ghosts;
+        return ghosts.length;
+    }
+
+    /**
+     * Resolve the scaffold-local centre and outward normal.
+     *
+     * Older callers that provide only northY/southY retain horizontal behavior.
+     *
+     * @param {Object} layout
+     * @returns {{centerX:number,centerY:number,normalX:number,normalY:number,northOffset:number,southOffset:number}}
+     */
+    function getLinearRriFrame(layout) {
+        const fallbackCenterY =
+            (Number(layout?.northY) + Number(layout?.southY)) / 2;
+        const centerX = Number.isFinite(Number(layout?.center?.x))
+            ? Number(layout.center.x)
+            : 0;
+        const centerY = Number.isFinite(Number(layout?.center?.y))
+            ? Number(layout.center.y)
+            : (Number.isFinite(fallbackCenterY) ? fallbackCenterY : 0);
+
+        let normalX = Number(layout?.normal?.x);
+        let normalY = Number(layout?.normal?.y);
+        let normalLength = Math.hypot(normalX, normalY);
+        if (!Number.isFinite(normalLength) || normalLength < 1e-6) {
+            normalX = 0;
+            normalY = 1;
+            normalLength = 1;
+        }
+        normalX /= normalLength;
+        normalY /= normalLength;
+
+        const fallbackNorthOffset = Number(layout?.northY) - centerY;
+        const fallbackSouthOffset = Number(layout?.southY) - centerY;
+        const northOffset = Number.isFinite(Number(layout?.northOffset))
+            ? Number(layout.northOffset)
+            : (Number.isFinite(fallbackNorthOffset) ? fallbackNorthOffset : 0);
+        const southOffset = Number.isFinite(Number(layout?.southOffset))
+            ? Number(layout.southOffset)
+            : (Number.isFinite(fallbackSouthOffset) ? fallbackSouthOffset : 0);
+
+        return {
+            centerX,
+            centerY,
+            normalX,
+            normalY,
+            northOffset,
+            southOffset,
+        };
+    }
+
+    /**
+     * Translate one flanking structure into its scaffold-local half-plane.
      *
      * @param {Object[]} nodes
-     * @param {number} boundaryY
+     * @param {number} boundaryProjection
      * @param {"north"|"south"} plane
+     * @param {Object} frame
      */
-    function translateLinearRriGroupIntoPlane(nodes, boundaryY, plane) {
-        const positionedNodes = nodes.filter(node => Number.isFinite(node && node.y));
+    function translateLinearRriGroupIntoPlane(
+        nodes,
+        boundaryProjection,
+        plane,
+        frame
+    ) {
+        const positionedNodes = nodes.filter(node => Number.isFinite(node?.y));
         if (positionedNodes.length === 0) return;
 
-        const edgeY = plane === 'north'
-            ? Math.max(...positionedNodes.map(node => node.y))
-            : Math.min(...positionedNodes.map(node => node.y));
-        const shiftY = plane === 'north'
-            ? Math.min(0, boundaryY - edgeY)
-            : Math.max(0, boundaryY - edgeY);
-        if (shiftY === 0) return;
+        const projections = positionedNodes.map(node => {
+            const x = Number.isFinite(node.x) ? node.x : frame.centerX;
+            return (x - frame.centerX) * frame.normalX +
+                (node.y - frame.centerY) * frame.normalY;
+        });
+        const edgeProjection = plane === 'north'
+            ? Math.max(...projections)
+            : Math.min(...projections);
+        const shift = plane === 'north'
+            ? Math.min(0, boundaryProjection - edgeProjection)
+            : Math.max(0, boundaryProjection - edgeProjection);
+        if (shift === 0) return;
 
         positionedNodes.forEach(node => {
+            const shiftX = frame.normalX * shift;
+            const shiftY = frame.normalY * shift;
+            node.x = (Number.isFinite(node.x) ? node.x : frame.centerX) + shiftX;
             node.y += shiftY;
+            node.px = Number.isFinite(node.px) ? node.px + shiftX : node.x;
             node.py = Number.isFinite(node.py) ? node.py + shiftY : node.y;
         });
     }
 
     /**
-     * Keep every non-rail nucleotide in its molecule's outer half-plane.
+     * Keep every non-rail nucleotide in its molecule's scaffold-local outer
+     * half-plane.
      *
      * @param {Object} graph
      * @param {Object} v
@@ -2580,14 +2925,21 @@
         if (!graph || !Array.isArray(graph.nodes) || !layout) return 0;
 
         const safeClearance = Math.max(0, Number(clearance) || 0);
-        const northBoundary = layout.northY - safeClearance;
-        const southBoundary = layout.southY + safeClearance;
+        const frame = getLinearRriFrame(layout);
+        const northBoundary = frame.northOffset - safeClearance;
+        const southBoundary = frame.southOffset + safeClearance;
         const sequence2Start = v.sequence1.length + GAP + 1;
         const sequence2End = sequence2Start + v.sequence2.length - 1;
         let changed = 0;
 
         graph.nodes.forEach(node => {
-            if (!node || node.nodeType !== 'nucleotide' || !Number.isFinite(node.y)) return;
+            if (
+                !node ||
+                node.nodeType !== 'nucleotide' ||
+                !Number.isFinite(node.y)
+            ) {
+                return;
+            }
 
             const isSequence1 = node.num >= 1 && node.num <= v.sequence1.length;
             const isSequence2 = node.num >= sequence2Start && node.num <= sequence2End;
@@ -2602,13 +2954,23 @@
                 return;
             }
 
-            if (isSequence1 && node.y > northBoundary) {
-                node.y = node.py = northBoundary;
-                changed++;
-            } else if (isSequence2 && node.y < southBoundary) {
-                node.y = node.py = southBoundary;
-                changed++;
+            const nodeX = Number.isFinite(node.x) ? node.x : frame.centerX;
+            const projection =
+                (nodeX - frame.centerX) * frame.normalX +
+                (node.y - frame.centerY) * frame.normalY;
+            let correction = 0;
+            if (isSequence1 && projection > northBoundary) {
+                correction = northBoundary - projection;
+            } else if (isSequence2 && projection < southBoundary) {
+                correction = southBoundary - projection;
             }
+            if (correction === 0) return;
+
+            node.x = nodeX + frame.normalX * correction;
+            node.y += frame.normalY * correction;
+            node.px = node.x;
+            node.py = node.y;
+            changed++;
         });
 
         return changed;
@@ -2624,6 +2986,7 @@
      * @param {number} clearance
      */
     function prepareLinearRriExternalStructures(graph, v, layout, clearance) {
+        const frame = getLinearRriFrame(layout);
         const sequence2Start = v.sequence1.length + GAP + 1;
         const sequence2End = sequence2Start + v.sequence2.length - 1;
         const nucleotideNodes = graph.nodes.filter(
@@ -2634,14 +2997,14 @@
                 start: 1,
                 end: v.sequence1.length,
                 range: layout.interactionRanges.sequence1,
-                boundaryY: layout.northY - clearance,
+                boundaryProjection: frame.northOffset - clearance,
                 plane: 'north',
             },
             {
                 start: sequence2Start,
                 end: sequence2End,
                 range: layout.interactionRanges.sequence2,
-                boundaryY: layout.southY + clearance,
+                boundaryProjection: frame.southOffset + clearance,
                 plane: 'south',
             },
         ];
@@ -2653,16 +3016,102 @@
             const suffix = nucleotideNodes.filter(
                 node => node.num > spec.range[1] && node.num <= spec.end
             );
-            translateLinearRriGroupIntoPlane(prefix, spec.boundaryY, spec.plane);
-            translateLinearRriGroupIntoPlane(suffix, spec.boundaryY, spec.plane);
+            translateLinearRriGroupIntoPlane(
+                prefix,
+                spec.boundaryProjection,
+                spec.plane,
+                frame
+            );
+            translateLinearRriGroupIntoPlane(
+                suffix,
+                spec.boundaryProjection,
+                spec.plane,
+                frame
+            );
         });
 
         enforceLinearRriHalfPlanes(graph, v, layout, clearance);
     }
 
     /**
-     * Restore exact rail and terminal zipper-end coordinates after a collision
-     * pass.
+     * Keep index and mutation label nodes on their molecule's outward side.
+     *
+     * @param {Object} graph
+     * @param {Object} v
+     * @param {Object} layout
+     * @param {number} distance
+     * @returns {number}
+     */
+    function enforceLinearRriSupplementaryNodes(graph, v, layout, distance) {
+        if (
+            !graph ||
+            !Array.isArray(graph.links) ||
+            !layout ||
+            !Number.isFinite(Number(distance))
+        ) {
+            return 0;
+        }
+
+        const frame = getLinearRriFrame(layout);
+        const safeDistance = Math.max(0, Number(distance));
+        let axisX = Number(layout?.axis?.x);
+        let axisY = Number(layout?.axis?.y);
+        const axisLength = Math.hypot(axisX, axisY);
+        if (!Number.isFinite(axisLength) || axisLength < 1e-6) {
+            axisX = frame.normalY;
+            axisY = -frame.normalX;
+        } else {
+            axisX /= axisLength;
+            axisY /= axisLength;
+        }
+        const sequence2Start = v.sequence1.length + GAP + 1;
+        const sequence2End = sequence2Start + v.sequence2.length - 1;
+        let changed = 0;
+
+        graph.links.forEach(link => {
+            if (!link || link.linkType !== 'label_link') return;
+            const source = link.source;
+            const target = link.target;
+            const nucleotide = source?.nodeType === 'nucleotide'
+                ? source
+                : (target?.nodeType === 'nucleotide' ? target : null);
+            const label = source?.nodeType === 'label'
+                ? source
+                : (target?.nodeType === 'label' ? target : null);
+            if (!nucleotide || !label) return;
+
+            const isSequence1 =
+                nucleotide.num >= 1 && nucleotide.num <= v.sequence1.length;
+            const isSequence2 =
+                nucleotide.num >= sequence2Start &&
+                nucleotide.num <= sequence2End;
+            if (!isSequence1 && !isSequence2) return;
+
+            const outwardDirection = isSequence1 ? -1 : 1;
+            const originalDeltaX = Number.isFinite(label.x - nucleotide.x)
+                ? label.x - nucleotide.x
+                : 0;
+            const originalDeltaY = Number.isFinite(label.y - nucleotide.y)
+                ? label.y - nucleotide.y
+                : 0;
+            const tangentOffset = originalDeltaX * axisX + originalDeltaY * axisY;
+            label.varriLinearRriDisplayX =
+                nucleotide.x +
+                axisX * tangentOffset +
+                frame.normalX * outwardDirection * safeDistance;
+            label.varriLinearRriDisplayY =
+                nucleotide.y +
+                axisY * tangentOffset +
+                frame.normalY * outwardDirection * safeDistance;
+            label.varriLinearRriSupplementary = true;
+            changed++;
+        });
+
+        return changed;
+    }
+
+    /**
+     * Restore exact RRI rail coordinates after a collision pass.
      *
      * @param {Object} graph
      * @param {Object} layout
@@ -2670,11 +3119,9 @@
     function enforceLinearRriPinnedGeometry(graph, layout) {
         if (!graph || !Array.isArray(graph.nodes) || !layout) return;
 
-        [layout.positions, layout.tailPositions].forEach(positionMap => {
-            Object.entries(positionMap || {}).forEach(([nodeNumber, point]) => {
-                const node = getGraphNucleotideByNumber(graph, Number(nodeNumber));
-                pinLinearRriNode(node, point);
-            });
+        Object.entries(layout.positions || {}).forEach(([nodeNumber, point]) => {
+            const node = getGraphNucleotideByNumber(graph, Number(nodeNumber));
+            pinLinearRriNode(node, point);
         });
     }
 
@@ -2692,27 +3139,43 @@
 
         document.querySelectorAll('g.gnode').forEach(element => {
             const node = element.__data__;
-            if (node && Number.isFinite(node.x) && Number.isFinite(node.y)) {
-                element.setAttribute('transform', `translate(${node.x},${node.y})`);
+            if (!node) return;
+            const x = Number.isFinite(node.varriLinearRriDisplayX)
+                ? node.varriLinearRriDisplayX
+                : node.x;
+            const y = Number.isFinite(node.varriLinearRriDisplayY)
+                ? node.varriLinearRriDisplayY
+                : node.y;
+            if (Number.isFinite(x) && Number.isFinite(y)) {
+                element.setAttribute('transform', `translate(${x},${y})`);
             }
         });
         document.querySelectorAll('line.link').forEach(element => {
             const link = element.__data__;
             if (!link || !link.source || !link.target) return;
-            element.setAttribute('x1', link.source.x);
-            element.setAttribute('y1', link.source.y);
-            element.setAttribute('x2', link.target.x);
-            element.setAttribute('y2', link.target.y);
+            const displayPoint = node => ({
+                x: Number.isFinite(node.varriLinearRriDisplayX)
+                    ? node.varriLinearRriDisplayX
+                    : node.x,
+                y: Number.isFinite(node.varriLinearRriDisplayY)
+                    ? node.varriLinearRriDisplayY
+                    : node.y,
+            });
+            const source = displayPoint(link.source);
+            const target = displayPoint(link.target);
+            element.setAttribute('x1', source.x);
+            element.setAttribute('y1', source.y);
+            element.setAttribute('x2', target.x);
+            element.setAttribute('y2', target.y);
         });
     }
 
     /**
-     * Build a horizontal two-rail interaction scaffold.
+     * Build a two-rail interaction scaffold in Fornac's existing orientation.
      *
-     * Intermolecularly paired nodes form rigid horizontal rails: molecule 1
-     * to the north and molecule 2 to the south. Intervening backbones remain
-     * force-directed as outward loops, while directly attached terminal runs
-     * form straight, diverging zipper ends in their respective half-planes.
+     * Intermolecularly paired nodes form parallel rails: molecule 1 on one
+     * outward side and molecule 2 on the other. The SVG rotation layer aligns
+     * the established scaffold horizontally as a presentation transform.
      *
      * @param {Object} container  Live Fornac container.
      * @param {Object} v  Validated parameter dictionary.
@@ -2734,6 +3197,7 @@
         const linkDistanceMultiplier = Number(container.options?.linkDistanceMultiplier) || 15;
         const nucleotideSpacing = LINEAR_RRI_LINK_DISTANCE_SCALE * linkDistanceMultiplier;
         const trackGap = LINEAR_RRI_TRACK_GAP_UNITS * linkDistanceMultiplier;
+        const scaffoldAxis = getLinearRriScaffoldAxis(pairNodes);
         const scaffoldCenter = pairNodes.reduce((sum, pair) => ({
             x: sum.x + (pair.sequence1.x + pair.sequence2.x) / 2,
             y: sum.y + (pair.sequence1.y + pair.sequence2.y) / 2,
@@ -2745,12 +3209,14 @@
             v,
             nucleotideSpacing,
             trackGap,
-            scaffoldCenter
+            scaffoldCenter,
+            scaffoldAxis
         );
         if (!layout) return false;
 
         enforceLinearRriPinnedGeometry(graph, layout);
         seedLinearRriBridgeNodes(graph, layout);
+        seedLinearRriTailNodes(graph, layout);
 
         const halfPlaneClearance = 0;
         prepareLinearRriExternalStructures(graph, v, layout, halfPlaneClearance);
@@ -2768,14 +3234,24 @@
                 extraLinkType: 'constraint',
             });
         });
+        addLinearRriTerminalGhosts(graph, v, layout, nucleotideSpacing);
 
         if (container.linkStrengths) {
             container.linkStrengths[LINEAR_RRI_LINK_TYPE] = LINEAR_RRI_LINK_STRENGTH;
+            container.linkStrengths[LINEAR_RRI_GHOST_LINK_TYPE] = LINEAR_RRI_LINK_STRENGTH;
         }
+        const supplementaryDistance =
+            LINEAR_RRI_SUPPLEMENTARY_OFFSET_UNITS * linkDistanceMultiplier;
         if (container.force && typeof container.force.on === 'function') {
             const enforceAndSync = () => {
                 enforceLinearRriPinnedGeometry(graph, layout);
                 enforceLinearRriHalfPlanes(graph, v, layout, halfPlaneClearance);
+                enforceLinearRriSupplementaryNodes(
+                    graph,
+                    v,
+                    layout,
+                    supplementaryDistance
+                );
                 syncLinearRriDom(graph);
             };
             container.force.on('tick.varriLinearRriGeometry', enforceAndSync);
@@ -2785,6 +3261,7 @@
             container.force.start();
         }
 
+        container.varriLinearRriLayout = layout;
         return true;
     }
 
@@ -3110,7 +3587,7 @@
      * @param {Object} v  Validated parameter dictionary (from `validate()`).
      * @param {Object} [options]
      * @param {boolean} [options.forceLayout=false]  Enable Fornac force-layout animation.
-     * @param {boolean} [options.forceLayoutLinear=false]  Pin intermolecularly paired nucleotides to horizontal north/south rails, retain intervening structures in their outer half-planes, and extend directly attached terminal runs as diverging zipper ends.
+     * @param {boolean} [options.forceLayoutLinear=false]  Pin intermolecularly paired nucleotides to parallel rails in the initial Fornac orientation, retain intervening structures in their outer half-planes, extend the terminal zipper ends with invisible anchors, and use the SVG rotation layer for final horizontal alignment.
      * @param {boolean} [options.freeTrailingEnds=false]  Remove Fornac's external-loop circularisation constraint (the "closure" scaffold linking the sequence ends) from the force graph, leaving all other loop constraints intact.
      * @param {boolean} [options.pullPseudoknotBasepairs=false]  Set Fornac's pseudoknot link force strength to 10 (default 0), pulling pseudoknot basepairs together in the force layout.
      * @param {Object.<number,number>|null} [options.accessData=null]  Accessibility data map.
@@ -3212,6 +3689,15 @@
                 visualiseAccessibility(accessData, v.sequence1.length, accessColors, accessColorMode);
             }
 
+            let rotationDegrees = 0;
+            if (forceLayout && forceLayoutLinear && container.varriLinearRriLayout) {
+                rotationDegrees = rotateVisualization(
+                    containerId,
+                    container.varriLinearRriLayout.rotationDegrees,
+                    { mode: 'absolute' }
+                );
+            }
+
             // The fixed scaffold may extend beyond Fornac's initial bounds.
             // Refit after the first force ticks and all hidden nodes are removed.
             if (forceLayout && forceLayoutLinear && typeof container.centerView === 'function') {
@@ -3232,6 +3718,8 @@
                 }
                 _animFrameId = requestAnimationFrame(highlightSyncLoop);
             }
+
+            return rotationDegrees;
         }
 
         return new Promise((resolve, reject) => {
@@ -3241,8 +3729,8 @@
                 _pendingRenderResolve = null;
 
                 try {
-                    applyModifications();
-                    resolve({ cancelled: false });
+                    const rotationDegrees = applyModifications();
+                    resolve({ cancelled: false, rotationDegrees });
                 } catch (err) {
                     reject(err);
                 }
@@ -3659,11 +4147,14 @@
         validateStructureInput,
 
         // Base-pair utilities
+        addLinearRriTerminalGhosts,
         enforceLinearRriHalfPlanes,
+        enforceLinearRriSupplementaryNodes,
         getIntermolBasepairRegion,
         getLinearRriBridgePositions,
         getLinearRriConstraintSpecs,
         getLinearRriInteractionLayout,
+        getLinearRriScaffoldAxis,
         listBasepairs,
         listIntermolNodes,
         listIntermolPairs,
