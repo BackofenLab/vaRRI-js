@@ -6,6 +6,7 @@
     "test": "jest"
   },
   "jest": {
+    "globalSetup": "<rootDir>/tests/jest-global-setup.js",
     "testEnvironment": "node",
     "testPathIgnorePatterns": [
       "/node_modules/"

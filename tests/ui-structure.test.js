@@ -8,6 +8,9 @@ const css = fs.readFileSync(path.resolve(__dirname, '../style.css'), 'utf8');
 const library = fs.readFileSync(path.resolve(__dirname, '../src/vaRRI.js'), 'utf8');
 const apiDocs = fs.readFileSync(path.resolve(__dirname, '../src/README.md'), 'utf8');
 const examplesScript = fs.readFileSync(path.resolve(__dirname, '../examples.js'), 'utf8');
+const pagesWorkflow = fs.readFileSync(path.resolve(__dirname, '../.github/workflows/pages.yml'), 'utf8');
+const testWorkflow = fs.readFileSync(path.resolve(__dirname, '../.github/workflows/test.yml'), 'utf8');
+const packageConfig = require('../package.json');
 
 describe('UI document structure', () => {
   test('loads scripts explicitly and in dependency order', () => {
@@ -21,6 +24,24 @@ describe('UI document structure', () => {
       'index.js',
     ]);
     expect(html).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/i);
+  });
+
+  test('uses source locally and the minified library on GitHub Pages', () => {
+    const minifyCommand = 'npx esbuild src/vaRRI.js --minify --sourcemap --outfile=dist/vaRRI.min.js';
+    const swapCommand = "sed -i 's|src/vaRRI.js|dist/vaRRI.min.js|g' index.html";
+    const uploadStep = 'uses: actions/upload-pages-artifact@v5';
+
+    expect(html).toContain('<script src="src/vaRRI.js"></script>');
+    expect(pagesWorkflow).toContain(minifyCommand);
+    expect(pagesWorkflow).toContain(swapCommand);
+    expect(pagesWorkflow.indexOf(minifyCommand)).toBeLessThan(pagesWorkflow.indexOf(swapCommand));
+    expect(pagesWorkflow.indexOf(swapCommand)).toBeLessThan(pagesWorkflow.indexOf(uploadStep));
+  });
+
+  test('runs the complete test suite with an environment diagnostic', () => {
+    expect(packageConfig.jest.globalSetup).toBe('<rootDir>/tests/jest-global-setup.js');
+    expect(testWorkflow).toMatch(/run:\s+npm test -- --runInBand/);
+    expect(testWorkflow).not.toMatch(/jest\s+tests\/vaRRI\.test\.js/);
   });
 
   test('keeps behavior and presentation out of the HTML', () => {
