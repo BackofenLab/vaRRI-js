@@ -135,6 +135,55 @@
         };
     }
 
+    function countSupplementaryRnaOverlaps(labelGroups, nucleotideCircles) {
+        const nucleotides = nucleotideCircles.map(circle => {
+            const point = centre(circle);
+            return point ? {
+                ...point,
+                nodeNumber: Number(circle.getAttribute('node_num')),
+            } : null;
+        }).filter(Boolean);
+        let overlaps = 0;
+        let minimumClearance = Infinity;
+        const overlapPairs = [];
+
+        labelGroups.forEach(group => {
+            const labelText = group.querySelector('[label_type="label"]')
+                ?.textContent.trim() || '';
+            if (!labelText) return;
+            const bounds = group.getBoundingClientRect();
+            if (bounds.width <= 0 || bounds.height <= 0) return;
+
+            nucleotides.forEach(nucleotide => {
+                const nearestX = Math.max(bounds.left, Math.min(nucleotide.x, bounds.right));
+                const nearestY = Math.max(bounds.top, Math.min(nucleotide.y, bounds.bottom));
+                const edgeDistance = Math.hypot(
+                    nucleotide.x - nearestX,
+                    nucleotide.y - nearestY
+                );
+                const clearance = edgeDistance - nucleotide.radius;
+                minimumClearance = Math.min(minimumClearance, clearance);
+                if (clearance < -0.05) {
+                    overlaps++;
+                    overlapPairs.push({
+                        labelNode: Number(group.getAttribute('label_gnum')),
+                        labelText,
+                        nucleotideNode: nucleotide.nodeNumber,
+                        clearancePx: clearance,
+                    });
+                }
+            });
+        });
+
+        return {
+            overlaps,
+            minimumClearancePx: minimumClearance === Infinity
+                ? null
+                : minimumClearance,
+            overlapPairs,
+        };
+    }
+
     function intramolecularNodeIds(sequence1Length) {
         const ids = new Set();
         document.querySelectorAll(`#${CONTAINER_ID} line[link_type="basepair"]`).forEach(line => {
@@ -254,6 +303,13 @@
         ).slice(0, 10);
 
         const overlap = countCircleOverlaps(nodeCircles);
+        const supplementaryGroups = [...document.querySelectorAll(
+            `#${CONTAINER_ID} g.gnode[label_gnum]`
+        )];
+        const supplementaryRnaOverlap = countSupplementaryRnaOverlaps(
+            supplementaryGroups,
+            nodeCircles
+        );
         const basepairLinks = document.querySelectorAll(
             `#${CONTAINER_ID} line[link_type="basepair"], ` +
             `#${CONTAINER_ID} line[link_type="pseudoknot"]`
@@ -294,6 +350,10 @@
             structuredHalfPlaneViolations,
             supplementaryLinks,
             supplementaryOutwardViolations,
+            supplementaryRnaOverlaps: supplementaryRnaOverlap.overlaps,
+            minimumSupplementaryRnaClearancePx:
+                supplementaryRnaOverlap.minimumClearancePx,
+            supplementaryRnaOverlapPairs: supplementaryRnaOverlap.overlapPairs,
             nucleotideOverlaps: overlap.overlaps,
             minimumNucleotideDistancePx: overlap.minimumDistancePx,
             nucleotideOverlapPairs: overlap.overlapPairs,
@@ -323,6 +383,7 @@
         if (geometry.orderReversals) problems.push('interaction-order-reversal');
         if (geometry.structuredHalfPlaneViolations) problems.push('structure-entered-interaction-corridor');
         if (geometry.supplementaryOutwardViolations) problems.push('supplementary-node-points-inward');
+        if (geometry.supplementaryRnaOverlaps) problems.push('supplementary-node-overlaps-rna');
         if (geometry.nucleotideOverlaps) problems.push('nucleotide-overlap');
         if (geometry.nonFiniteSvgElements) problems.push('non-finite-svg-geometry');
         if (geometry.visibleGhostElements) problems.push('terminal-ghost-became-visible');

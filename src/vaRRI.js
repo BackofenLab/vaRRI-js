@@ -38,7 +38,7 @@
     /** Outward rise per horizontal unit for terminal zipper ends. */
     const LINEAR_RRI_TAIL_SLOPE = 0.35;
 
-    /** Outward offset for index and mutation labels, in backbone units. */
+    /** Minimum outward offset for index and mutation labels, in backbone units. */
     const LINEAR_RRI_SUPPLEMENTARY_OFFSET_UNITS = 1.8;
 
     /** Never auto-fit a linear interaction below a readable zoom level. */
@@ -3335,7 +3335,14 @@
     }
 
     /**
-     * Keep index and mutation label nodes on their molecule's outward side.
+     * Keep index and mutation label nodes outside the local RNA contour.
+     *
+     * A fixed offset from the labelled nucleotide is insufficient for folded
+     * structures: another stem can occupy that offset.  Work in the scaffold's
+     * orthonormal axis/normal frame and search the nearest collision-free point
+     * in the molecule's outward half-plane.  Candidate links that cross another
+     * nucleotide are rejected as well.  Label positions remain display-only so
+     * this never pulls on or deforms the RNA force graph.
      *
      * @param {Object} graph
      * @param {Object} v
@@ -3367,6 +3374,119 @@
         }
         const sequence2Start = v.sequence1.length + GAP + 1;
         const sequence2End = sequence2Start + v.sequence2.length - 1;
+        const projectAxis = point => point.x * axisX + point.y * axisY;
+        const projectNormal = point =>
+            point.x * frame.normalX + point.y * frame.normalY;
+        const isActualNucleotide = node => node?.nodeType === 'nucleotide' && (
+            (node.num >= 1 && node.num <= v.sequence1.length) ||
+            (node.num >= sequence2Start && node.num <= sequence2End)
+        ) && Number.isFinite(node.x) && Number.isFinite(node.y);
+        const nucleotideSet = new Set(
+            Array.isArray(graph.nodes)
+                ? graph.nodes.filter(isActualNucleotide)
+                : []
+        );
+        graph.links.forEach(link => {
+            if (isActualNucleotide(link?.source)) nucleotideSet.add(link.source);
+            if (isActualNucleotide(link?.target)) nucleotideSet.add(link.target);
+        });
+        const positionSignature = [...nucleotideSet].reduce((signature, node, index) => {
+            const weight = Number(node.num) + index + 1;
+            signature.weightedX += weight * node.x;
+            signature.weightedY += weight * node.y;
+            signature.squaredDistance += node.x ** 2 + node.y ** 2;
+            return signature;
+        }, {
+            weightedX: 0,
+            weightedY: 0,
+            squaredDistance: 0,
+        });
+        const obstacleCacheKey = [
+            v.sequence1.length,
+            v.sequence2.length,
+            nucleotideSet.size,
+            safeDistance,
+            axisX,
+            axisY,
+            frame.normalX,
+            frame.normalY,
+            positionSignature.weightedX,
+            positionSignature.weightedY,
+            positionSignature.squaredDistance,
+        ].join(':');
+        let obstacleIndex = layout.varriLinearRriSupplementaryObstacleIndex;
+        if (
+            !obstacleIndex ||
+            obstacleIndex.graph !== graph ||
+            obstacleIndex.key !== obstacleCacheKey
+        ) {
+            const nucleotideObstacles = [...nucleotideSet].map(node => ({
+                node,
+                axis: projectAxis(node),
+                normal: projectNormal(node),
+            }));
+            const gridSize = Math.max(12, safeDistance);
+            const grid = new Map();
+            nucleotideObstacles.forEach(obstacle => {
+                const key = `${Math.floor(obstacle.axis / gridSize)}:` +
+                    Math.floor(obstacle.normal / gridSize);
+                if (!grid.has(key)) grid.set(key, []);
+                grid.get(key).push(obstacle);
+            });
+            obstacleIndex = {
+                graph,
+                key: obstacleCacheKey,
+                nucleotideObstacles,
+                grid,
+                gridSize,
+            };
+            layout.varriLinearRriSupplementaryObstacleIndex = obstacleIndex;
+        }
+        const { nucleotideObstacles, grid, gridSize } = obstacleIndex;
+        const queryObstacles = (minimumAxis, maximumAxis, minimumNormal, maximumNormal) => {
+            const obstacles = [];
+            const firstAxisCell = Math.floor(minimumAxis / gridSize);
+            const lastAxisCell = Math.floor(maximumAxis / gridSize);
+            const firstNormalCell = Math.floor(minimumNormal / gridSize);
+            const lastNormalCell = Math.floor(maximumNormal / gridSize);
+            for (let axisCell = firstAxisCell; axisCell <= lastAxisCell; axisCell++) {
+                for (
+                    let normalCell = firstNormalCell;
+                    normalCell <= lastNormalCell;
+                    normalCell++
+                ) {
+                    const bucket = grid.get(`${axisCell}:${normalCell}`);
+                    if (bucket) obstacles.push(...bucket);
+                }
+            }
+            return obstacles;
+        };
+        const nucleotideClearance = Math.max(12, safeDistance * 0.55);
+        const labelClearance = Math.max(12, safeDistance * 0.55);
+        const linkPathClearance = Math.max(6, safeDistance * 0.28);
+        const rotationCandidates = [0, 28, -28, 45, -45, 62, -62, 76, -76];
+        const radiusMultipliers = [1, 1.25, 1.5, 1.8, 2.2, 2.8, 3.6];
+        const placedLabels = [];
+        const segmentDistance = (point, start, end) => {
+            const deltaAxis = end.axis - start.axis;
+            const deltaNormal = end.normal - start.normal;
+            const lengthSquared = deltaAxis ** 2 + deltaNormal ** 2;
+            if (lengthSquared < 1e-6) {
+                return Math.hypot(
+                    point.axis - start.axis,
+                    point.normal - start.normal
+                );
+            }
+            const projection = Math.max(0, Math.min(1,
+                ((point.axis - start.axis) * deltaAxis +
+                    (point.normal - start.normal) * deltaNormal) /
+                lengthSquared
+            ));
+            return Math.hypot(
+                point.axis - (start.axis + projection * deltaAxis),
+                point.normal - (start.normal + projection * deltaNormal)
+            );
+        };
         let changed = 0;
 
         graph.links.forEach(link => {
@@ -3389,22 +3509,130 @@
             if (!isSequence1 && !isSequence2) return;
 
             const outwardDirection = isSequence1 ? -1 : 1;
-            const originalDeltaX = Number.isFinite(label.x - nucleotide.x)
-                ? label.x - nucleotide.x
-                : 0;
-            const originalDeltaY = Number.isFinite(label.y - nucleotide.y)
-                ? label.y - nucleotide.y
-                : 0;
-            const tangentOffset = originalDeltaX * axisX + originalDeltaY * axisY;
+            if (!Number.isFinite(label.varriLinearRriTangentOffset)) {
+                const originalDeltaX = Number.isFinite(label.x - nucleotide.x)
+                    ? label.x - nucleotide.x
+                    : 0;
+                const originalDeltaY = Number.isFinite(label.y - nucleotide.y)
+                    ? label.y - nucleotide.y
+                    : 0;
+                const originalTangentOffset =
+                    originalDeltaX * axisX + originalDeltaY * axisY;
+                const maximumTangentOffset = safeDistance / 2;
+                label.varriLinearRriTangentOffset = Math.max(
+                    -maximumTangentOffset,
+                    Math.min(maximumTangentOffset, originalTangentOffset)
+                );
+            }
+
+            const nucleotidePoint = {
+                axis: projectAxis(nucleotide),
+                normal: projectNormal(nucleotide),
+            };
+            const baseAxis =
+                nucleotidePoint.axis + label.varriLinearRriTangentOffset;
+            const centerAxis = Number.isFinite(layout?.center?.x) &&
+                Number.isFinite(layout?.center?.y)
+                ? projectAxis(layout.center)
+                : nucleotidePoint.axis;
+            const preferredTangentDirection =
+                Math.sign(label.varriLinearRriTangentOffset) ||
+                Math.sign(nucleotidePoint.axis - centerAxis) ||
+                1;
+            const orderedAngles = rotationCandidates.map(angle =>
+                angle * preferredTangentDirection
+            );
+            const requiredNucleotideClearance = Math.max(
+                nucleotideClearance,
+                Number(label.varriLinearRriRequiredClearance) || 0
+            );
+            const candidateIsClear = candidate => {
+                const centerObstacles = queryObstacles(
+                    candidate.axis - requiredNucleotideClearance,
+                    candidate.axis + requiredNucleotideClearance,
+                    candidate.normal - requiredNucleotideClearance,
+                    candidate.normal + requiredNucleotideClearance
+                );
+                const clearsNucleotideCenters = centerObstacles.every(obstacle => {
+                    const centerDistance = Math.hypot(
+                        candidate.axis - obstacle.axis,
+                        candidate.normal - obstacle.normal
+                    );
+                    return centerDistance + 1e-6 >= requiredNucleotideClearance;
+                });
+                if (!clearsNucleotideCenters) return false;
+                const pathObstacles = queryObstacles(
+                    Math.min(nucleotidePoint.axis, candidate.axis) - linkPathClearance,
+                    Math.max(nucleotidePoint.axis, candidate.axis) + linkPathClearance,
+                    Math.min(nucleotidePoint.normal, candidate.normal) - linkPathClearance,
+                    Math.max(nucleotidePoint.normal, candidate.normal) + linkPathClearance
+                );
+                const clearsLinkPath = pathObstacles.every(obstacle =>
+                    obstacle.node === nucleotide ||
+                    segmentDistance(obstacle, nucleotidePoint, candidate) + 1e-6 >=
+                        linkPathClearance
+                );
+                if (!clearsLinkPath) return false;
+                return placedLabels.every(placed => Math.hypot(
+                    candidate.axis - placed.axis,
+                    candidate.normal - placed.normal
+                ) + 1e-6 >= labelClearance);
+            };
+
+            let selectedCandidate = null;
+            for (const radiusMultiplier of radiusMultipliers) {
+                const radius = Math.max(12, safeDistance) * radiusMultiplier;
+                for (const angleDegrees of orderedAngles) {
+                    const angle = angleDegrees * Math.PI / 180;
+                    const candidate = {
+                        axis: baseAxis + Math.sin(angle) * radius,
+                        normal: nucleotidePoint.normal +
+                            outwardDirection * Math.cos(angle) * radius,
+                    };
+                    if (candidateIsClear(candidate)) {
+                        selectedCandidate = candidate;
+                        break;
+                    }
+                }
+                if (selectedCandidate) break;
+            }
+
+            // Extremely dense input can exhaust the short-link candidates.  The
+            // deterministic fallback walks the normal beyond every obstacle at
+            // the candidate tangent, preserving the non-overlap guarantee.
+            if (!selectedCandidate) {
+                let fallbackNormal = nucleotidePoint.normal +
+                    outwardDirection * Math.max(12, safeDistance);
+                nucleotideObstacles.forEach(obstacle => {
+                    const tangentSeparation = Math.abs(baseAxis - obstacle.axis);
+                    if (tangentSeparation >= requiredNucleotideClearance) return;
+                    const requiredNormalSeparation = Math.sqrt(
+                        requiredNucleotideClearance ** 2 - tangentSeparation ** 2
+                    );
+                    const outwardLimit = obstacle.normal +
+                        outwardDirection * requiredNormalSeparation;
+                    fallbackNormal = outwardDirection < 0
+                        ? Math.min(fallbackNormal, outwardLimit)
+                        : Math.max(fallbackNormal, outwardLimit);
+                });
+                selectedCandidate = { axis: baseAxis, normal: fallbackNormal };
+            }
+
+            const candidateAxis = selectedCandidate.axis;
+            const candidateNormal = selectedCandidate.normal;
+
             label.varriLinearRriDisplayX =
-                nucleotide.x +
-                axisX * tangentOffset +
-                frame.normalX * outwardDirection * safeDistance;
+                axisX * candidateAxis + frame.normalX * candidateNormal;
             label.varriLinearRriDisplayY =
-                nucleotide.y +
-                axisY * tangentOffset +
-                frame.normalY * outwardDirection * safeDistance;
+                axisY * candidateAxis + frame.normalY * candidateNormal;
+            label.varriLinearRriDisplayAxis = candidateAxis;
+            label.varriLinearRriDisplayNormal = candidateNormal;
             label.varriLinearRriSupplementary = true;
+            placedLabels.push({
+                axis: candidateAxis,
+                normal: candidateNormal,
+                outwardDirection,
+            });
             changed++;
         });
 
@@ -3476,6 +3704,159 @@
             element.setAttribute('x2', target.x);
             element.setAttribute('y2', target.y);
         });
+    }
+
+    /**
+     * Refine supplementary placement against the actual rendered SVG footprint.
+     *
+     * Fornac's label force node is a fixed-radius circle, while vaRRI can replace
+     * its text with multi-digit biological indexes (including negative values).
+     * Model-space node clearance therefore cannot by itself guarantee that the
+     * wider text rectangle clears every nucleotide.  Measure the post-rotation
+     * DOM boxes, convert each box's enclosing radius to model units, and feed
+     * that required clearance back into the deterministic model-space search.
+     * A small measured retry remains for browser rounding edge cases.
+     *
+     * @param {Object} graph
+     * @param {Object} v
+     * @param {Object} layout
+     * @param {number} distance
+     * @param {number} [maximumIterations=4]
+     * @returns {{iterations:number,remainingOverlaps:number}}
+     */
+    function resolveLinearRriSupplementaryDomOverlaps(
+        graph,
+        v,
+        layout,
+        distance,
+        maximumIterations = 4
+    ) {
+        if (typeof document === 'undefined' || !graph || !layout) {
+            return { iterations: 0, remainingOverlaps: 0 };
+        }
+
+        const safeIterations = Math.max(1, Math.floor(Number(maximumIterations) || 1));
+        const screenPadding = 0.75;
+        const graphNodeSet = new Set(Array.isArray(graph.nodes) ? graph.nodes : []);
+        const nucleotideElements = () => [...document.querySelectorAll(
+            'circle[node_type="nucleotide"]'
+        )].filter(circle => graphNodeSet.has(circle.parentElement?.__data__));
+        const labelElements = () => [...document.querySelectorAll('g.gnode')].filter(group => {
+            const node = group.__data__;
+            const text = group.querySelector('[label_type="label"]');
+            return graphNodeSet.has(node) && node?.varriLinearRriSupplementary &&
+                text && text.textContent.trim() !== '';
+        });
+        const screenScale = group => {
+            const matrix = typeof group.getScreenCTM === 'function'
+                ? group.getScreenCTM()
+                : null;
+            const scaleX = matrix ? Math.hypot(matrix.a, matrix.b) : 1;
+            const scaleY = matrix ? Math.hypot(matrix.c, matrix.d) : 1;
+            return Math.max(1e-4, Math.min(scaleX || 1, scaleY || 1));
+        };
+        const readNucleotideBounds = () => nucleotideElements().map(circle => {
+            const bounds = circle.getBoundingClientRect();
+            return {
+                centerX: bounds.left + bounds.width / 2,
+                centerY: bounds.top + bounds.height / 2,
+                radius: Math.max(bounds.width, bounds.height) / 2,
+            };
+        }).filter(bounds => bounds.radius > 0);
+        const maximumPenetration = (group, nucleotideBounds) => {
+            const bounds = group.getBoundingClientRect();
+            if (bounds.width <= 0 || bounds.height <= 0) return 0;
+            return nucleotideBounds.reduce((maximum, nucleotide) => {
+                const nearestX = Math.max(
+                    bounds.left,
+                    Math.min(nucleotide.centerX, bounds.right)
+                );
+                const nearestY = Math.max(
+                    bounds.top,
+                    Math.min(nucleotide.centerY, bounds.bottom)
+                );
+                const edgeDistance = Math.hypot(
+                    nucleotide.centerX - nearestX,
+                    nucleotide.centerY - nearestY
+                );
+                return Math.max(
+                    maximum,
+                    nucleotide.radius + screenPadding - edgeDistance
+                );
+            }, 0);
+        };
+
+        // One placement pass sized from the actual text boxes replaces many
+        // trial-and-error iterations on large full-context molecules.
+        const initialNucleotides = readNucleotideBounds();
+        const maximumNucleotideRadius = initialNucleotides.reduce(
+            (maximum, nucleotide) => Math.max(maximum, nucleotide.radius),
+            0
+        );
+        let enforcementPasses = 0;
+        let clearanceChanged = false;
+        labelElements().forEach(group => {
+            const bounds = group.getBoundingClientRect();
+            if (bounds.width <= 0 || bounds.height <= 0) return;
+            const scale = screenScale(group);
+            const requiredClearance = (
+                Math.hypot(bounds.width, bounds.height) / 2 +
+                maximumNucleotideRadius +
+                screenPadding
+            ) / scale;
+            const node = group.__data__;
+            const current = Math.max(
+                12,
+                Number(distance) * 0.55,
+                Number(node.varriLinearRriRequiredClearance) || 0
+            );
+            if (requiredClearance > current + 0.05) {
+                node.varriLinearRriRequiredClearance = requiredClearance;
+                clearanceChanged = true;
+            }
+        });
+        if (clearanceChanged) {
+            enforceLinearRriSupplementaryNodes(graph, v, layout, distance);
+            syncLinearRriDom(graph);
+            enforcementPasses++;
+        }
+
+        let remainingOverlaps = 0;
+        while (enforcementPasses < safeIterations) {
+            const nucleotideBounds = readNucleotideBounds();
+            const collisions = [];
+
+            labelElements().forEach(group => {
+                const penetration = maximumPenetration(group, nucleotideBounds);
+                if (penetration <= 0) return;
+
+                collisions.push({
+                    node: group.__data__,
+                    additionalClearance: penetration / screenScale(group) + 1,
+                });
+            });
+
+            remainingOverlaps = collisions.length;
+            if (remainingOverlaps === 0) {
+                return { iterations: enforcementPasses, remainingOverlaps: 0 };
+            }
+            collisions.forEach(({ node, additionalClearance }) => {
+                const current = Number(node.varriLinearRriRequiredClearance) || 0;
+                node.varriLinearRriRequiredClearance = Math.max(
+                    current + additionalClearance,
+                    Math.max(12, Number(distance) * 0.55) + additionalClearance
+                );
+            });
+            enforceLinearRriSupplementaryNodes(graph, v, layout, distance);
+            syncLinearRriDom(graph);
+            enforcementPasses++;
+        }
+
+        const finalNucleotideBounds = readNucleotideBounds();
+        remainingOverlaps = labelElements().filter(group =>
+            maximumPenetration(group, finalNucleotideBounds) > 0
+        ).length;
+        return { iterations: enforcementPasses, remainingOverlaps };
     }
 
     /**
@@ -3584,6 +3965,7 @@
                 );
                 syncLinearRriDom(graph);
             };
+            container.varriEnforceLinearRriGeometry = enforceAndSync;
             container.force.on('tick.varriLinearRriGeometry', enforceAndSync);
             container.force.on('end.varriLinearRriGeometry', enforceAndSync);
         }
@@ -3592,6 +3974,7 @@
         }
 
         container.varriLinearRriLayout = layout;
+        layout.supplementaryDistance = supplementaryDistance;
         return true;
     }
 
@@ -4106,6 +4489,13 @@
             updateNodeToolTips(v);
             updateLinkTooltips(v);
             setIndexLabels(v);
+            if (
+                forceLayout &&
+                forceLayoutLinear &&
+                typeof container.varriEnforceLinearRriGeometry === 'function'
+            ) {
+                container.varriEnforceLinearRriGeometry();
+            }
 
             // Highlighting (only for 2-molecule input)
             if (v.molecules === '2') {
@@ -4145,6 +4535,18 @@
             // Refit after the first force ticks and all hidden nodes are removed.
             if (forceLayout && forceLayoutLinear && container.varriLinearRriLayout) {
                 centerLinearRriView(container, container.varriLinearRriLayout);
+                const supplementaryResolution =
+                    resolveLinearRriSupplementaryDomOverlaps(
+                        container.graph,
+                        v,
+                        container.varriLinearRriLayout,
+                        container.varriLinearRriLayout.supplementaryDistance
+                    );
+                container.varriLinearRriLayout.supplementaryResolution =
+                    supplementaryResolution;
+                if (supplementaryResolution.iterations > 0) {
+                    centerLinearRriView(container, container.varriLinearRriLayout);
+                }
             }
 
             // When animation is on, keep the background-highlight polygon in sync

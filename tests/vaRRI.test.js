@@ -1599,6 +1599,77 @@ describe('linear RRI force-graph helpers', () => {
         expect(displayTangent(seq2Label, seq2Node))
             .toBeCloseTo(forceTangent(seq2Label, seq2Node), 10);
     });
+
+    test('places supplementary labels around folded RNA obstacles', () => {
+        const v = { sequence1: 'AAAA', sequence2: 'UUUU' };
+        const layout = {
+            center: { x: 0, y: 0 },
+            normal: { x: 0, y: 1 },
+            axis: { x: 1, y: 0 },
+            northOffset: -10,
+            southOffset: 10,
+            nucleotideSpacing: 15,
+        };
+        const seq1Node = { nodeType: 'nucleotide', num: 1, x: 0, y: -10 };
+        const foldedStemNode = { nodeType: 'nucleotide', num: 2, x: 2, y: -35 };
+        const seq2Node = { nodeType: 'nucleotide', num: 8, x: 50, y: 10 };
+        const foldedSouthNode = { nodeType: 'nucleotide', num: 9, x: 48, y: 36 };
+        const seq1Label = { nodeType: 'label', x: 0, y: -11 };
+        const seq2Label = { nodeType: 'label', x: 50, y: 11 };
+        const graph = {
+            nodes: [
+                seq1Node,
+                foldedStemNode,
+                seq2Node,
+                foldedSouthNode,
+                seq1Label,
+                seq2Label,
+            ],
+            links: [
+                { source: seq1Node, target: seq1Label, linkType: 'label_link' },
+                { source: seq2Node, target: seq2Label, linkType: 'label_link' },
+            ],
+        };
+
+        expect(vaRRI.enforceLinearRriSupplementaryNodes(
+            graph,
+            v,
+            layout,
+            25
+        )).toBe(2);
+        expect(seq1Label.varriLinearRriDisplayY).toBeLessThan(-10);
+        expect(seq2Label.varriLinearRriDisplayY).toBeGreaterThan(10);
+        expect(Math.hypot(
+            seq1Label.varriLinearRriDisplayX - foldedStemNode.x,
+            seq1Label.varriLinearRriDisplayY - foldedStemNode.y
+        )).toBeGreaterThanOrEqual(12);
+        expect(Math.hypot(
+            seq2Label.varriLinearRriDisplayX - foldedSouthNode.x,
+            seq2Label.varriLinearRriDisplayY - foldedSouthNode.y
+        )).toBeGreaterThanOrEqual(12);
+        expect(Math.hypot(
+            seq1Label.varriLinearRriDisplayX - seq1Node.x,
+            seq1Label.varriLinearRriDisplayY - seq1Node.y
+        )).toBeLessThanOrEqual(45);
+        expect(Math.hypot(
+            seq2Label.varriLinearRriDisplayX - seq2Node.x,
+            seq2Label.varriLinearRriDisplayY - seq2Node.y
+        )).toBeLessThanOrEqual(45);
+        expect(seq1Label).toMatchObject({ x: 0, y: -11 });
+        expect(seq2Label).toMatchObject({ x: 50, y: 11 });
+
+        const avoidedStemX = seq1Label.varriLinearRriDisplayX;
+        foldedStemNode.x = 200;
+        expect(vaRRI.enforceLinearRriSupplementaryNodes(
+            graph,
+            v,
+            layout,
+            25
+        )).toBe(2);
+        expect(Math.abs(avoidedStemX)).toBeGreaterThan(1);
+        expect(seq1Label.varriLinearRriDisplayX).toBeCloseTo(0, 10);
+        expect(seq1Label.varriLinearRriDisplayY).toBeCloseTo(-35, 10);
+    });
 });
 
 // ---------------------------------------------------------------------------
