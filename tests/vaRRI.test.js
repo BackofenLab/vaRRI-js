@@ -979,6 +979,797 @@ describe('getIntermolBasepairRegion', () => {
 });
 
 // ---------------------------------------------------------------------------
+// getLinearRriConstraintSpecs
+// ---------------------------------------------------------------------------
+
+describe('getLinearRriConstraintSpecs', () => {
+    test('uses the larger loop semicircle chord for both rail spans', () => {
+        const v = vaRRI.validate({
+            structure: '(..(.....(&).....)....)',
+            sequence: 'AAAAAAAAAA&AAAAAAAAAAAA',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+
+        expect(vaRRI.listIntermolPairs(v)).toEqual([
+            [1, 25],
+            [4, 20],
+            [10, 14],
+        ]);
+
+        const constraints = vaRRI.getLinearRriConstraintSpecs(v);
+        expect(constraints).toHaveLength(4);
+        expect(constraints[0]).toMatchObject({ source: 1, target: 4, sequence: '1' });
+        expect(constraints[1]).toMatchObject({ source: 25, target: 20, sequence: '2' });
+        expect(constraints[0].distanceUnits).toBeCloseTo(
+            vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 10 / Math.PI,
+            10
+        );
+        expect(constraints[1].distanceUnits).toBeCloseTo(
+            vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 10 / Math.PI,
+            10
+        );
+
+        expect(constraints[2]).toMatchObject({ source: 4, target: 10, sequence: '1' });
+        expect(constraints[3]).toMatchObject({ source: 20, target: 14, sequence: '2' });
+        expect(constraints[2].distanceUnits).toBeCloseTo(
+            vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 12 / Math.PI,
+            10
+        );
+        expect(constraints[3].distanceUnits).toBeCloseTo(
+            vaRRI.LINEAR_RRI_LINK_DISTANCE_SCALE * 12 / Math.PI,
+            10
+        );
+    });
+
+    test('returns no constraints for fewer than two intermolecular pairs', () => {
+        const v = vaRRI.validate({
+            structure: '(...&...)',
+            sequence: 'AAAA&AAAA',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+
+        expect(vaRRI.getLinearRriConstraintSpecs(v)).toEqual([]);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// getLinearRriBridgePositions
+// ---------------------------------------------------------------------------
+
+describe('getLinearRriBridgePositions', () => {
+    test('distributes loop nodes evenly on the requested outward arc', () => {
+        const bondLength = 10;
+        const count = 5;
+        const chordLength = 2 * (count + 1) * bondLength / Math.PI;
+        const positions = vaRRI.getLinearRriBridgePositions(
+            { x: 0, y: 20 },
+            { x: chordLength, y: 20 },
+            count,
+            bondLength,
+            { x: 0, y: -1 }
+        );
+
+        expect(positions).toHaveLength(count);
+        expect(positions.every(point => point.y < 20)).toBe(true);
+
+        const points = [
+            { x: 0, y: 20 },
+            ...positions,
+            { x: chordLength, y: 20 },
+        ];
+        const segmentLengths = points.slice(1).map((point, index) =>
+            Math.hypot(point.x - points[index].x, point.y - points[index].y)
+        );
+        segmentLengths.forEach(length => {
+            expect(length).toBeCloseTo(segmentLengths[0], 10);
+        });
+    });
+
+    test('distributes an undersized asymmetric side evenly along the chord', () => {
+        const positions = vaRRI.getLinearRriBridgePositions(
+            { x: 0, y: 20 },
+            { x: 60, y: 20 },
+            2,
+            10,
+            { x: 0, y: -1 }
+        );
+
+        expect(positions).toEqual([
+            { x: 20, y: 20 },
+            { x: 40, y: 20 },
+        ]);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// getLinearRriInteractionLayout
+// ---------------------------------------------------------------------------
+
+describe('getLinearRriInteractionLayout', () => {
+    const asymmetricInteraction = () => vaRRI.validate({
+        structure: '(..(.....(&).....)....)',
+        sequence: 'AAAAAAAAAA&AAAAAAAAAAAA',
+        startIndex1: '1',
+        startIndex2: '1',
+    });
+
+    test('places only paired nucleotides on horizontal north and south rails', () => {
+        const layout = vaRRI.getLinearRriInteractionLayout(
+            asymmetricInteraction(),
+            10,
+            20,
+            { x: 100, y: 100 }
+        );
+
+        expect(layout.interactionRanges).toEqual({
+            sequence1: [1, 10],
+            sequence2: [14, 25],
+        });
+        expect(layout.northY).toBe(90);
+        expect(layout.southY).toBe(110);
+
+        const sequence1Rail = Object.values(layout.positions)
+            .filter(point => point.sequence === '1');
+        const sequence2Rail = Object.values(layout.positions)
+            .filter(point => point.sequence === '2');
+        expect(sequence1Rail).toHaveLength(3);
+        expect(sequence2Rail).toHaveLength(3);
+        expect(sequence1Rail.every(point => point.y === layout.northY)).toBe(true);
+        expect(sequence2Rail.every(point => point.y === layout.southY)).toBe(true);
+
+        layout.pairs.forEach(([sequence1Node, sequence2Node]) => {
+            expect(layout.positions[sequence1Node].x)
+                .toBeCloseTo(layout.positions[sequence2Node].x, 10);
+        });
+        expect(layout.positions[2]).toBeUndefined();
+        expect(layout.bridgePositions[2]).toBeDefined();
+    });
+
+    test('preserves an angled Fornac axis and reports the view rotation needed to align it', () => {
+        const axis = { x: 3, y: 4 };
+        const center = { x: 100, y: 80 };
+        const layout = vaRRI.getLinearRriInteractionLayout(
+            asymmetricInteraction(),
+            10,
+            20,
+            center,
+            axis
+        );
+        const normal = { x: -0.8, y: 0.6 };
+        const projectNormal = point =>
+            (point.x - center.x) * normal.x +
+            (point.y - center.y) * normal.y;
+
+        const sequence1Rail = Object.values(layout.positions)
+            .filter(point => point.sequence === '1');
+        const sequence2Rail = Object.values(layout.positions)
+            .filter(point => point.sequence === '2');
+        sequence1Rail.forEach(point => expect(projectNormal(point)).toBeCloseTo(-10, 10));
+        sequence2Rail.forEach(point => expect(projectNormal(point)).toBeCloseTo(10, 10));
+
+        expect(new Set(sequence1Rail.map(point => point.y.toFixed(6))).size)
+            .toBeGreaterThan(1);
+        expect(layout.axis).toEqual({ x: 0.6, y: 0.8 });
+        expect(layout.normal).toEqual(normal);
+        expect(layout.rotationDegrees).toBeCloseTo(-53.130102, 6);
+
+        const radians = layout.rotationDegrees * Math.PI / 180;
+        const rotatedY = point =>
+            Math.sin(radians) * (point.x - center.x) +
+            Math.cos(radians) * (point.y - center.y);
+        const rotatedRailYs = sequence1Rail.map(rotatedY);
+        rotatedRailYs.forEach(y => expect(y).toBeCloseTo(rotatedRailYs[0], 10));
+    });
+
+    test('seeds intervening backbones as evenly distributed outward structures', () => {
+        const layout = vaRRI.getLinearRriInteractionLayout(
+            asymmetricInteraction(),
+            10,
+            20
+        );
+
+        const northBridge = [4, 5, 6, 7, 8, 9, 10].map(nodeNumber =>
+            nodeNumber === 4 || nodeNumber === 10
+                ? layout.positions[nodeNumber]
+                : layout.bridgePositions[nodeNumber]
+        );
+        const southBridge = [25, 24, 23, 22, 21, 20].map(nodeNumber =>
+            nodeNumber === 25 || nodeNumber === 20
+                ? layout.positions[nodeNumber]
+                : layout.bridgePositions[nodeNumber]
+        );
+
+        expect(northBridge.slice(1, -1).every(point => point.y < layout.northY))
+            .toBe(true);
+        expect(southBridge.slice(1, -1).every(point => point.y > layout.southY))
+            .toBe(true);
+
+        const segmentLengths = points => points.slice(1).map((point, index) =>
+            Math.hypot(point.x - points[index].x, point.y - points[index].y)
+        );
+        for (const points of [northBridge, southBridge]) {
+            const lengths = segmentLengths(points);
+            lengths.forEach(length => expect(length).toBeCloseTo(lengths[0], 10));
+        }
+
+        expect(layout.positions[4].x - layout.positions[1].x)
+            .toBeCloseTo(100 / Math.PI, 10);
+        expect(layout.positions[10].x - layout.positions[4].x)
+            .toBeCloseTo(120 / Math.PI, 10);
+    });
+
+    test('does not replace an intramolecular fold with synthetic bridge coordinates', () => {
+        const v = vaRRI.validate({
+            sequence: 'AAAAAAAA&UUUUUUUU',
+            structure: '[.(()).[&].(()).]',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+        const layout = vaRRI.getLinearRriInteractionLayout(v, 10, 20);
+
+        expect(layout.pairOrderMonotonic).toBe(true);
+        expect(layout.pairs).toHaveLength(2);
+        expect(layout.bridgePositions).toEqual({});
+        expect(layout.structuredBridgeGroups).toEqual([
+            { sequence: '1', nodeNumbers: [2, 3, 4, 5, 6, 7] },
+            { sequence: '2', nodeNumbers: [18, 17, 16, 15, 14, 13] },
+        ]);
+    });
+
+    test('extends directly attached terminal runs as four straight zipper ends', () => {
+        const v = vaRRI.validate({
+            sequence: 'AAAACCCC&UUUUGGGG',
+            structure: '...((((.&.))))...',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+        const layout = vaRRI.getLinearRriInteractionLayout(v, 10, 20);
+
+        expect(Object.keys(layout.tailPositions).map(Number).sort((a, b) => a - b))
+            .toEqual([1, 2, 3, 8, 12, 17, 18, 19]);
+
+        const assertStraightTail = (
+            anchorNumber,
+            tailNumbers,
+            horizontalDirection,
+            verticalDirection
+        ) => {
+            const points = [
+                layout.positions[anchorNumber],
+                ...tailNumbers.map(nodeNumber => layout.tailPositions[nodeNumber]),
+            ];
+            const vectors = points.slice(1).map((point, index) => ({
+                x: point.x - points[index].x,
+                y: point.y - points[index].y,
+            }));
+
+            vectors.forEach(vector => {
+                expect(Math.sign(vector.x)).toBe(horizontalDirection);
+                expect(Math.sign(vector.y)).toBe(verticalDirection);
+                expect(Math.hypot(vector.x, vector.y)).toBeCloseTo(10, 10);
+                expect(vector.x * vectors[0].y - vector.y * vectors[0].x)
+                    .toBeCloseTo(0, 10);
+            });
+        };
+
+        assertStraightTail(4, [3, 2, 1], -1, -1);
+        assertStraightTail(7, [8], 1, -1);
+        assertStraightTail(13, [12], 1, 1);
+        assertStraightTail(16, [17, 18, 19], -1, 1);
+    });
+
+    test('does not straighten terminal dots separated from the RRI by structure', () => {
+        const v = vaRRI.validate({
+            sequence: 'AAAAAAAAAAAA&UUUUUUUUUUUU',
+            structure: '..(())((((..&.)))).......',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+        const layout = vaRRI.getLinearRriInteractionLayout(v, 10, 20);
+
+        expect(layout.tailPositions[1]).toBeUndefined();
+        expect(layout.tailPositions[2]).toBeUndefined();
+        expect(layout.tailPositions[11]).toBeDefined();
+        expect(layout.tailPositions[12]).toBeDefined();
+    });
+
+    test('keeps crossing pair nodes distinct and leaves their loops force-directed', () => {
+        const v = vaRRI.validate({
+            structure: '([{&)}]',
+            sequence: 'AAA&AAA',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+        const layout = vaRRI.getLinearRriInteractionLayout(v, 12, 18);
+
+        expect(layout.pairOrderMonotonic).toBe(false);
+        expect(layout.bridgePositions).toEqual({});
+        for (const sequence of ['1', '2']) {
+            const xs = Object.values(layout.positions)
+                .filter(point => point.sequence === sequence)
+                .map(point => point.x);
+            expect(new Set(xs).size).toBe(xs.length);
+        }
+    });
+});
+
+// ---------------------------------------------------------------------------
+// enforceLinearRriHalfPlanes
+// ---------------------------------------------------------------------------
+
+describe('enforceLinearRriHalfPlanes', () => {
+    test('projects every non-rail nucleotide into its molecule half-plane', () => {
+        const v = { sequence1: 'AAAAA', sequence2: 'UUUUU' };
+        const layout = {
+            positions: {
+                2: { x: 0, y: 20 },
+                4: { x: 20, y: 20 },
+                10: { x: 0, y: 60 },
+                12: { x: 20, y: 60 },
+            },
+            northY: 20,
+            southY: 60,
+        };
+        const nodes = [
+            { nodeType: 'nucleotide', num: 1, y: 30, py: 29 },
+            { nodeType: 'nucleotide', num: 2, y: 999, py: 999 },
+            { nodeType: 'nucleotide', num: 3, y: 25, py: 25 },
+            { nodeType: 'nucleotide', num: 5, y: -20, py: -20 },
+            { nodeType: 'nucleotide', num: 9, y: 50, py: 51 },
+            { nodeType: 'nucleotide', num: 10, y: -999, py: -999 },
+            { nodeType: 'nucleotide', num: 11, y: 55, py: 55 },
+            { nodeType: 'nucleotide', num: 13, y: 80, py: 80 },
+        ];
+
+        expect(vaRRI.enforceLinearRriHalfPlanes({ nodes }, v, layout, 5)).toBe(4);
+        expect(nodes[0]).toMatchObject({ y: 15, py: 15 });
+        expect(nodes[1]).toMatchObject({ y: 999, py: 999 });
+        expect(nodes[2]).toMatchObject({ y: 15, py: 15 });
+        expect(nodes[3]).toMatchObject({ y: -20, py: -20 });
+        expect(nodes[4]).toMatchObject({ y: 65, py: 65 });
+        expect(nodes[5]).toMatchObject({ y: -999, py: -999 });
+        expect(nodes[6]).toMatchObject({ y: 65, py: 65 });
+        expect(nodes[7]).toMatchObject({ y: 80, py: 80 });
+    });
+
+    test('uses the scaffold normal instead of global y for angled half-planes', () => {
+        const v = { sequence1: 'AAA', sequence2: 'UUU' };
+        const center = { x: 10, y: 20 };
+        const normal = { x: -0.8, y: 0.6 };
+        const pointAt = projection => ({
+            x: center.x + normal.x * projection,
+            y: center.y + normal.y * projection,
+        });
+        const sequence1Inside = {
+            nodeType: 'nucleotide', num: 1, ...pointAt(5), px: 0, py: 0,
+        };
+        const sequence2Inside = {
+            nodeType: 'nucleotide', num: 7, ...pointAt(-4), px: 0, py: 0,
+        };
+        const sequence1Rail = {
+            nodeType: 'nucleotide', num: 2, ...pointAt(-10), px: 0, py: 0,
+        };
+        const layout = {
+            center,
+            normal,
+            northOffset: -10,
+            southOffset: 10,
+            positions: { 2: pointAt(-10), 8: pointAt(10) },
+        };
+        const projection = node =>
+            (node.x - center.x) * normal.x +
+            (node.y - center.y) * normal.y;
+
+        expect(vaRRI.enforceLinearRriHalfPlanes(
+            { nodes: [sequence1Inside, sequence2Inside, sequence1Rail] },
+            v,
+            layout,
+            2
+        )).toBe(2);
+        expect(projection(sequence1Inside)).toBeCloseTo(-12, 10);
+        expect(projection(sequence2Inside)).toBeCloseTo(12, 10);
+        expect(projection(sequence1Rail)).toBeCloseTo(-10, 10);
+    });
+
+    test('translates a contiguous fold rigidly instead of flattening individual nodes', () => {
+        const v = { sequence1: 'AAAA', sequence2: 'UUUU' };
+        const layout = {
+            center: { x: 0, y: 0 },
+            normal: { x: 0, y: 1 },
+            northOffset: -10,
+            southOffset: 10,
+            positions: { 4: { x: 30, y: -10 }, 8: { x: 30, y: 10 } },
+            bridgePositions: {},
+            tailPositions: {},
+        };
+        const fold = [
+            { nodeType: 'nucleotide', num: 1, x: 0, y: -30, px: 0, py: -30 },
+            { nodeType: 'nucleotide', num: 2, x: 10, y: 4, px: 10, py: 4 },
+            { nodeType: 'nucleotide', num: 3, x: 20, y: -18, px: 20, py: -18 },
+        ];
+        const before = fold.map(node => ({ x: node.x, y: node.y }));
+
+        expect(vaRRI.enforceLinearRriHalfPlanes(
+            { nodes: fold },
+            v,
+            layout,
+            2
+        )).toBe(3);
+        expect(Math.max(...fold.map(node => node.y))).toBeCloseTo(-12, 10);
+        fold.forEach((node, index) => {
+            expect(node.x - before[index].x).toBeCloseTo(0, 10);
+            expect(node.y - before[index].y).toBeCloseTo(-16, 10);
+        });
+        expect(fold[1].y - fold[0].y).toBeCloseTo(
+            before[1].y - before[0].y,
+            10
+        );
+    });
+
+    test('moves basepaired stem halves across a rail as one component', () => {
+        const v = { sequence1: 'AAAAA', sequence2: '' };
+        const layout = {
+            center: { x: 0, y: 0 },
+            normal: { x: 0, y: 1 },
+            northOffset: -10,
+            southOffset: 10,
+            positions: { 3: { x: 20, y: -10 } },
+            bridgePositions: {},
+            tailPositions: {},
+        };
+        const nodes = [
+            { nodeType: 'nucleotide', num: 1, x: 0, y: -40, px: 0, py: -40 },
+            { nodeType: 'nucleotide', num: 2, x: 10, y: -30, px: 10, py: -30 },
+            { nodeType: 'nucleotide', num: 3, x: 20, y: -10, px: 20, py: -10 },
+            { nodeType: 'nucleotide', num: 4, x: 30, y: 5, px: 30, py: 5 },
+            { nodeType: 'nucleotide', num: 5, x: 40, y: -15, px: 40, py: -15 },
+        ];
+        const graph = {
+            nodes,
+            links: [{ source: nodes[1], target: nodes[3], linkType: 'basepair' }],
+        };
+
+        expect(vaRRI.enforceLinearRriHalfPlanes(graph, v, layout, 2)).toBe(4);
+        expect(nodes[0].y).toBeCloseTo(-57, 10);
+        expect(nodes[1].y).toBeCloseTo(-47, 10);
+        expect(nodes[3].y).toBeCloseTo(-12, 10);
+        expect(nodes[4].y).toBeCloseTo(-32, 10);
+        expect(nodes[3].y - nodes[1].y).toBeCloseTo(35, 10);
+        expect(nodes[2].y).toBe(-10);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Linear RRI force-graph helpers
+// ---------------------------------------------------------------------------
+
+describe('linear RRI force-graph helpers', () => {
+    test('derives the normalized scaffold direction from existing pair centers', () => {
+        const axis = vaRRI.getLinearRriScaffoldAxis([
+            {
+                sequence1: { x: 0, y: 0 },
+                sequence2: { x: 0, y: 10 },
+            },
+            {
+                sequence1: { x: 30, y: 40 },
+                sequence2: { x: 30, y: 50 },
+            },
+        ]);
+
+        expect(axis.x).toBeCloseTo(0.6, 10);
+        expect(axis.y).toBeCloseTo(0.8, 10);
+    });
+
+    test('uses the pair separation to orient a one-column scaffold', () => {
+        const axis = vaRRI.getLinearRriScaffoldAxis([
+            {
+                sequence1: { x: 5, y: 0 },
+                sequence2: { x: 5, y: 10 },
+            },
+        ]);
+
+        expect(axis.x).toBeCloseTo(1, 10);
+        expect(axis.y).toBeCloseTo(0, 10);
+    });
+
+    test('adds four fixed invisible continuation anchors beyond the molecular ends', () => {
+        const v = vaRRI.validate({
+            sequence: 'AAAACCCC&UUUUGGGG',
+            structure: '...((((.&.))))...',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+        const layout = vaRRI.getLinearRriInteractionLayout(
+            v,
+            10,
+            20,
+            { x: 20, y: 30 },
+            { x: 3, y: 4 }
+        );
+        const graph = { nodes: [], links: [] };
+        const sequence2Start = v.sequence1.length + 4;
+        for (let number = 1; number <= v.sequence1.length; number++) {
+            const point = layout.positions[number] || layout.tailPositions[number];
+            graph.nodes.push({ nodeType: 'nucleotide', num: number, ...point });
+        }
+        for (
+            let number = sequence2Start;
+            number < sequence2Start + v.sequence2.length;
+            number++
+        ) {
+            const point = layout.positions[number] || layout.tailPositions[number];
+            graph.nodes.push({ nodeType: 'nucleotide', num: number, ...point });
+        }
+
+        expect(vaRRI.addLinearRriTerminalGhosts(graph, v, layout, 10)).toBe(4);
+        const ghosts = graph.nodes.filter(node => node.varriLinearRriGhost);
+        const ghostLinks = graph.links.filter(link => link.linkType === 'rri_linear_ghost');
+        expect(ghosts).toHaveLength(4);
+        expect(ghostLinks).toHaveLength(4);
+        ghosts.forEach(ghost => {
+            expect(ghost).toMatchObject({ fixed: 1, radius: 0, nodeType: 'middle' });
+            expect(ghostLinks.some(link => link.target === ghost)).toBe(true);
+            const terminal = ghostLinks.find(link => link.target === ghost).source;
+            expect(Math.hypot(ghost.x - terminal.x, ghost.y - terminal.y))
+                .toBeCloseTo(10, 10);
+            const outwardSign = ghost.sequence === '1' ? -1 : 1;
+            const outwardProjection =
+                (ghost.x - terminal.x) * layout.normal.x * outwardSign +
+                (ghost.y - terminal.y) * layout.normal.y * outwardSign;
+            expect(outwardProjection).toBeGreaterThan(0);
+        });
+        expect(vaRRI.addLinearRriTerminalGhosts(graph, v, layout, 10)).toBe(0);
+    });
+
+    test('keeps both continuation directions distinct for one-base molecules', () => {
+        const v = vaRRI.validate({
+            sequence: 'A&U',
+            structure: '(&)',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+        const layout = vaRRI.getLinearRriInteractionLayout(
+            v,
+            10,
+            20,
+            { x: 0, y: 0 },
+            { x: 3, y: 4 }
+        );
+        const graph = {
+            nodes: Object.entries(layout.positions).map(([num, point]) => ({
+                nodeType: 'nucleotide',
+                num: Number(num),
+                ...point,
+            })),
+            links: [],
+        };
+
+        expect(vaRRI.addLinearRriTerminalGhosts(graph, v, layout, 10)).toBe(4);
+        for (const sequence of ['1', '2']) {
+            const ghosts = graph.varriLinearRriGhosts.filter(
+                ghost => ghost.sequence === sequence
+            );
+            const terminal = graph.links.find(
+                link => link.target === ghosts[0]
+            ).source;
+            const along = ghost =>
+                (ghost.x - terminal.x) * layout.axis.x +
+                (ghost.y - terminal.y) * layout.axis.y;
+            expect(along(ghosts.find(ghost => ghost.side === 'leading'))).toBeLessThan(0);
+            expect(along(ghosts.find(ghost => ghost.side === 'trailing'))).toBeGreaterThan(0);
+        }
+    });
+
+    test('keeps invisible end nodes from pulling on structured termini', () => {
+        const v = vaRRI.validate({
+            sequence: 'CUUGCUGAGGUGCACACAGCAAG&CUUGCUGAGGUGCACACAGCAAG',
+            structure: '(((((((..[[[[[[.)))))))&(((((((..]]]]]].)))))))',
+            startIndex1: '1',
+            startIndex2: '1',
+        });
+        const layout = vaRRI.getLinearRriInteractionLayout(v, 10, 20);
+        const graph = { nodes: [], links: [] };
+        const sequence2Start = v.sequence1.length + 4;
+        for (let number = 1; number <= v.sequence1.length; number++) {
+            graph.nodes.push({
+                nodeType: 'nucleotide',
+                num: number,
+                ...(layout.positions[number] || { x: number, y: -30 }),
+            });
+        }
+        for (
+            let number = sequence2Start;
+            number < sequence2Start + v.sequence2.length;
+            number++
+        ) {
+            graph.nodes.push({
+                nodeType: 'nucleotide',
+                num: number,
+                ...(layout.positions[number] || { x: number, y: 30 }),
+            });
+        }
+
+        expect(vaRRI.addLinearRriTerminalGhosts(graph, v, layout, 10)).toBe(4);
+        expect(graph.varriLinearRriGhosts).toHaveLength(4);
+        expect(graph.links.filter(link => link.linkType === 'rri_linear_ghost'))
+            .toHaveLength(0);
+    });
+
+    test('aligns a preserved component at outward backbone-boundary anchors', () => {
+        const v = { sequence1: 'AAAAA', sequence2: '' };
+        const nodes = [
+            { nodeType: 'nucleotide', num: 1, x: -10, y: 0 },
+            { nodeType: 'nucleotide', num: 2, x: 0, y: 0 },
+            { nodeType: 'nucleotide', num: 3, x: 0, y: 10 },
+            { nodeType: 'nucleotide', num: 4, x: 10, y: 10 },
+            { nodeType: 'nucleotide', num: 5, x: 10, y: 0 },
+        ];
+        const graph = {
+            nodes,
+            links: nodes.slice(1).map((node, index) => ({
+                source: nodes[index],
+                target: node,
+                linkType: 'backbone',
+            })),
+        };
+        const layout = {
+            positions: {
+                2: { x: 0, y: -10 },
+                5: { x: 30, y: -10 },
+            },
+            bridgePositions: {},
+            tailPositions: {},
+            center: { x: 15, y: 0 },
+            normal: { x: 0, y: 1 },
+            axis: { x: 1, y: 0 },
+            northOffset: -10,
+            southOffset: 10,
+            nucleotideSpacing: 10,
+        };
+        const originalPositions = Object.fromEntries(nodes.map(node => [
+            node.num,
+            { x: node.x, y: node.y },
+        ]));
+
+        expect(vaRRI.alignLinearRriStructuralComponents(
+            graph,
+            v,
+            layout,
+            originalPositions
+        )).toBe(3);
+        expect(nodes[2]).toMatchObject({ x: 0, y: -20 });
+        expect(nodes[3]).toMatchObject({ x: 30, y: -20 });
+        expect(Math.hypot(
+            nodes[3].x - nodes[2].x,
+            nodes[3].y - nodes[2].y
+        )).toBeCloseTo(30, 10);
+    });
+
+    test('places indexes and mutations outward without changing force coordinates', () => {
+        const v = { sequence1: 'AAAA', sequence2: 'UUUU' };
+        const layout = vaRRI.getLinearRriInteractionLayout(
+            vaRRI.validate({
+                sequence: 'AAAA&UUUU',
+                structure: '(((.&.)))',
+                startIndex1: '1',
+                startIndex2: '1',
+            }),
+            10,
+            20,
+            { x: 50, y: 60 },
+            { x: 3, y: 4 }
+        );
+        const seq1Node = { nodeType: 'nucleotide', num: 1, x: 20, y: 30 };
+        const seq2Node = { nodeType: 'nucleotide', num: 8, x: 80, y: 90 };
+        const seq1Label = { nodeType: 'label', x: 21, y: 31 };
+        const seq2Label = { nodeType: 'label', x: 79, y: 89 };
+        const graph = {
+            links: [
+                { source: seq1Node, target: seq1Label, linkType: 'label_link' },
+                { source: seq2Label, target: seq2Node, linkType: 'label_link' },
+            ],
+        };
+
+        expect(vaRRI.enforceLinearRriSupplementaryNodes(
+            graph,
+            v,
+            layout,
+            25
+        )).toBe(2);
+        expect(seq1Label).toMatchObject({ x: 21, y: 31 });
+        expect(seq2Label).toMatchObject({ x: 79, y: 89 });
+        const displayProjection = (label, nucleotide) =>
+            (label.varriLinearRriDisplayX - nucleotide.x) * layout.normal.x +
+            (label.varriLinearRriDisplayY - nucleotide.y) * layout.normal.y;
+        expect(displayProjection(seq1Label, seq1Node)).toBeCloseTo(-25, 10);
+        expect(displayProjection(seq2Label, seq2Node)).toBeCloseTo(25, 10);
+        const displayTangent = (label, nucleotide) =>
+            (label.varriLinearRriDisplayX - nucleotide.x) * layout.axis.x +
+            (label.varriLinearRriDisplayY - nucleotide.y) * layout.axis.y;
+        const forceTangent = (label, nucleotide) =>
+            (label.x - nucleotide.x) * layout.axis.x +
+            (label.y - nucleotide.y) * layout.axis.y;
+        expect(displayTangent(seq1Label, seq1Node))
+            .toBeCloseTo(forceTangent(seq1Label, seq1Node), 10);
+        expect(displayTangent(seq2Label, seq2Node))
+            .toBeCloseTo(forceTangent(seq2Label, seq2Node), 10);
+    });
+
+    test('places supplementary labels around folded RNA obstacles', () => {
+        const v = { sequence1: 'AAAA', sequence2: 'UUUU' };
+        const layout = {
+            center: { x: 0, y: 0 },
+            normal: { x: 0, y: 1 },
+            axis: { x: 1, y: 0 },
+            northOffset: -10,
+            southOffset: 10,
+            nucleotideSpacing: 15,
+        };
+        const seq1Node = { nodeType: 'nucleotide', num: 1, x: 0, y: -10 };
+        const foldedStemNode = { nodeType: 'nucleotide', num: 2, x: 2, y: -35 };
+        const seq2Node = { nodeType: 'nucleotide', num: 8, x: 50, y: 10 };
+        const foldedSouthNode = { nodeType: 'nucleotide', num: 9, x: 48, y: 36 };
+        const seq1Label = { nodeType: 'label', x: 0, y: -11 };
+        const seq2Label = { nodeType: 'label', x: 50, y: 11 };
+        const graph = {
+            nodes: [
+                seq1Node,
+                foldedStemNode,
+                seq2Node,
+                foldedSouthNode,
+                seq1Label,
+                seq2Label,
+            ],
+            links: [
+                { source: seq1Node, target: seq1Label, linkType: 'label_link' },
+                { source: seq2Node, target: seq2Label, linkType: 'label_link' },
+            ],
+        };
+
+        expect(vaRRI.enforceLinearRriSupplementaryNodes(
+            graph,
+            v,
+            layout,
+            25
+        )).toBe(2);
+        expect(seq1Label.varriLinearRriDisplayY).toBeLessThan(-10);
+        expect(seq2Label.varriLinearRriDisplayY).toBeGreaterThan(10);
+        expect(Math.hypot(
+            seq1Label.varriLinearRriDisplayX - foldedStemNode.x,
+            seq1Label.varriLinearRriDisplayY - foldedStemNode.y
+        )).toBeGreaterThanOrEqual(12);
+        expect(Math.hypot(
+            seq2Label.varriLinearRriDisplayX - foldedSouthNode.x,
+            seq2Label.varriLinearRriDisplayY - foldedSouthNode.y
+        )).toBeGreaterThanOrEqual(12);
+        expect(Math.hypot(
+            seq1Label.varriLinearRriDisplayX - seq1Node.x,
+            seq1Label.varriLinearRriDisplayY - seq1Node.y
+        )).toBeLessThanOrEqual(45);
+        expect(Math.hypot(
+            seq2Label.varriLinearRriDisplayX - seq2Node.x,
+            seq2Label.varriLinearRriDisplayY - seq2Node.y
+        )).toBeLessThanOrEqual(45);
+        expect(seq1Label).toMatchObject({ x: 0, y: -11 });
+        expect(seq2Label).toMatchObject({ x: 50, y: 11 });
+
+        const avoidedStemX = seq1Label.varriLinearRriDisplayX;
+        foldedStemNode.x = 200;
+        expect(vaRRI.enforceLinearRriSupplementaryNodes(
+            graph,
+            v,
+            layout,
+            25
+        )).toBe(2);
+        expect(Math.abs(avoidedStemX)).toBeGreaterThan(1);
+        expect(seq1Label.varriLinearRriDisplayX).toBeCloseTo(0, 10);
+        expect(seq1Label.varriLinearRriDisplayY).toBeCloseTo(-35, 10);
+    });
+});
+
+// ---------------------------------------------------------------------------
 // sequenceColoring
 // ---------------------------------------------------------------------------
 
@@ -1226,5 +2017,24 @@ describe('normaliseRotationDegrees', () => {
 
     test('throws on non-finite values', () => {
         expect(() => vaRRI.normaliseRotationDegrees(NaN)).toThrow(/finite number/);
+    });
+});
+
+describe('getLinearRriReadableViewTransform', () => {
+    test('rotates the interaction focus before centring the minimum zoom', () => {
+        const transform = vaRRI.getLinearRriReadableViewTransform(
+            { x: 10, y: 0 },
+            { x: 0, y: 0 },
+            90,
+            300,
+            200,
+            0.1
+        );
+
+        expect(transform.scale).toBe(0.1);
+        expect(transform.rotatedFocus.x).toBeCloseTo(0, 10);
+        expect(transform.rotatedFocus.y).toBeCloseTo(10, 10);
+        expect(transform.translate[0]).toBeCloseTo(150, 10);
+        expect(transform.translate[1]).toBeCloseTo(99, 10);
     });
 });

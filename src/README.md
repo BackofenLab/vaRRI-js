@@ -44,6 +44,8 @@ const v = vaRRI.validate({
 
 Builds the Fornac visualisation and applies all vaRRI modifications. The returned promise resolves after the delayed post-processing step finishes. If a newer render supersedes a pending one, the older promise resolves with `{ cancelled: true }`.
 
+When linear layout is enabled, the resolved result also includes the automatic SVG-layer rotation in `rotationDegrees`.
+
 **Parameters:**
 
 | Parameter | Type | Description |
@@ -56,6 +58,7 @@ Builds the Fornac visualisation and applies all vaRRI modifications. The returne
 
 | Property | Type | Default | Description |
 |---|---|---|---|
+| `forceLayoutLinear` | `boolean` | `false` | Build parallel RRI rails along Fornac's initial interaction axis. Pure bulges and directly attached terminal dots use deterministic outward geometry; intramolecular folds are aligned as rigid structure-preserving components in the molecule's outer half-plane. Invisible terminal nodes do not pull on structured ends, and indexes/mutations are displayed outward. The SVG rotation layer aligns the scaffold horizontally. Very long inputs retain an interaction-centred minimum zoom and remain pannable. Requires `forceLayout`. |
 | `forceLayout` | `boolean` | `false` | Enable Fornac force-layout animation. When `true` and background highlighting is active, the highlight polygon is redrawn on every animation frame to stay in sync with the force layout. |
 | `accessData` | `Object\|null` | `null` | Accessibility data: `{ nodeId: probability, … }`. |
 
@@ -226,6 +229,19 @@ Useful for programmatic use (e.g., posting to a server or displaying in another 
 ---
 
 ### Utility Functions
+
+#### Linear RRI layout helpers
+Advanced helpers used by `render()` to build and align the linear interaction scaffold:
+
+- `vaRRI.alignLinearRriStructuralComponents(graph, validated, layout, originalPositions)`
+- `vaRRI.addLinearRriTerminalGhosts(graph, validated, layout, nucleotideSpacing)`
+- `vaRRI.enforceLinearRriHalfPlanes(graph, validated, layout, clearance)`
+- `vaRRI.enforceLinearRriSupplementaryNodes(graph, validated, layout, distance)`
+- `vaRRI.getLinearRriBridgePositions(startPoint, endPoint, internalNodeCount, bondLength, outwardHint)`
+- `vaRRI.getLinearRriConstraintSpecs(validated)`
+- `vaRRI.getLinearRriInteractionLayout(validated, nucleotideSpacing, trackGap, center?, axis?)`
+- `vaRRI.getLinearRriReadableViewTransform(focus, rotationCenter, rotationDegrees, width, height, scale)`
+- `vaRRI.getLinearRriScaffoldAxis(pairNodes)`
 
 #### `vaRRI.listIntermolNodes(struc, shift?)` → `Array<[number, string]>`
 Identifies positions of intermolecular basepairs in a dot-bracket structure.
