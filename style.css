@@ -43,7 +43,12 @@ header p  { font-size: 0.9rem; opacity: 0.88; color: #d9e8f6; }
   text-decoration: none;
 }
 .group-logo {
-  height: 66px;
+  height: 60px;
+  width: auto;
+  display: block;
+}
+.varri-logo {
+  height: 50px;
   width: auto;
   display: block;
 }
