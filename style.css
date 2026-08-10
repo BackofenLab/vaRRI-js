@@ -87,14 +87,13 @@ header p  { font-size: 0.9rem; opacity: 0.88; color: #d9e8f6; }
 main {
   width: 100%;
   max-width: 1300px;
-  margin: 1.5rem auto;
-  padding: 0 1rem;
+  padding: 20px;
   display: grid;
-  grid-template-columns: minmax(360px, 380px) auto;
+  grid-template-columns: 380px 1fr;
+  margin: 0 auto;
   justify-content: start;
   align-items: flex-start;
   gap: 1.5rem;
-  overflow-x: auto;
 }
 
 .controls-column {
@@ -106,7 +105,7 @@ main {
   
   height: 100%;  
   min-height: 520px;
-  max-height: max(520px, calc(100vh - 300px));
+  max-height: max(520px, calc(100vh - 260px));
 }
 
 .control-panel {
@@ -368,6 +367,10 @@ textarea.drag-over {
 .btn-secondary:hover { background: #c6d8e8; }
 .btn-cite    { background: #d65413; color: #fff; }
 .btn-cite:hover { background: #b13f0f; }
+.btn-shareLink { background: var(--brand-blue); color: #fff; }
+.btn-shareLink:hover { background: var(--brand-blue-dark); }
+.btn-openVarri { background: #03427d; color: #fff; }
+.btn-openVarri:hover { background: #034b8b; }
 .btn-sm { padding: .35rem .5rem; font-size: .8rem; }
 
 .action-row {
@@ -416,12 +419,13 @@ a.btn:active {
 .result-panel {
   display: flex;
   flex-direction: column;
-  width: min(600px, calc(100vw - 470px));
   resize: both;
   overflow: auto;
-  min-width: 460px;
+  min-width: 0;
+  max-width: calc(50vw +350px);
+
   min-height: 520px;
-  height: max(520px, calc(100vh - 300px));;
+  height: max(520px, calc(100vh - 260px));;
 }
 
 .highlight-list {
@@ -705,7 +709,7 @@ input[type="color"].legend-color-rect::-webkit-color-swatch {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(15, 46, 74, .08);
   padding: 20px;
-  height: 100px;
+  height: 80px;
   font-size: .82rem;
   line-height: 1.1;
   color: #30455f;

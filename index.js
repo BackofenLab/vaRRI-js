@@ -331,6 +331,9 @@ function clearAll() {
   resetForceLayoutControl();
   clearMsg();
   clearAllFieldErrors();
+  // hide "Full Page" button if present
+  const openVarriBtn = document.getElementById('openVarriBtn');
+  if (openVarriBtn) openVarriBtn.style.display = 'none';
 }
 
 function resetForceLayoutControl() {
@@ -1545,7 +1548,7 @@ function encodeAnnotationStyle(color, alpha) {
   return ':' + colorValue + alphaValue;
 }
 
-function generateShareableURL(btnElement) {
+function generateShareableURL() {
   const params = new URLSearchParams();
 
   // Exclude transient UI controls.
@@ -1661,6 +1664,17 @@ function generateShareableURL(btnElement) {
   }
 
   const shareableURL = `${baseUrl}?${queryString}`;
+
+  return shareableURL;
+}
+
+function generateShareableURLToClipboard(btnElement) {
+
+  const shareableURL = generateShareableURL();
+  if (!shareableURL) {
+    showMsg('No shareable URL could be generated. Please ensure that at least one form field has a value.', 'error');
+    return;
+  }
 
   // Copy the URL and briefly confirm success in the triggering button.
   navigator.clipboard.writeText(shareableURL)
@@ -1888,7 +1902,13 @@ function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.se
 
   // Rendering-only flag.
   if (urlParams.has('showRenderingOnly') && urlParams.get('showRenderingOnly') !== 'false') {
+    // disable all UI elements that are not part of the rendering container
     document.body.classList.add('rendering-only');
+    // enable "Full Page" button
+    const fullPageBtn = document.getElementById('openVarriBtn');
+    if (fullPageBtn) {
+      fullPageBtn.style.display = 'inline-block';
+    }
   }
 
   // Populate standard form controls.
@@ -1943,7 +1963,8 @@ function attachUiActionListeners() {
     profileClearBtn: resetProfileForm,
     regionCancelBtn: resetRegionForm,
     regionSubmitBtn: submitRegionForm,
-    shareLinkBtn: event => generateShareableURL(event.currentTarget),
+    shareLinkBtn: event => generateShareableURLToClipboard(event.currentTarget),
+    openVarriBtn: () => window.open(generateShareableURL(), '_blank'),
   };
 
   Object.entries(clickHandlers).forEach(([id, handler]) => {
