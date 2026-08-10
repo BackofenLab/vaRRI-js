@@ -1939,7 +1939,6 @@ function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.se
     const rotationValue = Number.parseFloat(urlParams.get('rotation'));
     if (!Number.isNaN(rotationValue)) {
       committedRotationDeg = rotationValue;
-      commitSliderRotation();
     }
   }
 
@@ -2036,6 +2035,8 @@ window.addEventListener('load', () => {
 
     // Render once after all URL state has been applied.
     runVisualization();
+    // rotate if needed
+    commitSliderRotation();
   } else {
     loadExample('2mol');
   }
