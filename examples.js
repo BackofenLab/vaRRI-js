@@ -170,14 +170,8 @@ function buildVaRRIUrl(params) {
     }
   }
 
-  let queryString = queryParams.toString();
+  const queryString = queryParams.toString();
   if (!queryString) return;
-
-  // -------------------------------------------------------------------------
-  // FIX: Explicitly percent-encode '(' and ')' characters which URLSearchParams
-  // leaves raw by default according to RFC 3986.
-  // -------------------------------------------------------------------------
-  queryString = queryString.replace(/\(/g, '%28').replace(/\)/g, '%29');
 
   return `${baseUrl}?${queryString}`;
 }

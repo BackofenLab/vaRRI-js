@@ -164,9 +164,9 @@ label small {
   color: var(--text-muted);
 }
 
-list-counter {
-  color: #57606a; 
-  font-size: 0.9em; 
+.list-counter {
+  color: #57606a;
+  font-size: 0.9em;
   font-weight: normal;
 }
 
@@ -232,6 +232,13 @@ textarea:focus, input:focus, select:focus {
 
 textarea { resize: vertical; }
 
+#profileData1,
+#profileData2 {
+  overflow-wrap: normal;
+  overflow-x: auto;
+  white-space: pre;
+}
+
 
 textarea.drag-over {
   border-color: var(--brand-blue);
@@ -246,22 +253,14 @@ textarea.drag-over {
   gap: .5rem;
 }
 
-.row-3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: .5rem;
-}
-
-.row-4 {
-  display: grid;
-  grid-template-columns: 0.5fr 1fr 0.5fr 1fr;
-  gap: .5rem;
-}
-
 .profile-label-with-color {
   display: inline-flex;
   align-items: center;
   gap: .4rem;
+}
+
+.profile-label-with-color > label {
+  margin: 0;
 }
 
 .profile-color-picker {
@@ -306,21 +305,6 @@ textarea.drag-over {
   line-height: 1;
 }
 
-.label-dropdown-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .6rem;
-  align-items: center;
-  margin-bottom: .55rem;
-}
-
-.label-dropdown-row > label {
-  margin: 0;
-}
-
-.label-dropdown-row > select {
-  margin-bottom: 0;
-}
 .label-dropdown-col-row {
   display: grid;
   grid-template-columns: 1.15fr 0.9fr 0.2fr;
@@ -345,6 +329,8 @@ textarea.drag-over {
   font-size: .85rem;
 }
 .checkbox-row input { width: auto; margin: 0; }
+.checkbox-row label { margin: 0; }
+.checkbox-row-nested { margin-left: 1.5em; }
 
 /* ------------------------------------------------------------------ */
 /* Buttons                                                              */
@@ -367,6 +353,8 @@ textarea.drag-over {
 .btn-success:hover { background: #236b43; }
 .btn-info    { background: #1d7fa4; color: #fff; }
 .btn-info:hover { background: #16617d; }
+.btn-secondary { background: #d8e5f1; color: var(--text-primary); }
+.btn-secondary:hover { background: #c6d8e8; }
 .btn-cite    { background: #d65413; color: #fff; }
 .btn-cite:hover { background: #b13f0f; }
 .btn-sm { padding: .35rem .5rem; font-size: .8rem; }
@@ -378,18 +366,13 @@ textarea.drag-over {
   margin-top: .5rem;
 }
 
-/* --- pseudo-buttons via <a> elements --- */
-
-/* Links mit der Klasse .btn wie echte Buttons stylen */
+/* Button-styled links */
 a.btn {
-  text-decoration: none;  /* Entfernt die typische Unterstreichung von Links */
-  color: inherit;          /* Verhindert lila/blaue Standard-Linkfarben */
-  box-sizing: border-box; /* Stellt sicher, dass Padding & Border wie beim Button berechnet werden */
-  user-select: none;      /* Verhindert versehentliches Markieren des Textes beim Klicken */
+  box-sizing: border-box;
   color: #fff;
+  text-decoration: none;
+  user-select: none;
 }
-
-/* Verhindert Unterstreichungen im Hover/Focus-Zustand */
 a.btn:hover,
 a.btn:focus,
 a.btn:active {
@@ -525,27 +508,8 @@ a.btn:active {
   margin: 0;
 }
 
-.regionInput .region-color-picker {
-  width: 2.25rem;
-  height: 34px;
-  padding: 2px;
-  min-width: 2.25rem;
-  margin: 0;
-  display: block;
-  box-sizing: border-box;
-}
 
-#subseqColor {
-  width: 100%;
-  height: 34px;
-  padding: 2px;
-  margin-bottom: .75rem;
-  border: 1px solid var(--border-soft);
-  border-radius: 4px;
-  background: #fcfdff;
-}
-
-#regionColor {
+#subseqColor,#regionColor {
   width: 100%;
   height: 34px;
   padding: 2px;
@@ -632,6 +596,18 @@ a.btn:active {
   flex-wrap: wrap;
 }
 .export-bar span { font-size: .85rem; font-weight: 600; color: var(--brand-blue-dark); }
+.cite-note {
+  margin-left: auto;
+  color: #666;
+  font-size: .8em;
+  text-align: right;
+}
+
+.cropping-value {
+  margin-left: .3em;
+  color: var(--text-primary);
+  font-weight: 600;
+}
 
 /* ------------------------------------------------------------------ */
 /* Messages                                                             */
@@ -650,19 +626,6 @@ a.btn:active {
 /* Legend                                                               */
 /* ------------------------------------------------------------------ */
 
-.swatch {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 1.5px solid #999;
-  flex-shrink: 0;
-}
-.swatch.line {
-  border-radius: 0;
-  height: 3px;
-  width: 22px;
-  border: none;
-}
 
 /* Colour-picker swatches in the legend */
 input[type="color"].legend-color {
@@ -705,9 +668,6 @@ input[type="color"].legend-color-rect::-webkit-color-swatch {
   border-radius: 2px;
 }
 
-input[type="radio"] {
-  transform: scale(0.6); /* Adjust to your preferred size (e.g., 0.6 to 0.9) */
-}
 
 /* ------------------------------------------------------------------ */
 /* Footer                                                              */
@@ -752,15 +712,6 @@ input[type="radio"] {
   border-color: #e74c3c !important;
   background: #fff5f5 !important;
 }
-.input-line {
-  position: relative;
-  display: flex;
-}
-.input-line.has-error > textarea,
-.input-line.has-error > input {
-  border-color: #e74c3c !important;
-  background: #fff5f5 !important;
-}
 .field-tooltip {
   display: none;
   position: absolute;
@@ -795,9 +746,6 @@ input[type="radio"] {
 .input-wrap.has-error:hover .field-tooltip {
   display: block;
 }
-.input-line.has-error:hover .field-tooltip {
-  display: flex;
-}
 
 /* ------------------------------------------------------------------ */
 /* Responsive                                                           */
@@ -806,10 +754,6 @@ input[type="radio"] {
   main {
     grid-template-columns: 1fr;
     justify-content: stretch;
-  }
-  .label-dropdown-row {
-    grid-template-columns: 1fr;
-    gap: .3rem;
   }
   header {
     flex-direction: column;
@@ -821,7 +765,7 @@ input[type="radio"] {
 }
 
 /* ------------------------------------------------------------------ */
-/* Layout-Anpassung, wenn showRendingOnly aktiv ist */
+/* Rendering-only embedding mode. */
 /* ------------------------------------------------------------------ */
 
 body.rendering-only header,
@@ -843,7 +787,7 @@ body.rendering-only .result-panel {
   height: 100%;
 }
 
-/* transparent background for rendering-only mode to allow for transparent SVG export and page embedding */
+/* Keep exports and embedded rendering backgrounds transparent. */
 body.rendering-only {
   background: transparent;
 }

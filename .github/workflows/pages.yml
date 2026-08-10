@@ -25,6 +25,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # 1. Minify using your exact esbuild setup (runs in runner memory)
+      - name: Minify with esbuild
+        run: npx esbuild src/vaRRI.js --minify --sourcemap --outfile=dist/vaRRI.min.js
+
+      # 2. Point index.html to the minified file
+      - name: Swap script path for production
+        run: sed -i 's|src/vaRRI.js|dist/vaRRI.min.js|g' index.html
+
+      # 3. Publish build output directly to GitHub Pages
       - name: Configure Pages
         uses: actions/configure-pages@v6
 

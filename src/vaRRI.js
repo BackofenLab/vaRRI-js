@@ -56,17 +56,43 @@
         basepair: 'red',
     };
 
-    /** In-memory registry of user-defined subsequence highlight objects. */
-    const SUBSEQUENCE_HIGHLIGHTS = [];
-    let _nextHighlightId = 1;
+    /** In-memory registries for user-defined annotations. */
+    const SUBSEQUENCE_REGISTRY = { items: [], nextId: 1, label: 'Highlight' };
+    const REGION_REGISTRY = { items: [], nextId: 1, label: 'Region highlight' };
+    const MUTATION_REGISTRY = { items: [], nextId: 1, label: 'Mutation' };
 
-    /** In-memory registry of user-defined region highlight objects. */
-    const REGION_HIGHLIGHTS = [];
-    let _nextRegionHighlightId = 1;
+    // Short aliases keep rendering code focused on domain objects.
+    const SUBSEQUENCE_HIGHLIGHTS = SUBSEQUENCE_REGISTRY.items;
+    const REGION_HIGHLIGHTS = REGION_REGISTRY.items;
+    const POINT_MUTATIONS = MUTATION_REGISTRY.items;
 
-    /** In-memory registry of user-defined point mutation objects. */
-    const POINT_MUTATIONS = [];
-    let _nextMutationId = 1;
+    function clearRegistry(registry) {
+        registry.items.length = 0;
+        registry.nextId = 1;
+    }
+
+    function getRegistryItem(registry, id) {
+        const item = registry.items.find(candidate => candidate.id === id);
+        if (!item) throw new Error(registry.label + ' with id ' + id + ' not found.');
+        return item;
+    }
+
+    function listRegistryItems(registry, cloneItem) {
+        return registry.items.map(cloneItem);
+    }
+
+    function registerRegistryItem(registry, item, cloneItem) {
+        item.id = registry.nextId++;
+        registry.items.push(item);
+        return cloneItem(item);
+    }
+
+    function removeRegistryItem(registry, id) {
+        const index = registry.items.findIndex(item => item.id === id);
+        if (index === -1) return false;
+        registry.items.splice(index, 1);
+        return true;
+    }
 
     /**
      * Return a deep-enough clone of a highlight object for external consumers.
@@ -187,10 +213,11 @@
      * @returns {Object}
      */
     function registerSubsequenceHighlight(input, sequenceContext = {}) {
-        const normalized = createSubsequenceHighlight(input, sequenceContext);
-        normalized.id = _nextHighlightId++;
-        SUBSEQUENCE_HIGHLIGHTS.push(normalized);
-        return cloneSubsequenceHighlight(normalized);
+        return registerRegistryItem(
+            SUBSEQUENCE_REGISTRY,
+            createSubsequenceHighlight(input, sequenceContext),
+            cloneSubsequenceHighlight
+        );
     }
 
     /**
@@ -202,10 +229,7 @@
      * @returns {Object}
      */
     function updateSubsequenceHighlight(id, patch, sequenceContext = {}) {
-        const target = SUBSEQUENCE_HIGHLIGHTS.find(h => h.id === id);
-        if (!target) {
-            throw new Error(`Highlight with id ${id} not found.`);
-        }
+        const target = getRegistryItem(SUBSEQUENCE_REGISTRY, id);
 
         const normalized = createSubsequenceHighlight({
             id,
@@ -215,11 +239,7 @@
             alpha: patch.alpha !== undefined ? patch.alpha : target.alpha,
         }, sequenceContext);
 
-        target.sequence = normalized.sequence;
-        target.range = normalized.range;
-        target.color = normalized.color;
-        target.alpha = normalized.alpha;
-        target.rangeText = normalized.rangeText;
+        Object.assign(target, normalized);
 
         return cloneSubsequenceHighlight(target);
     }
@@ -231,18 +251,14 @@
      * @returns {boolean}
      */
     function removeSubsequenceHighlight(id) {
-        const idx = SUBSEQUENCE_HIGHLIGHTS.findIndex(h => h.id === id);
-        if (idx === -1) return false;
-        SUBSEQUENCE_HIGHLIGHTS.splice(idx, 1);
-        return true;
+        return removeRegistryItem(SUBSEQUENCE_REGISTRY, id);
     }
 
     /**
      * Remove all registered subsequence highlights.
      */
     function clearSubsequenceHighlights() {
-        SUBSEQUENCE_HIGHLIGHTS.length = 0;
-        _nextHighlightId = 1;
+        clearRegistry(SUBSEQUENCE_REGISTRY);
     }
 
     /**
@@ -251,7 +267,7 @@
      * @returns {Array<Object>}
      */
     function getSubsequenceHighlights() {
-        return SUBSEQUENCE_HIGHLIGHTS.map(cloneSubsequenceHighlight);
+        return listRegistryItems(SUBSEQUENCE_REGISTRY, cloneSubsequenceHighlight);
     }
 
     /**
@@ -357,10 +373,11 @@
      * @returns {Object}
      */
     function registerRegionHighlight(input, sequenceContext = {}) {
-        const normalized = createRegionHighlight(input, sequenceContext);
-        normalized.id = _nextRegionHighlightId++;
-        REGION_HIGHLIGHTS.push(normalized);
-        return cloneRegionHighlight(normalized);
+        return registerRegistryItem(
+            REGION_REGISTRY,
+            createRegionHighlight(input, sequenceContext),
+            cloneRegionHighlight
+        );
     }
 
     /**
@@ -372,10 +389,7 @@
      * @returns {Object}
      */
     function updateRegionHighlight(id, patch, sequenceContext = {}) {
-        const target = REGION_HIGHLIGHTS.find(h => h.id === id);
-        if (!target) {
-            throw new Error(`Region highlight with id ${id} not found.`);
-        }
+        const target = getRegistryItem(REGION_REGISTRY, id);
 
         const normalized = createRegionHighlight({
             id,
@@ -386,12 +400,7 @@
             generated: patch.generated !== undefined ? patch.generated : target.generated,
         }, sequenceContext);
 
-        target.sequence1Range = normalized.sequence1Range;
-        target.sequence2Range = normalized.sequence2Range;
-        target.color = normalized.color;
-        target.alpha = normalized.alpha;
-        target.rangeText = normalized.rangeText;
-        target.generated = normalized.generated;
+        Object.assign(target, normalized);
 
         return cloneRegionHighlight(target);
     }
@@ -403,18 +412,14 @@
      * @returns {boolean}
      */
     function removeRegionHighlight(id) {
-        const idx = REGION_HIGHLIGHTS.findIndex(h => h.id === id);
-        if (idx === -1) return false;
-        REGION_HIGHLIGHTS.splice(idx, 1);
-        return true;
+        return removeRegistryItem(REGION_REGISTRY, id);
     }
 
     /**
      * Remove all registered region highlights.
      */
     function clearRegionHighlights() {
-        REGION_HIGHLIGHTS.length = 0;
-        _nextRegionHighlightId = 1;
+        clearRegistry(REGION_REGISTRY);
     }
 
     /**
@@ -423,7 +428,7 @@
      * @returns {Array<Object>}
      */
     function getRegionHighlights() {
-        return REGION_HIGHLIGHTS.map(cloneRegionHighlight);
+        return listRegistryItems(REGION_REGISTRY, cloneRegionHighlight);
     }
 
     /**
@@ -551,10 +556,11 @@
      * @returns {Object}
      */
     function registerPointMutation(input, sequenceContext = {}) {
-        const normalized = createPointMutation(input, sequenceContext);
-        normalized.id = _nextMutationId++;
-        POINT_MUTATIONS.push(normalized);
-        return clonePointMutation(normalized);
+        return registerRegistryItem(
+            MUTATION_REGISTRY,
+            createPointMutation(input, sequenceContext),
+            clonePointMutation
+        );
     }
 
     /**
@@ -566,10 +572,7 @@
      * @returns {Object}
      */
     function updatePointMutation(id, patch, sequenceContext = {}) {
-        const target = POINT_MUTATIONS.find(m => m.id === id);
-        if (!target) {
-            throw new Error(`Mutation with id ${id} not found.`);
-        }
+        const target = getRegistryItem(MUTATION_REGISTRY, id);
 
         const normalized = createPointMutation({
             id,
@@ -579,13 +582,7 @@
             color: patch.color !== undefined ? patch.color : target.color,
         }, sequenceContext);
 
-        target.sequence = normalized.sequence;
-        target.position = normalized.position;
-        target.replacement = normalized.replacement;
-        target.reference = normalized.reference;
-        target.nodeId = normalized.nodeId;
-        target.color = normalized.color;
-        target.labelText = normalized.labelText;
+        Object.assign(target, normalized);
 
         return clonePointMutation(target);
     }
@@ -597,18 +594,14 @@
      * @returns {boolean}
      */
     function removePointMutation(id) {
-        const idx = POINT_MUTATIONS.findIndex(m => m.id === id);
-        if (idx === -1) return false;
-        POINT_MUTATIONS.splice(idx, 1);
-        return true;
+        return removeRegistryItem(MUTATION_REGISTRY, id);
     }
 
     /**
      * Remove all registered point mutations.
      */
     function clearPointMutations() {
-        POINT_MUTATIONS.length = 0;
-        _nextMutationId = 1;
+        clearRegistry(MUTATION_REGISTRY);
     }
 
     /**
@@ -617,7 +610,7 @@
      * @returns {Array<Object>}
      */
     function getPointMutations() {
-        return POINT_MUTATIONS.map(clonePointMutation);
+        return listRegistryItems(MUTATION_REGISTRY, clonePointMutation);
     }
 
     /**
@@ -730,17 +723,6 @@
     }
 
     /**
-     * Check whether two strings have the same length.
-     *
-     * @param {string} a
-     * @param {string} b
-     * @returns {boolean}
-     */
-    function sameLength(a, b) {
-        return a.length === b.length;
-    }
-
-    /**
      * Validate a structure string for correctly-paired brackets.
      *
      * Ensures `()`, `<>`, `[]`, `{}` are properly opened and closed.
@@ -799,24 +781,6 @@
             }
         }
         return basepairList;
-    }
-
-    /**
-     * Remove base pairs that fall outside the given [start, end] bounds.
-     *
-     * @param {string[]} structureArr  Structure as an array of characters.
-     * @param {[number, number]} bounds  [start, end] indices (0-based, inclusive).
-     * @returns {string}  Modified structure as a string.
-     */
-    function removeBPoutsideBounds(structureArr, bounds) {
-        const [start, end] = bounds;
-        for (const [startBP, endBP] of findBasePairs(structureArr.join(''))) {
-            if (startBP < start || endBP > end) {
-                structureArr[startBP] = '.';
-                structureArr[endBP] = '.';
-            }
-        }
-        return structureArr.join('');
     }
 
     /**
@@ -895,7 +859,7 @@
                 }
             }
         } else {
-            if (!sameLength(structure, sequence)) {
+            if (structure.length !== sequence.length) {
                 throw new Error(
                     `Structure length (${structure.length}) and Sequence length (${sequence.length}) do not match`
                 );
@@ -1625,6 +1589,17 @@
         return [...pointStrings, pointStrings[0]];
     }
 
+    function insertSvgShape(tagName, pointString, style, extraAttrs) {
+        const shape = document.createElementNS('http://www.w3.org/2000/svg', tagName);
+        shape.setAttribute('points', pointString);
+        shape.setAttribute('style', style);
+        for (const [name, value] of Object.entries(extraAttrs)) {
+            shape.setAttribute(name, value);
+        }
+        const insertRoot = getPlotInsertRoot();
+        if (insertRoot) insertRoot.insertBefore(shape, insertRoot.firstChild);
+    }
+
     /**
      * Draw a polyline connecting a list of Fornac node positions.
      *
@@ -1635,14 +1610,7 @@
         const points = getNodePointPairs(indices);
         const pointString = points.map(([x, y]) => `${x},${y}`).join(' ');
 
-        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        poly.setAttribute('points', pointString);
-        poly.setAttribute('style', style);
-        for (const [k, val] of Object.entries(extraAttrs)) {
-            poly.setAttribute(k, val);
-        }
-        const insertRoot = getPlotInsertRoot();
-        if (insertRoot) insertRoot.insertBefore(poly, insertRoot.firstChild);
+        insertSvgShape('polyline', pointString, style, extraAttrs);
     }
 
     /**
@@ -1655,14 +1623,7 @@
         const points = getNodePointPairs(indices);
         const pointString = closePolygonPoints(points).join(' ');
 
-        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        poly.setAttribute('points', pointString);
-        poly.setAttribute('style', style);
-        for (const [k, val] of Object.entries(extraAttrs)) {
-            poly.setAttribute(k, val);
-        }
-        const insertRoot = getPlotInsertRoot();
-        if (insertRoot) insertRoot.insertBefore(poly, insertRoot.firstChild);
+        insertSvgShape('polygon', pointString, style, extraAttrs);
     }
 
     /**
@@ -2409,9 +2370,8 @@
      * @param {Object} v  Validated parameter dictionary (from `validate()`).
      * @param {Object} [options]
      * @param {boolean} [options.forceLayout=false]  Enable Fornac force-layout animation.
-    * @param {boolean} [options.freeTrailingEnds=false]  Remove Fornac's external-loop circularisation constraint (the "closure" scaffold linking the sequence ends) from the force graph, leaving all other loop constraints intact.
-    * @param {boolean} [options.pullPseudoknotBasepairs=false]  Set Fornac's pseudoknot link force strength to 10 (default 0), pulling pseudoknot basepairs together in the force layout.
-     * @param {boolean} [options.legend=false]  Whether to also render the legend.
+     * @param {boolean} [options.freeTrailingEnds=false]  Remove Fornac's external-loop circularisation constraint (the "closure" scaffold linking the sequence ends) from the force graph, leaving all other loop constraints intact.
+     * @param {boolean} [options.pullPseudoknotBasepairs=false]  Set Fornac's pseudoknot link force strength to 10 (default 0), pulling pseudoknot basepairs together in the force layout.
      * @param {Object.<number,number>|null} [options.accessData=null]  Accessibility data map.
      * @param {{sequence1?: string, sequence2?: string}|null} [options.accessColors=null]  Optional accessibility-overlay colors.
      * @param {{sequence1RepresentsOne?: boolean, sequence2RepresentsOne?: boolean}|null} [options.accessColorMode=null]
@@ -2892,90 +2852,92 @@
 
     const vaRRI = {
         // Core
-        validate,
+        normaliseRotationDegrees,
         render,
         rotateVisualization,
-        normaliseRotationDegrees,
+        validate,
 
         // Colors
-        setColors,
         getColors,
+        setColors,
 
-        // Export
-        downloadSVG,
-        downloadPNG,
-        buildSVGString,
-
-        // Validation helpers
-        checkStructureInputSimple,
-        validateSequenceInput,
-        validateCroppingInput,
-        validateStructureInput,
-        validateOffset,
-        validateHighlighting,
-        validateBackgroundhighlighting,
-        splitAtAmpersand,
-        findBasePairs,
-        getIndexDictionary,
-        getSequenceIndices,
-        getMolecules,
-        formatStructure,
-        formatSequence,
-        parseSubsequences,
-        createSubsequenceHighlight,
-        registerSubsequenceHighlight,
-        updateSubsequenceHighlight,
-        removeSubsequenceHighlight,
-        clearSubsequenceHighlights,
-        getSubsequenceHighlights,
-        createRegionHighlight,
-        registerRegionHighlight,
-        updateRegionHighlight,
-        removeRegionHighlight,
-        clearRegionHighlights,
-        getRegionHighlights,
-        registerGeneratedRegionHighlight,
-        computeBackgroundRegionRanges,
-        getRegionHighlightNodePath,
-        createPointMutation,
-        registerPointMutation,
-        updatePointMutation,
-        removePointMutation,
+        // Annotation registries
         clearPointMutations,
+        clearRegionHighlights,
+        clearSubsequenceHighlights,
+        computeBackgroundRegionRanges,
+        createPointMutation,
+        createRegionHighlight,
+        createSubsequenceHighlight,
         getPointMutations,
+        getRegionHighlightNodePath,
+        getRegionHighlights,
+        getSubsequenceHighlights,
+        registerGeneratedRegionHighlight,
+        registerPointMutation,
+        registerRegionHighlight,
+        registerSubsequenceHighlight,
+        removePointMutation,
+        removeRegionHighlight,
+        removeSubsequenceHighlight,
+        updatePointMutation,
+        updateRegionHighlight,
+        updateSubsequenceHighlight,
 
-        // Utility
+        // Validation and formatting
+        checkStructureInputSimple,
+        findBasePairs,
+        formatSequence,
+        formatStructure,
+        getIndexDictionary,
+        getMolecules,
+        getSequenceIndices,
+        parseSubsequences,
+        splitAtAmpersand,
+        validateBackgroundhighlighting,
+        validateCroppingInput,
+        validateHighlighting,
+        validateOffset,
+        validateSequenceInput,
+        validateStructureInput,
+
+        // Base-pair utilities
+        getIntermolBasepairRegion,
+        listBasepairs,
         listIntermolNodes,
         listIntermolPairs,
-        listBasepairs,
-        getIntermolBasepairRegion,
         sequenceColoring,
 
-        // DOM modifications (exposed for advanced use)
-        setLinksId,
-        setLabelsId,
-        changeBackgroundColor,
-        updateNodeToolTips,
-        updateLinkTooltips,
-        setIndexLabels,
-        highlightRegion,
-        highlightBasepairs,
-        backgroundhighlightRegion,
-        backgroundhighlightBasepairs,
-        styleBasepairs,
-        highlightSubsequence,
+        // DOM modifications (advanced use)
+        addElement,
+        addStyleToNodes,
+        applyPointMutations,
         applyRegionHighlights,
         applySubsequenceHighlights,
-        applyPointMutations,
+        backgroundhighlightBasepairs,
+        backgroundhighlightRegion,
+        changeBackgroundColor,
+        closePolygonPoints,
+        getPositionOfNode,
+        highlightBasepairs,
+        highlightRegion,
+        highlightSubsequence,
+        polyline,
         removeDummyNodes,
         removeSecondLink,
-        addStyleToNodes,
-        polyline,
-        addElement,
-        getPositionOfNode,
-        closePolygonPoints,
-        visualiseAccessibility,
         setAttributeForElements,
+        setIndexLabels,
+        setLabelsId,
+        setLinksId,
+        styleBasepairs,
+        updateLinkTooltips,
+        updateNodeToolTips,
+        visualiseAccessibility,
+
+        // Export
+        buildSVGString,
+        downloadPNG,
+        downloadSVG,
     };
 
     // Export
