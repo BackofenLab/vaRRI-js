@@ -114,18 +114,18 @@
   <!-- BILDMARKE -->
   <path
      class="arc"
-     d="m 30.999324,61.270222 a 87.285773,96.93923 0 0 1 139.657236,0"
+     d="m 31.334498,61.270222 a 87.285773,96.93923 0 0 1 139.657232,0"
      id="path861"
      style="stroke:#004fce;stroke-opacity:1" />
   <path
      class="arc"
-     d="m 30.999324,140.7604 a 87.285773,96.93923 0 0 0 139.657236,0"
+     d="m 31.334498,140.7604 a 87.285773,96.93923 0 0 0 139.657232,0"
      id="path867"
      style="fill:none;stroke:#e65c00;stroke-opacity:1" />
   <g
      id="g931"
-     transform="matrix(1.0066936,0,0,1.0068471,-379.42548,-35.973603)"
-     style="fill:#4d4d4d;stroke-width:0.993271"
+     transform="matrix(1.1507186,0,0,1.150894,-438.50844,-50.447334)"
+     style="fill:#4d4d4d;stroke-width:0.868952"
      inkscape:export-xdpi="96"
      inkscape:export-ydpi="96">
     <text
@@ -133,12 +133,12 @@
        y="134.43456"
        class="letter"
        id="text863-8"
-       style="font-weight:800;font-size:80px;font-family:'-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;dominant-baseline:central;text-anchor:middle;fill:#4d4d4d;stroke-width:0.993271">V</text>
+       style="font-weight:800;font-size:80px;font-family:'-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;dominant-baseline:central;text-anchor:middle;fill:#4d4d4d;stroke-width:0.868952">V</text>
     <text
-       x="503.59781"
-       y="152.27917"
+       x="485.2807"
+       y="147.3484"
        class="letter"
        id="text865-8"
-       style="font-weight:800;font-size:80px;font-family:'-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;dominant-baseline:central;text-anchor:middle;fill:#4d4d4d;stroke-width:0.993271">A</text>
+       style="font-weight:800;font-size:80px;font-family:'-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;dominant-baseline:central;text-anchor:middle;fill:#4d4d4d;stroke-width:0.868952">A</text>
   </g>
 </svg>
