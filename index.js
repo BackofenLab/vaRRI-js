@@ -340,15 +340,24 @@ function resetForceLayoutControl() {
   ]);
 }
 
-function resetRotationControl() {
-  committedRotationDeg = 0;
-  resetFormDefaultValue(['rotationSlider']);
-}
-
 function resetCroppingControl() {
   resetFormDefaultValue(['cropping']);
   const croppingValueEl = document.getElementById('cropping-value');
   if (croppingValueEl) croppingValueEl.textContent = '-1';
+}
+
+function updateRotationLabel(degValue) {
+  const deg = Number.parseInt(degValue, 10) || 0;
+  const labelEl = document.getElementById('rotation');
+  if (labelEl) {
+    labelEl.textContent = `${deg}°`;
+  }
+}
+
+function resetRotationControl() {
+  committedRotationDeg = 0;
+  resetFormDefaultValue(['rotationSlider']);
+  updateRotationLabel(committedRotationDeg);
 }
 
 function applySliderRotation() {
@@ -359,11 +368,12 @@ function applySliderRotation() {
   if (!container || !container.querySelector('svg')) return;
 
   const sliderDelta = Number(slider.value);
-  vaRRI.rotateVisualization(
+  const rotValue = vaRRI.rotateVisualization(
     currentContainerId,
     committedRotationDeg + sliderDelta,
     { mode: 'absolute' }
   );
+  updateRotationLabel(rotValue);
 }
 
 function commitSliderRotation() {
@@ -377,7 +387,8 @@ function commitSliderRotation() {
   const container = document.getElementById(currentContainerId);
   if (!container || !container.querySelector('svg')) return;
 
-  vaRRI.rotateVisualization(currentContainerId, committedRotationDeg, { mode: 'absolute' });
+  const rotValue = vaRRI.rotateVisualization(currentContainerId, committedRotationDeg, { mode: 'absolute' });
+  updateRotationLabel(rotValue);
 }
 
 // -------------------------------------------------------------------------
@@ -1312,7 +1323,6 @@ async function runVisualization() {
   const container = document.getElementById(currentContainerId);
   container.innerHTML = '';
   container.style.visibility = 'hidden';
-  resetRotationControl();
 
   const forceLayout = document.getElementById('forceLayout').checked;
   const freeTrailingEnds = forceLayout && !!document.getElementById('forceLayoutFreeTails')?.checked;
@@ -1331,6 +1341,7 @@ async function runVisualization() {
     });
     if (runId !== latestVisualizationRunId || renderState?.cancelled) return;
     container.style.visibility = '';
+
     renderRegionList();
     showMsg('Visualisation ready. Use the export buttons to save.', 'success');
   } catch (err) {
@@ -1556,6 +1567,12 @@ function generateShareableURL(btnElement) {
       }
     }
   });
+
+  // Rotation
+  const rotationValue = committedRotationDeg !== null ? committedRotationDeg : 0;
+  if (rotationValue !== 0) {
+    params.append('rotation', String(rotationValue));
+  }
 
   // Point mutations: "<seq>:<pos><replacement>[:<color>]"
   const mutations = getRegisteredAnnotations('getPointMutations');
@@ -1869,7 +1886,12 @@ function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.se
   // Populate standard form controls.
   urlParams.forEach((value, paramKey) => {
     // Structured annotation parameters are loaded separately.
-    if (paramKey === 'mutations' || paramKey === 'subseqHighlights' || paramKey === 'regionHighlights' || paramKey === 'showRenderingOnly') return;
+    if (paramKey === 'mutations' 
+      || paramKey === 'subseqHighlights' 
+      || paramKey === 'regionHighlights' 
+      || paramKey === 'showRenderingOnly'
+      || paramKey === 'rotation'
+    ) return;
 
     const loaded = loadUrlArgumentToInputField(paramKey, value, paramKey);
 
@@ -1882,6 +1904,14 @@ function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.se
   loadUrlMutationsToVaRRI('mutations', urlParams);
   loadUrlSubsequenceHighlightsToVaRRI('subseqHighlights', urlParams);
   loadUrlRegionHighlightsToVaRRI('regionHighlights', urlParams);
+
+  if( urlParams.has('rotation') ) {
+    const rotationValue = Number.parseFloat(urlParams.get('rotation'));
+    if (!Number.isNaN(rotationValue)) {
+      committedRotationDeg = rotationValue;
+      commitSliderRotation();
+    }
+  }
 
   // Reveal the profile panel when a share link contains profile data.
   if (hasProfileData) {

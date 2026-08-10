@@ -607,6 +607,16 @@ a.btn:active {
   margin-left: .3em;
   color: var(--text-primary);
   font-weight: 600;
+  display: inline-block;
+  width: 1.5em;
+}
+
+.rotation-value {
+  margin-left: .3em;
+  color: var(--text-primary);
+  font-weight: 600;
+  display: inline-block;
+  width: 2.5em;
 }
 
 /* ------------------------------------------------------------------ */
