@@ -24,12 +24,13 @@ body {
 header {
   background: #344a9a;
   color: #f7fbff;
-  padding: 1rem 2rem;
+  padding: 20px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 1.25rem;
   border-bottom: none;
+  height: 100px;
 }
 .header-title {
   display: flex;
@@ -85,7 +86,7 @@ header p  { font-size: 0.9rem; opacity: 0.88; color: #d9e8f6; }
 
 main {
   width: 100%;
-  max-width: 1360px;
+  max-width: 1300px;
   margin: 1.5rem auto;
   padding: 0 1rem;
   display: grid;
@@ -102,6 +103,10 @@ main {
   flex-direction: column;
   gap: 1rem;
   overflow: auto;
+  
+  height: 100%;  
+  min-height: 520px;
+  max-height: max(520px, calc(100vh - 300px));
 }
 
 .control-panel {
@@ -416,6 +421,7 @@ a.btn:active {
   overflow: auto;
   min-width: 460px;
   min-height: 520px;
+  height: max(520px, calc(100vh - 300px));;
 }
 
 .highlight-list {
@@ -698,9 +704,10 @@ input[type="color"].legend-color-rect::-webkit-color-swatch {
   border: 1px solid #d7e2f2;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(15, 46, 74, .08);
-  padding: .9rem 1.1rem;
+  padding: 20px;
+  height: 100px;
   font-size: .82rem;
-  line-height: 1.45;
+  line-height: 1.1;
   color: #30455f;
   text-align: center;
 }
@@ -801,13 +808,9 @@ body.hide-footer-and-header main {
 }
 
 body.hide-footer-and-header .controls-column {
-  overflow-y: auto;
   min-height: 0;  
   height: 100%;  
   max-height: 100vh;
-  
-  display: flex;
-  flex-direction: column;
 }
 
 /* 3. Sicherstellen, dass <aside> im normalen Dokumentenfluss bleibt */

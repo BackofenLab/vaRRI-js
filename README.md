@@ -195,6 +195,7 @@ You can also use the respective button to load or unload the example input.
 | **Fornac force-layout** | When checked, the rendered structure is shown in an interactive force-directed layout. When unchecked, the structure is drawn in a fixed layout. |
 | - **Free trailing ends** | When checked, the trailing ends of the sequences are not fixed in the force-directed layout and can move freely. |
 | - **Pull Pseudoknot Basepairs** | When checked, pseudoknot basepairs are pulled together in the force-directed layout. |
+| - **Full screen UI** | When checked, the header and footer sections are hidden, and the visualisation canvas is maximized. |
 
 ### Region Highlights
 
@@ -381,7 +382,7 @@ Use the `showRenderingOnly=true` URL parameter to hide all surrounding UI elemen
 https://backofenlab.github.io/vaRRI-js/index.html?showRenderingOnly=true&<remaining_parameters...>
 ```
 
-For embedding without header and footer, you can also use the `hideFooterAndHeader=true` parameter, which will hide the header and footer but keep the controls panel visible.
+For embedding without header and footer, you can also use the `hideFooterAndHeader=true` parameter, which will hide the header and footer but keep the controls panel visible, i.e. this checks the "Full screen UI" checkbox in the controls panel.
 
 ### HTML Example
 

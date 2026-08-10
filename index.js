@@ -26,6 +26,7 @@ const DEFAULT_VALUES = {
   forceLayout: true,
   forceLayoutFreeTails: false,
   forceLayoutPullCrossing: false,
+  hideFooterAndHeader: false,
   get colorRriNodes() { return cssColorToHex(vaRRI.getColors().intermolecularHighlight); },
   get colorRriRegion() { return cssColorToHex(vaRRI.getColors().backgroundHighlight); },
   get colorBasepair() { return cssColorToHex(vaRRI.getColors().basepair); },
@@ -1449,6 +1450,13 @@ function attachAutoVisualizationListeners() {
       queueVisualization();
     });
   });
+  
+  // register listener for the "Full screen UI" checkbox for CSS class toggling
+  const checkbox = document.getElementById('hideFooterAndHeader');
+  checkbox.addEventListener('change', (event) => {
+    document.body.classList.toggle('hide-footer-and-header', event.target.checked);
+  });
+
 }
 
 // -------------------------------------------------------------------------
@@ -1878,10 +1886,6 @@ function syncGeneratedRegionHighlight() {
 function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.search)) {
   let hasProfileData = false;
 
-  // content-only flag
-  if (urlParams.has('hideFooterAndHeader') && urlParams.get('hideFooterAndHeader') !== 'false') {
-    document.body.classList.add('hide-footer-and-header');
-  }
   // Rendering-only flag.
   if (urlParams.has('showRenderingOnly') && urlParams.get('showRenderingOnly') !== 'false') {
     document.body.classList.add('rendering-only');
@@ -1893,7 +1897,6 @@ function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.se
     if (paramKey === 'mutations' 
       || paramKey === 'subseqHighlights' 
       || paramKey === 'regionHighlights' 
-      || paramKey === 'hideFooterAndHeader'
       || paramKey === 'showRenderingOnly'
       || paramKey === 'rotation'
     ) return;
