@@ -1878,6 +1878,10 @@ function syncGeneratedRegionHighlight() {
 function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.search)) {
   let hasProfileData = false;
 
+  // content-only flag
+  if (urlParams.has('hideFooterAndHeader') && urlParams.get('hideFooterAndHeader') !== 'false') {
+    document.body.classList.add('hide-footer-and-header');
+  }
   // Rendering-only flag.
   if (urlParams.has('showRenderingOnly') && urlParams.get('showRenderingOnly') !== 'false') {
     document.body.classList.add('rendering-only');
@@ -1889,6 +1893,7 @@ function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.se
     if (paramKey === 'mutations' 
       || paramKey === 'subseqHighlights' 
       || paramKey === 'regionHighlights' 
+      || paramKey === 'hideFooterAndHeader'
       || paramKey === 'showRenderingOnly'
       || paramKey === 'rotation'
     ) return;
