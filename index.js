@@ -1453,12 +1453,6 @@ function attachAutoVisualizationListeners() {
       queueVisualization();
     });
   });
-  
-  // register listener for the "Full screen UI" checkbox for CSS class toggling
-  const checkbox = document.getElementById('hideFooterAndHeader');
-  checkbox.addEventListener('change', (event) => {
-    document.body.classList.toggle('hide-footer-and-header', event.target.checked);
-  });
 
 }
 
@@ -1910,6 +1904,14 @@ function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.se
       fullPageBtn.style.display = 'inline-block';
     }
   }
+  // trigger event of the checkbox for "Full screen UI" to hide header and footer
+  if (urlParams.has('hideFooterAndHeader') && urlParams.get('hideFooterAndHeader') !== 'false') {
+    const checkbox = document.getElementById('hideFooterAndHeader');
+    if (checkbox) {
+      checkbox.checked = true;
+      document.body.classList.add('hide-footer-and-header');
+    }
+  }
 
   // Populate standard form controls.
   urlParams.forEach((value, paramKey) => {
@@ -1980,6 +1982,12 @@ function attachUiActionListeners() {
       applyColors();
       runVisualization();
     });
+  });
+    
+  // register listener for the "Full screen UI" checkbox for CSS class toggling
+  const checkbox = document.getElementById('hideFooterAndHeader');
+  checkbox.addEventListener('change', (event) => {
+    document.body.classList.toggle('hide-footer-and-header', event.target.checked);
   });
 }
 
