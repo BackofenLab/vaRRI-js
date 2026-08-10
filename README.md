@@ -381,6 +381,8 @@ Use the `showRenderingOnly=true` URL parameter to hide all surrounding UI elemen
 https://backofenlab.github.io/vaRRI-js/index.html?showRenderingOnly=true&<remaining_parameters...>
 ```
 
+For embedding without header and footer, you can also use the `hideFooterAndHeader=true` parameter, which will hide the header and footer but keep the controls panel visible.
+
 ### HTML Example
 
 ```html
