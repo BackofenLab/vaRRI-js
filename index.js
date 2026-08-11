@@ -1973,7 +1973,10 @@ function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.se
   let hasProfileData = false;
 
   // Rendering-only flag.
-  if (urlParams.has('showRenderingOnly') && urlParams.get('showRenderingOnly') !== 'false') {
+  if (urlParams.has('showRenderingOnly') 
+    && urlParams.get('showRenderingOnly') !== 'false'
+    && urlParams.get('showRenderingOnly') !== '0'
+  ){
     // disable all UI elements that are not part of the rendering container
     document.body.classList.add('rendering-only');
     // enable "Full Page" button
@@ -1983,7 +1986,10 @@ function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.se
     }
   }
   // trigger event of the checkbox for "Full screen UI" to hide header and footer
-  if (urlParams.has('hideFooterAndHeader') && urlParams.get('hideFooterAndHeader') !== 'false') {
+  if (urlParams.has('hideFooterAndHeader') 
+    && urlParams.get('hideFooterAndHeader') !== 'false'
+    && urlParams.get('hideFooterAndHeader') !== '0'
+  ){
     const checkbox = document.getElementById('hideFooterAndHeader');
     if (checkbox) {
       checkbox.checked = true;
