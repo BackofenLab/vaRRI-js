@@ -852,7 +852,7 @@ function updateHighlights(textareaId) {
   const text = textarea.value;
   const seq1Color = cssColorToRGB(colorSeq1Input.value, 0.35);
   const seq2Color = cssColorToRGB(colorSeq2Input.value, 0.35);
-  const basepairColor = cssColorToRGB(colorBasepairInput.value, 0.8); // '&' etwas auffälliger
+  const basepairColor = cssColorToRGB(colorBasepairInput.value, 0.6); // '&' etwas auffälliger
 
   const regex = /^([^&]+)(&)([^&]+)$/;
   const match = text.match(regex);
