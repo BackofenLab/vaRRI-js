@@ -1919,6 +1919,12 @@
                     `fill:${highlight.color || COLORS.backgroundHighlight};opacity:${highlight.alpha};stroke:${highlight.color || COLORS.backgroundHighlight};stroke-width:7`,
                     { 'data-varri-region': 'true' }
                 );
+            } else if (nodePath.length === 2) {
+                polyline(
+                    nodePath,
+                    `stroke:${highlight.color || COLORS.backgroundHighlight};opacity:${highlight.alpha};stroke-width:7`,
+                    { 'data-varri-region': 'true' }
+                );
             }
         });
     }
