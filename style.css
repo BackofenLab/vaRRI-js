@@ -247,8 +247,9 @@ textarea:focus, input:focus, select:focus {
 }
 
 textarea { resize: vertical; }
-/* 3. Match #sequence and #backdrop EXPLICITLY with ID specificity */
-#sequence, #structure, #backdrop-sequence, #backdrop-structure {
+
+/* enable textarea highlighting by overlaying a backdrop div with identical text and highlights*/
+.backdropable {
   /* Typography - MUST BE IDENTICAL */
   font-family: "Courier New", Courier, monospace !important;
   font-size: 14px !important;
@@ -272,7 +273,8 @@ textarea { resize: vertical; }
 }
 
 /* 4. Backdrop Positioning */
-#backdrop-sequence, #backdrop-structure {
+div.backdropable {
+/*#backdrop-sequence, #backdrop-structure {*/
   position: absolute;
   top: 0;
   left: 0;
@@ -294,7 +296,7 @@ textarea { resize: vertical; }
 }
 
 /* 6. Textarea Layer */
-#sequence, #structure {
+textarea.backdropable {
   position: relative;
   z-index: 2;
   background-color: transparent !important; /* Transparent so highlights show through */
@@ -306,12 +308,10 @@ textarea { resize: vertical; }
 }
 
 /* error handling */
-.input-wrap.has-error > #sequence,
-.input-wrap.has-error > #structure {
+.input-wrap.has-error > textarea.backdropable  {
   border-color: #e74c3c !important;
 }
-.input-wrap.has-error > #backdrop-sequence,
-.input-wrap.has-error > #backdrop-structure {
+.input-wrap.has-error > div.backdropable  {
   background-color: #fff5f5 !important;
   border-color: #e74c3c !important;
 }
@@ -327,8 +327,7 @@ textarea { resize: vertical; }
 }
 
 
-#profileData1,
-#profileData2 {
+textarea.profileData {
   overflow-wrap: normal;
   overflow-x: auto;
   white-space: pre;
