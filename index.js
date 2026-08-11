@@ -316,6 +316,8 @@ function clearAll() {
   vaRRI.clearSubsequenceHighlights();
   vaRRI.clearRegionHighlights();
   vaRRI.clearPointMutations();
+  document.getElementById('sequence').dispatchEvent(new Event('input', { bubbles: true }));
+  document.getElementById('structure').dispatchEvent(new Event('input', { bubbles: true }));
   resetHighlightForm();
   resetRegionForm();
   resetProfileForm();
@@ -813,6 +815,72 @@ function updateListCounter(counterId, count) {
   counter.textContent = count > 0 ? '(' + count + ')' : '';
 }
 
+
+
+
+// Dynamically sync size & compensate for vertical scrollbar width
+function syncDimensions(textareaId) {
+  const textarea = document.getElementById(textareaId);
+  const backdrop = document.getElementById(`backdrop-${textareaId}`);
+  backdrop.style.width = `${textarea.offsetWidth}px`;
+  backdrop.style.height = `${textarea.offsetHeight}px`;
+
+  // Calculate textarea's scrollbar width (offsetWidth - clientWidth - 2px borders)
+  const scrollbarWidth = textarea.offsetWidth - textarea.clientWidth - 2;
+  
+  // Add scrollbar width to backdrop's right padding so text area matches character for character
+  backdrop.style.paddingRight = `${8 + Math.max(0, scrollbarWidth)}px`;
+}
+
+// Sync scroll positions
+function syncScroll(textareaId) {
+  const textarea = document.getElementById(textareaId);
+  const backdrop = document.getElementById(`backdrop-${textareaId}`);
+  backdrop.scrollTop = textarea.scrollTop;
+  backdrop.scrollLeft = textarea.scrollLeft;
+}
+
+// Funktion zum Verarbeiten und Hervorheben des Textes
+function updateHighlights(textareaId) {
+  const textarea = document.getElementById(textareaId);
+  const backdrop = document.getElementById(`backdrop-${textareaId}`);
+  const highlights = document.getElementById(`highlights-${textareaId}`);
+  
+  const colorSeq1Input = document.getElementById('colorSeq1');
+  const colorSeq2Input = document.getElementById('colorSeq2');
+  const colorBasepairInput = document.getElementById('colorBasepair');
+  const text = textarea.value;
+  const seq1Color = cssColorToRGB(colorSeq1Input.value, 0.35);
+  const seq2Color = cssColorToRGB(colorSeq2Input.value, 0.35);
+  const basepairColor = cssColorToRGB(colorBasepairInput.value, 0.8); // '&' etwas auffälliger
+
+  const regex = /^([^&]+)(&)([^&]+)$/;
+  const match = text.match(regex);
+
+  let html = '';
+  if (match) {
+    html = `<span class="hl-seq1" style="background-color: ${seq1Color}">${match[1]}</span>` +
+           `<span class="hl-basepair" style="background-color: ${basepairColor}">${match[2]}</span>` +
+           `<span class="hl-seq2" style="background-color: ${seq2Color}">${match[3]}</span>`;
+  } else if (text.includes('&')) {
+    const parts = text.split('&');
+    const seq1 = parts[0];
+    const rest = parts.slice(1).join('&');
+    html = `<span class="hl-seq1" style="background-color: ${seq1Color}">${seq1}</span>` +
+           `<span class="hl-basepair" style="background-color: ${basepairColor}">&</span>` +
+           `<span class="hl-seq2" style="background-color: ${seq2Color}">${rest}</span>`;
+  } else {
+    html = text;
+  }
+
+  // If text ends with a newline, add a space so backdrop height matches textarea scroll
+  if (text.endsWith('\n')) {
+    html += ' ';
+  }
+
+  highlights.innerHTML = html;
+}
+
 function normalizeRegionInput(value) {
   if (value === null || value === undefined) return '';
   const normalized = String(value).replace(/\s+/g, '');
@@ -1237,7 +1305,12 @@ function validateFields(args) {
     setFieldError('sequence', 'No sequence given.');
     valid = false;
   } else {
-    try { vaRRI.validateSequenceInput(args.sequence); }
+    try { 
+      vaRRI.validateSequenceInput(args.sequence); 
+      updateHighlights('sequence');
+      syncDimensions('sequence');
+      syncScroll('sequence');
+    }
     catch (e) { setFieldError('sequence', e.message); valid = false; }
   }
 
@@ -1246,7 +1319,12 @@ function validateFields(args) {
     setFieldError('structure', 'No structure given.');
     valid = false;
   } else if (args.sequence) {
-    try { vaRRI.validateStructureInput(args.structure, args.sequence); }
+    try { 
+      vaRRI.validateStructureInput(args.structure, args.sequence); 
+      updateHighlights('structure');
+      syncDimensions('structure');
+      syncScroll('structure');
+    }
     catch (e) { setFieldError('structure', e.message); valid = false; }
   }
 
@@ -1982,13 +2060,45 @@ function attachUiActionListeners() {
       runVisualization();
     });
   });
-    
+
   // register listener for the "Full screen UI" checkbox for CSS class toggling
   const checkbox = document.getElementById('hideFooterAndHeader');
   checkbox.addEventListener('change', (event) => {
     document.body.classList.toggle('hide-footer-and-header', event.target.checked);
   });
 }
+
+function registerSequenceBackdropSync(textareaId) {
+  // synchronize scroll position and resize of sequence textarea with backdrop
+  const textarea = document.getElementById(textareaId);
+  const backdrop = document.getElementById(`backdrop-${textareaId}`);
+  textarea.addEventListener('scroll', () => {
+    backdrop.scrollTop = textarea.scrollTop;
+    backdrop.scrollLeft = textarea.scrollLeft;
+  });
+
+  // Listen for resize events
+  const resizeObserver = new ResizeObserver(() => {
+    syncDimensions(textareaId);
+    syncScroll(textareaId);
+  });
+  resizeObserver.observe(textarea);
+  // Sync scroll positions
+  textarea.addEventListener('scroll', () => {syncScroll(textareaId);});
+  textarea.addEventListener('input', () => {
+    updateHighlights(textareaId);
+    syncDimensions(textareaId);
+    syncScroll(textareaId);
+  });
+
+  const colorSeq1Input = document.getElementById('colorSeq1');
+  const colorSeq2Input = document.getElementById('colorSeq2');
+  const colorBasepairInput = document.getElementById('colorBasepair');
+  colorSeq1Input.addEventListener('input', () => {updateHighlights(textareaId);});
+  colorSeq2Input.addEventListener('input',  () => {updateHighlights(textareaId);});
+  colorBasepairInput.addEventListener('input',  () => {updateHighlights(textareaId);});
+ }
+
 
 window.addEventListener('load', () => {
   // Reset state before applying examples or URL parameters.
@@ -1997,6 +2107,9 @@ window.addEventListener('load', () => {
   // Bind explicit UI actions before loading URL state.
   attachUiActionListeners();
 
+  registerSequenceBackdropSync('sequence');
+  registerSequenceBackdropSync('structure');
+ 
   // Set up profile drag-and-drop and counters.
   setupFileDragAndDrop('profileData1');
   setupFileDragAndDrop('profileData2');

@@ -183,7 +183,7 @@ label small {
 .start-index-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: .5rem;
+  gap: .4rem;
 }
 
 .start-index-item {
@@ -193,7 +193,7 @@ label small {
 .start-index-label-row {
   display: flex;
   align-items: center;
-  gap: .35rem;
+  gap: .3rem;
   margin-bottom: .2rem;
   position: relative;
 }
@@ -210,7 +210,7 @@ label small {
 }
 
 .start-index-label-row > input[type="number"] {
-  width: 5rem;
+  width: 4.7rem;
   margin: 0;
   line-height: 1.2;
 }
@@ -231,9 +231,15 @@ textarea, input[type="text"], input[type="number"], select {
   background: #fcfdff;
   border-radius: 4px;
   font-family: "Courier New", monospace;
+  line-height: 1;
   font-size: .85rem;
   margin-bottom: .75rem;
   transition: border-color .2s;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-all;
+  letter-spacing: normal;
 }
 textarea:focus, input:focus, select:focus {
   outline: none;
@@ -241,6 +247,85 @@ textarea:focus, input:focus, select:focus {
 }
 
 textarea { resize: vertical; }
+/* 3. Match #sequence and #backdrop EXPLICITLY with ID specificity */
+#sequence, #structure, #backdrop-sequence, #backdrop-structure {
+  /* Typography - MUST BE IDENTICAL */
+  font-family: "Courier New", Courier, monospace !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  letter-spacing: normal !important;
+  
+  /* Dimensions & Spacing - MUST BE IDENTICAL */
+  border: 1px solid var(--border-soft) !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  padding-left: 8px !important;
+  padding-right: 8px;
+
+  /* Line wrapping rules */
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* 4. Backdrop Positioning */
+#backdrop-sequence, #backdrop-structure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden !important; /* Hide backdrop scrollbar; JS controls scroll */
+  pointer-events: none;
+  z-index: 1;
+  background: #fcfdff; /* Background moves to backdrop */
+}
+
+/* 5. Highlight span text layer */
+.highlights {
+  font-family: "Courier New", Courier, monospace !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  word-break: break-all !important;
+  color: transparent;
+}
+
+/* 6. Textarea Layer */
+#sequence, #structure {
+  position: relative;
+  z-index: 2;
+  background-color: transparent !important; /* Transparent so highlights show through */
+  resize: vertical;
+  display: block;
+  white-space: nowrap;
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+}
+
+/* error handling */
+.input-wrap.has-error > #sequence,
+.input-wrap.has-error > #structure {
+  border-color: #e74c3c !important;
+}
+.input-wrap.has-error > #backdrop-sequence,
+.input-wrap.has-error > #backdrop-structure {
+  background-color: #fff5f5 !important;
+  border-color: #e74c3c !important;
+}
+
+/* Highlight-Klassen für die Abschnitte */
+.hl-seq1, .hl-seq2, .hl-basepair {
+  display: inline;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
 
 #profileData1,
 #profileData2 {
@@ -731,8 +816,9 @@ input[type="color"].legend-color-rect::-webkit-color-swatch {
 /* Inline field validation — error highlight + hover tooltip           */
 /* ------------------------------------------------------------------ */
 .input-wrap {
-  position: relative;
+  position: relative !important;
   display: block;
+  width: 100%;
 }
 .input-wrap.has-error > textarea,
 .input-wrap.has-error > input {

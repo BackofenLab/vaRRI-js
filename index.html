@@ -55,10 +55,13 @@
 
         <!-- Sequence -->
         <label for="sequence">
-          Sequence <small>(IUPAC; separate two molecules with &amp;)</small>
+          Sequence <small>(IUPAC; separate molecules with &amp;)</small>
         </label>
-        <div class="input-wrap"><textarea id="sequence" rows="3"
-          placeholder="ACGAUCAGAGAUUAGAGCAUACGACAGCAG&amp;ACGAAAAGAGCAUACGACAGUAG"></textarea><span class="field-tooltip"></span></div>
+        <div class="input-wrap">
+          <div id="backdrop-sequence"><div class="highlights" id="highlights-sequence"></div></div>
+          <textarea id="sequence" rows="3" placeholder="ACGAUCAGAGAUUAGAGCAUACGACAGCAG&amp;ACGAAAAGAGCAUACGACAGUAG"></textarea>
+          <span class="field-tooltip"></span>
+        </div>
 
         <!-- Start indices and color -->
         <div class="start-index-grid">
@@ -84,10 +87,13 @@
 
         <!-- Structure -->
         <label for="structure">
-          Structure <small>(dot-bracket; separate two molecules with &amp;)</small>
+          Structure <small>(dot-bracket; separate molecules with &amp;)</small>
         </label>
-        <div class="input-wrap"><textarea id="structure" rows="3"
-          placeholder="..(((((....)))))(((....)))..&amp;..(((......))).."></textarea><span class="field-tooltip"></span></div>
+        <div class="input-wrap">
+          <div id="backdrop-structure"><div class="highlights" id="highlights-structure"></div></div>
+          <textarea id="structure" rows="3" placeholder="..(((((....)))))(((....)))..&amp;..(((......))).."></textarea>
+          <span class="field-tooltip"></span>
+        </div>
 
         </div>
       </details>
