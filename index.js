@@ -23,7 +23,7 @@ const DEFAULT_VALUES = {
   get profileColor2() { return cssColorToHex(vaRRI.getColors().seq2profileColor); },
   profileColorRepresentsOne2: true,
   // visualization
-  forceLayout: true,
+  forceLayout: false,
   forceLayoutFreeTails: false,
   forceLayoutPullCrossing: false,
   hideFooterAndHeader: false,

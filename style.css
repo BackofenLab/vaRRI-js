@@ -681,7 +681,7 @@ a.btn:active {
 .viz-control input[type="range"] {
   flex: 1;
   margin: 0;
-  min-width: 0;
+  min-width: 50;
 }
 
 .export-bar {

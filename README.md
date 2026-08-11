@@ -362,6 +362,7 @@ See descriptions above and the [Input Format Reference](#input-format-reference)
 | **`guBasepairs`** | Toggle display of G-U Wobble base pairs as dashed lines (`true` / `false`). |
 | **`forceLayout`** | Enable or disable Fornac force-layout physics simulation (`true` / `false`). |
 
+To simplify sequence and structure input validation, sequence and structure inputs are highlighted with the chosen strand-specific colors.
 
 > [!IMPORTANT]
 > - All URL parameters are case-sensitive. 
