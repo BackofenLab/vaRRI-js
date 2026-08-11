@@ -1985,17 +1985,6 @@ function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.se
       fullPageBtn.style.display = 'inline-block';
     }
   }
-  // trigger event of the checkbox for "Full screen UI" to hide header and footer
-  if (urlParams.has('hideFooterAndHeader') 
-    && urlParams.get('hideFooterAndHeader') !== 'false'
-    && urlParams.get('hideFooterAndHeader') !== '0'
-  ){
-    const checkbox = document.getElementById('hideFooterAndHeader');
-    if (checkbox) {
-      checkbox.checked = true;
-      document.body.classList.add('hide-footer-and-header');
-    }
-  }
 
   // Populate standard form controls.
   urlParams.forEach((value, paramKey) => {
@@ -2140,6 +2129,9 @@ window.addEventListener('load', () => {
   if (urlParams.size > 0) {
     // Populate state without triggering intermediate renders.
     loadAllUrlParameters(urlParams);
+
+    // trigger change event for hideFooterAndHeader checkbox to apply CSS class if needed
+    document.getElementById('hideFooterAndHeader').dispatchEvent(new Event('change', { bubbles: true }));
 
     // Refresh annotation lists and counters.
     renderHighlightList();
