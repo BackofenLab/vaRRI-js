@@ -272,7 +272,7 @@ function applyColors() {
 // -------------------------------------------------------------------------
 // Main visualisation
 // -------------------------------------------------------------------------
-let currentContainerId = 'rna_ss';
+let currentContainerId = 'rendering-canvas';
 let committedRotationDeg = 0;
 let autoVisualizationTimeoutId = null;
 let latestVisualizationRunId = 0;
@@ -325,7 +325,7 @@ function clearAll() {
   renderHighlightList();
   renderRegionList();
   renderMutationList();
-  const container = document.getElementById('rna_ss');
+  const container = document.getElementById(currentContainerId);
   container.innerHTML = '';
   container.style.visibility = '';
   resetCroppingControl();
@@ -1985,6 +1985,7 @@ function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.se
       fullPageBtn.style.display = 'inline-block';
     }
   }
+
 
   // Populate standard form controls.
   urlParams.forEach((value, paramKey) => {

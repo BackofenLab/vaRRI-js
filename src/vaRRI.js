@@ -2412,7 +2412,10 @@
         // Build molecules via Fornac
         const container = new fornac.FornaContainer(
             `#${containerId}`,
-            { animation: forceLayout, labelInterval: 1 }
+            { 
+                animation: forceLayout, 
+                labelInterval: 1
+            }
         );
         container.addRNA(v.structure, { structure: v.structure, sequence: v.sequence });
 

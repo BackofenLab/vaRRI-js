@@ -63,7 +63,7 @@ post-processing from the previous render.
 | `accessColorMode` | `Object\|null` | `null` | Optional `sequence1RepresentsOne` and `sequence2RepresentsOne` flags. |
 
 ```javascript
-const state = await vaRRI.render('rna_ss', validated, {
+const state = await vaRRI.render('rendering-canvas', validated, {
   forceLayout: true,
   accessData: { 1: 0.8, 2: 0.3 },
 });
