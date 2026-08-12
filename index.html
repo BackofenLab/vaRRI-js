@@ -55,7 +55,7 @@
 
         <!-- Sequence -->
         <label for="sequence">
-          Sequence <small>(IUPAC; separate molecules with &amp;)</small>
+          Sequences <small>(IUPAC; separate molecules with &amp;)</small>
         </label>
         <div class="input-wrap">
           <div id="backdrop-sequence" class="backdropable"><div class="highlights" id="highlights-sequence"></div></div>
@@ -106,7 +106,12 @@
     <!-- ================================================================== -->
     <aside class="panel control-panel" aria-label="Visualization settings">
       <details class="control-group">
-        <summary>Visualization Settings</summary>
+        <summary>Visualization Settings
+          <span id="full-screen-menu">
+            <input type="checkbox" id="hideFooterAndHeader" checked/>
+            <label for="hideFooterAndHeader" title="Toogle to Full Screen mode.">Full screen</label>
+          </span>
+        </summary>
         <div class="control-group-body">
 
           <div class="row-2">
@@ -155,11 +160,7 @@
             <input type="checkbox" id="forceLayoutPullCrossing">
             <label for="forceLayoutPullCrossing">Pull pseudoknot basepairs</label>
           </div>
-          
-          <div class="checkbox-row">
-            <input type="checkbox" id="hideFooterAndHeader" checked />
-            <label for="hideFooterAndHeader" style="margin:0">Full screen user interface</label>
-          </div>
+                    
         </div>
       </details>
     </aside>

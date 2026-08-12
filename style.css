@@ -126,6 +126,8 @@ main {
   font-weight: 700;
   color: var(--brand-blue-dark);
   user-select: none;
+  vertical-align: middle;
+  width: 100%;
 }
 
 .control-group > summary::-webkit-details-marker {
@@ -140,6 +142,16 @@ main {
 .control-group-body {
   padding: .8rem .8rem .35rem;
 }
+
+#full-screen-menu {
+  display: inline-flex;
+  align-items: sub;
+  gap: 6px;
+  vertical-align: middle;
+  margin-left: auto;
+  padding-left: 2rem;
+}
+
 
 /* ------------------------------------------------------------------ */
 /* Input panel                                                          */
@@ -683,6 +695,7 @@ a.btn:active {
   margin: 0;
   min-width: 50;
 }
+
 
 .export-bar {
   background: var(--surface);
