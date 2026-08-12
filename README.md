@@ -164,10 +164,27 @@ npm test
 
 | Field | Description |
 |---|---|
-| **Sequence** | RNA sequence (IUPAC characters). Separate two molecules with `&`. |
+| **Sequence** | RNA sequence (IUPAC characters). Separate two molecules with `&` or FASTA format (see below). |
 | **Start index mol. 1/2** | The number assigned to the first nucleotide of each molecule. Defaults to 1. 0 is not valid; negative indices are supported. |
 | **Color Choice** | Use the color pickers to customize the colors for each sequence. |
 | **Structure** | Dot-bracket structure string. Separate two molecules with `&`. |
+
+The **Sequence** field supports **FASTA input**, which is automatically parsed and split into the sequence and structure fields.
+**Fasta files can also be dragged and dropped** into the sequence field to load them directly.
+
+Multiline FASTA sequence input is supported, and the trimmed subsequences are concatenated into a single sequence string. The **FASTA header line is ignored**, and the structure field is left unchanged unless the FASTA input contains a **second line with a dot-bracket structure string**.
+
+> ![IMPORTANT]
+> Only if *all* FASTA records contain a structure line, the structure field is updated with the concatenated structures. Otherwise, the structure field remains unchanged.
+
+```text
+> bla
+ACGAUCAUGGAUUAGAGCAUUCGACAGCAG
+..<<<<...>>>>...((..(((...((..
+> blub
+ACGAAAAAAAGAGCAUACGACAGUAG
+............))...)))..))..
+```
 
 Details about supported sequence and dot-bracket structure encodings are provided in the [Input Format Reference](#input-format-reference) section.
 
