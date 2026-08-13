@@ -48,6 +48,13 @@ describe('UI document structure', () => {
     expect(html).not.toMatch(/\sstyle="/i);
   });
 
+  test('keeps example options out of the static HTML', () => {
+    expect(html).toContain('<details id="exampleDropdown" class="example-dropdown">');
+    expect(html).toMatch(/<summary[^>]+aria-labelledby="exampleDropdownLabel selectedExampleName"/);
+    expect(html).toContain('id="exampleDropdownOptions"');
+    expect(html).not.toMatch(/\bdata-example=/);
+  });
+
   test('uses unique element IDs', () => {
     const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map(match => match[1]);
     expect(new Set(ids).size).toBe(ids.length);

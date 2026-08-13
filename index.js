@@ -86,16 +86,25 @@ const SINGLE_MOLECULE_EXAMPLE_DEFAULTS = {
   highlighting: 'nothing',
   backgroundhighlighting: 'nothing',
   guBasepairs: false,
+  cropping: '-1',
+  forceLayout: false,
+  forceLayoutFreeTails: false,
+  forceLayoutPullCrossing: false,
+  regionHighlights: [],
   subsequenceHighlights: [],
   pointMutations: [],
   profileColor1RepresentsOne: false,
   profileColor2RepresentsOne: false,
   profileData1: '',
   profileData2: '',
+  profileIndexReference1: '1',
+  profileIndexReference2: '1',
 };
 
 const EXAMPLES = {
   '2mol': {
+    name: 'RNA–RNA interaction',
+    description: 'Explore a two-molecule interaction with cropping, profiles, highlights, and point mutations.',
     structure: '..<<<<...>>>>...((..(((...((..&............))...)))..))..',
     sequence: 'ACGAUCAUGGAUUAGAGCAUUCGACAGCAG&ACGAAAAAAAGAGCAUACGACAGUAG',
     startIndex1: '-6', startIndex2: '100',
@@ -103,6 +112,8 @@ const EXAMPLES = {
     backgroundhighlighting: 'basepairs', guBasepairs: true,
     cropping: '2',
     forceLayout: false,
+    forceLayoutFreeTails: false,
+    forceLayoutPullCrossing: false,
     regionHighlights: [
       { sequence1Range: '13-14', sequence2Range: '120-121', color: '#0d00ff', generated: false },
     ],
@@ -127,20 +138,79 @@ const EXAMPLES = {
     profileIndexReference1: '1',
   },
   '1mol': {
+    name: 'RNA secondary structure',
+    description: 'Visualize a single RNA hairpin with loop-type coloring.',
     ...SINGLE_MOLECULE_EXAMPLE_DEFAULTS,
     structure: '(((....)))',
     sequence: 'GGGCAAAACC',
   },
   'pseudoknot': {
+    name: 'RNA pseudoknot',
+    description: 'Visualize a single RNA structure containing crossing base pairs.',
     ...SINGLE_MOLECULE_EXAMPLE_DEFAULTS,
     structure: '((.[[..))..]]',
     sequence: 'ACGUACGUACGUA',
   },
 };
 
+const EXAMPLE_PLACEHOLDER = 'Select an example';
+let selectedExampleKey = null;
+
+function renderExampleDropdown() {
+  const options = document.getElementById('exampleDropdownOptions');
+  if (!options) return;
+
+  const fragment = document.createDocumentFragment();
+  Object.entries(EXAMPLES).forEach(([key, example]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'example-option';
+    button.dataset.example = key;
+
+    const name = document.createElement('span');
+    name.className = 'example-option-name';
+    name.textContent = example.name;
+
+    const description = document.createElement('span');
+    description.className = 'example-option-description';
+    description.textContent = example.description;
+
+    button.append(name, description);
+    if (key === selectedExampleKey) {
+      button.setAttribute('aria-current', 'true');
+    }
+    fragment.appendChild(button);
+  });
+
+  options.replaceChildren(fragment);
+}
+
+function updateExampleDropdownSelection(key) {
+  const example = EXAMPLES[key];
+  selectedExampleKey = example ? key : null;
+
+  const label = document.getElementById('selectedExampleName');
+  if (label) label.textContent = example ? example.name : EXAMPLE_PLACEHOLDER;
+
+  const dropdown = document.getElementById('exampleDropdown');
+  if (dropdown) dropdown.open = false;
+
+  document.querySelectorAll('#exampleDropdownOptions [data-example]').forEach(button => {
+    if (button.dataset.example === selectedExampleKey) {
+      button.setAttribute('aria-current', 'true');
+    } else {
+      button.removeAttribute('aria-current');
+    }
+  });
+}
+
+function resetExampleDropdownSelection() {
+  updateExampleDropdownSelection(null);
+}
+
 function loadExample(key) {
   const ex = EXAMPLES[key];
-  if (!ex) return;
+  if (!ex) return false;
   document.getElementById('structure').value = ex.structure;
   document.getElementById('sequence').value = ex.sequence;
   document.getElementById('cropping').value = ex.cropping;
@@ -148,6 +218,9 @@ function loadExample(key) {
   document.getElementById('startIndex2').value = ex.startIndex2;
   document.getElementById('coloring').value = ex.coloring;
   document.getElementById('forceLayout').checked = !!ex.forceLayout;
+  document.getElementById('forceLayoutFreeTails').checked = !!ex.forceLayoutFreeTails;
+  document.getElementById('forceLayoutPullCrossing').checked = !!ex.forceLayoutPullCrossing;
+  syncAnimationDependentControls();
   document.getElementById('highlighting').value = ex.highlighting;
   document.getElementById('backgroundhighlighting').value = ex.backgroundhighlighting;
   document.getElementById('guBasepairs').checked = ex.guBasepairs;
@@ -215,7 +288,9 @@ function loadExample(key) {
   resetRegionForm();
   resetMutationForm();
 
+  updateExampleDropdownSelection(key);
   runVisualization();
+  return true;
 }
 
 // -------------------------------------------------------------------------
@@ -312,6 +387,7 @@ function clearMsg() {
 }
 
 function clearAll() {
+  resetExampleDropdownSelection();
   resetFormDefaultValue(Object.keys(DEFAULT_VALUES));
   vaRRI.clearSubsequenceHighlights();
   vaRRI.clearRegionHighlights();
@@ -2334,8 +2410,28 @@ function attachUiActionListeners() {
     document.getElementById(id)?.addEventListener('click', handler);
   });
 
-  document.querySelectorAll('[data-example]').forEach(button => {
-    button.addEventListener('click', () => loadExample(button.dataset.example));
+  const exampleDropdown = document.getElementById('exampleDropdown');
+  const exampleOptions = document.getElementById('exampleDropdownOptions');
+
+  exampleOptions?.addEventListener('click', event => {
+    const button = event.target.closest('[data-example]');
+    if (button && loadExample(button.dataset.example)) {
+      document.getElementById('exampleDropdownTrigger')?.focus();
+    }
+  });
+
+  exampleDropdown?.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && exampleDropdown.open) {
+      event.preventDefault();
+      exampleDropdown.open = false;
+      document.getElementById('exampleDropdownTrigger')?.focus();
+    }
+  });
+
+  document.addEventListener('click', event => {
+    if (exampleDropdown?.open && !exampleDropdown.contains(event.target)) {
+      exampleDropdown.open = false;
+    }
   });
 
   document.querySelectorAll('.js-render-color').forEach(input => {
@@ -2385,6 +2481,9 @@ function registerSequenceBackdropSync(textareaId) {
 
 
 window.addEventListener('load', () => {
+  // Build example controls from the same dictionary used to load their values.
+  renderExampleDropdown();
+
   // Reset state before applying examples or URL parameters.
   clearAll();
 
