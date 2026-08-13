@@ -494,5 +494,36 @@
   </div>
 </footer>
 
+
+<!-- 1. Zahlen-Dialog -->
+<dialog id="numberDialog" class="app-dialog">
+  <form method="dialog">
+    <div class="dialog-header">Change to</div>
+    <div class="dialog-body">
+      <input type="number" step="any" placeholder="0">
+    </div>
+    <div class="dialog-actions">
+      <!-- OK an 1. Stelle im DOM -> ENTER wählt automatisch diesen Button -->
+      <button value="ok" class="btn btn-primary">OK</button>
+      <button value="cancel" class="btn btn-secondary">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 2. Text-Dialog -->
+<dialog id="textDialog" class="app-dialog">
+  <form method="dialog">
+    <div class="dialog-header">Change to</div>
+    <div class="dialog-body">
+      <input type="text">
+    </div>
+    <div class="dialog-actions">
+      <!-- OK an 1. Stelle im DOM -> ENTER wählt automatisch diesen Button -->
+      <button value="ok" class="btn btn-primary">OK</button>
+      <button value="cancel" class="btn btn-secondary">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
 </body>
 </html>

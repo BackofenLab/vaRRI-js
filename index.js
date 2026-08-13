@@ -1675,6 +1675,85 @@ function syncAnimationDependentControls() {
   });
 }
 
+/* ##################### DIALOGS ##################### */
+
+/**
+ * Öffnet einen Dialog an der Klick-Position.
+ * 
+ * @param {string} dialogId - Basis-ID des <dialog>-Elements
+ * @param {string} dialogHeader - Überschrift des Dialogs
+ * @param {string|number} initialValue - Startwert für das Input-Feld
+ * @param {MouseEvent} clickEvent - Das Klick-Event für die Positionsbestimmung
+ * @param {Function} callback - Wird bei Klick auf "OK" ausgeführt
+ */
+function openDialog(dialogId, dialogHeader, initialValue, clickEvent, callback) {
+  var dialog = document.getElementById(dialogId);
+  var input = dialog.querySelector('input');
+  var header = dialog.querySelector('.dialog-header');
+
+  if (header) header.textContent = dialogHeader;
+
+  if (input) input.value = initialValue !== undefined ? initialValue : '';
+
+  // Positionierung an der Mausposition (mit Bildschirmrand-Schutz)
+  if (clickEvent) {
+    dialog.style.left = Math.min(clickEvent.clientX, window.innerWidth - 200) + 'px';
+    dialog.style.top = Math.min(clickEvent.clientY, window.innerHeight - 100) + 'px';
+  }
+
+  // Wichtig: Das native 'onclose' Event fängt OK, Cancel, ENTER und ESC ab
+  dialog.onclose = function() {
+    if (dialog.returnValue === 'ok' && callback) {
+      callback(input ? input.value : '');
+    }
+  };
+
+  dialog.showModal();
+  if (input) { input.focus(); input.select(); }
+}
+
+/**
+ * Attaches the number dialog directly to an ID or DOM element.
+ */
+function bindNumberDialog(targetId, dialogHeader, onUpdate) {
+  var element = typeof targetId === 'string' ? document.getElementById(targetId) : targetId;
+  if (!element) return;
+
+  element.addEventListener('click', function(e) {
+    var currentValue = element.value !== undefined ? element.value : element.textContent;
+
+    openDialog('numberDialog', dialogHeader, currentValue, e, function(newValue) {
+      if (onUpdate) {
+        // Custom update behavior if provided
+        onUpdate(element, newValue);
+      } else if (element.value !== undefined) {
+        element.value = newValue;
+      } else {
+        element.textContent = newValue;
+      }
+    });
+  });
+}
+
+
+function attachDialogListeners() {
+  // Simple input:
+  //bindNumberDialog('numInput');
+  
+  // Slider label with custom handler:
+  bindNumberDialog('rotation', 'Rotate ...°', function(label, newValue) {
+    committedRotationDeg = Number(newValue);
+    document.getElementById('rotationSlider').dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  bindNumberDialog('cropping-value', 'Crop to ... free nt', function(label, newValue) {
+    document.getElementById('cropping').value = newValue;
+    document.getElementById('cropping').dispatchEvent(new Event('change', { bubbles: true }));
+  });
+
+}
+
+/* ################################################### */
+
 function attachAutoVisualizationListeners() {
   const committedFieldIds = [
     'structure',
@@ -2365,4 +2444,6 @@ window.addEventListener('load', () => {
 
   // Enable automatic rendering only after initialization.
   attachAutoVisualizationListeners();
+  // Enable dialogs after initialization.
+  attachDialogListeners();
 });
