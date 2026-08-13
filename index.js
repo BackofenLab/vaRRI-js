@@ -525,7 +525,48 @@ function getProfileIndexReference(seq) {
   return selected ? selected.value : '1';
 }
 
-function parseProfileLines(profileText, fieldId) {
+function convertCsvProfileData(profileDataId) {
+  var elem = document.getElementById(profileDataId);
+  if (!elem) return;
+
+  var lines = elem.value.split(/\r?\n/);
+
+  // Prüfen, ob mindestens 2 Zeilen vorhanden sind
+  if (lines.length < 2) return;
+
+  // Regex mit Capturing-Gruppe (2) für das Trennzeichen ([,;])
+  var dataRegex = /^\s*(-?\d+)([,;])(\d+(?:\.\d+)?)/;
+  
+  // Prüfung der 2. Zeile (Index 1)
+  var match = lines[1].match(dataRegex);
+  if (!match) return;
+
+  // Gefundenes Trennzeichen ("," oder ";")
+  var delimiter = match[2];
+
+  // Prüfen, ob die 1. Zeile (Index 0) eine Datenzeile ist
+  var isFirstLineData = dataRegex.test(lines[0]);
+
+  for (var i = 0; i < lines.length; i++) {
+    // 1. Trennzeichen in allen Zeilen durch Leerzeichen ersetzen
+    lines[i] = lines[i].split(delimiter).join(' ');
+
+    // 2. Erste Zeile mit "#" versehen, falls sie keine Datenzeile ist
+    if (i === 0 && !isFirstLineData && !lines[0].match(/^\s*#/)) {
+      lines[0] = '#' + lines[0];
+    }
+  }
+
+  // Zurück in die Textarea schreiben
+  elem.value = lines.join('\n');
+}
+
+function parseProfileLines(fieldId) {
+
+  const profileElem = document.getElementById(fieldId);
+  if (!profileElem) { throw { fieldId, message: `Profile data field "${fieldId}" not found.` }; }
+  const profileText = profileElem.value;
+  
   const lines = String(profileText || '').split(/\r?\n/);
   const data = [];
 
@@ -627,8 +668,7 @@ function parseProfileAccessData(v, args) {
   const vUncropped = vaRRI.validate({ ...args, cropping: '-1' });
   let accessData = {};
   for (const seqId of ['1', '2']) {
-    const profileRaw = document.getElementById(`profileData${seqId}`).value;
-    const seqData = parseProfileLines(profileRaw, `profileData${seqId}`);
+    const seqData = parseProfileLines(`profileData${seqId}`);
     const refMode = getProfileIndexReference(seqId);
     // append the access data for this sequence to the overall access data object
     accessData = { ...accessData, ...mapProfileDataToAccessData(seqData, seqId, refMode, v, vUncropped) };
@@ -1517,10 +1557,16 @@ function validateFields(args) {
   catch (e) { setFieldError('startIndex2', e.message); valid = false; }
 
   // Profile textarea syntax
-  try { parseProfileLines(document.getElementById('profileData1').value, 'profileData1'); }
+  try { 
+    convertCsvProfileData('profileData1');
+    parseProfileLines('profileData1'); 
+  }
   catch (e) { setFieldError(e.fieldId || 'profileData1', e.message || String(e)); valid = false; }
 
-  try { parseProfileLines(document.getElementById('profileData2').value, 'profileData2'); }
+  try { 
+    convertCsvProfileData('profileData2');
+    parseProfileLines('profileData2'); 
+  }
   catch (e) { setFieldError(e.fieldId || 'profileData2', e.message || String(e)); valid = false; }
 
   if (valid) {

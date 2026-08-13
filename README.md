@@ -282,7 +282,8 @@ As separator, either space and tab is supported, and lines starting with `#` are
 ```
 
 > [!TIP]
-> For convenience, respective text *files can be dragged and dropped* into the input fields to load the probability profiles.
+> - For convenience, respective text *files can be dragged and dropped* into the input fields to load the probability profiles.
+> - vaRRI-js also supports CSV files with a header line, where the first column contains the nucleotide indices and the second column contains the probability values. Such data is automatically converted to the space-separated format above, and the header line is ignored.
 
 Finally, the following fields are available to define the visualization of the probability profiles:
 
