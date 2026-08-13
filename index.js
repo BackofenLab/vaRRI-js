@@ -2,6 +2,7 @@
 // -------------------------------------------------------------------------
 // Default data
 // -------------------------------------------------------------------------
+const INITIAL_COLORS = vaRRI.getColors();
 
 const DEFAULT_VALUES = {
   // input + rendering
@@ -13,6 +14,10 @@ const DEFAULT_VALUES = {
   cropping: '-1',
   get colorSeq1() { return cssColorToHex(vaRRI.getColors().sequence1); },
   get colorSeq2() { return cssColorToHex(vaRRI.getColors().sequence2); },
+  coloring: 'strand',
+  highlighting: 'region',
+  backgroundhighlighting: 'basepairs',
+  guBasepairs: true,
   // profile data
   profileData1: '',
   profileIdxRef1: '1',
@@ -79,80 +84,7 @@ const UI_ONLY_FIELDS = [
 // -------------------------------------------------------------------------
 // Example data
 // -------------------------------------------------------------------------
-const SINGLE_MOLECULE_EXAMPLE_DEFAULTS = {
-  startIndex1: '1',
-  startIndex2: '1',
-  coloring: 'loop',
-  highlighting: 'nothing',
-  backgroundhighlighting: 'nothing',
-  guBasepairs: false,
-  cropping: '-1',
-  forceLayout: false,
-  forceLayoutFreeTails: false,
-  forceLayoutPullCrossing: false,
-  regionHighlights: [],
-  subsequenceHighlights: [],
-  pointMutations: [],
-  profileColor1RepresentsOne: false,
-  profileColor2RepresentsOne: false,
-  profileData1: '',
-  profileData2: '',
-  profileIndexReference1: '1',
-  profileIndexReference2: '1',
-};
-
-const EXAMPLES = {
-  '2mol': {
-    name: 'RNA–RNA interaction',
-    description: 'Explore a two-molecule interaction with cropping, profiles, highlights, and point mutations.',
-    structure: '..<<<<...>>>>...((..(((...((..&............))...)))..))..',
-    sequence: 'ACGAUCAUGGAUUAGAGCAUUCGACAGCAG&ACGAAAAAAAGAGCAUACGACAGUAG',
-    startIndex1: '-6', startIndex2: '100',
-    coloring: 'strand', highlighting: 'region',
-    backgroundhighlighting: 'basepairs', guBasepairs: true,
-    cropping: '2',
-    forceLayout: false,
-    forceLayoutFreeTails: false,
-    forceLayoutPullCrossing: false,
-    regionHighlights: [
-      { sequence1Range: '13-14', sequence2Range: '120-121', color: '#0d00ff', generated: false },
-    ],
-    subsequenceHighlights: [
-      { sequence: '1', range: '18-20', color: '#338a29', alpha: 1 },
-      { sequence: '2', range: '114-116', color: '#1e1ee4', alpha: 0.7 },
-    ],
-    pointMutations: [
-      { sequence: '1', position: 16, replacement: 'G', color: '#338a29' },
-      { sequence: '2', position: 118, replacement: 'C', color: '#1e1ee4' },
-    ],
-    profileColor1RepresentsOne: true,
-    profileColor2RepresentsOne: false,
-    profileData1: `# unpaired probabilities
-1 0.9
-2 0.7
-3 0.3
-4 0.1
-7 0.3
-8 0.7
-9 0.6`,
-    profileIndexReference1: '1',
-  },
-  '1mol': {
-    name: 'RNA secondary structure',
-    description: 'Visualize a single RNA hairpin with loop-type coloring.',
-    ...SINGLE_MOLECULE_EXAMPLE_DEFAULTS,
-    structure: '(((....)))',
-    sequence: 'GGGCAAAACC',
-  },
-  'pseudoknot': {
-    name: 'RNA pseudoknot',
-    description: 'Visualize a single RNA structure containing crossing base pairs.',
-    ...SINGLE_MOLECULE_EXAMPLE_DEFAULTS,
-    structure: '((.[[..))..]]',
-    sequence: 'ACGUACGUACGUA',
-  },
-};
-
+const EXAMPLES = window.VARRI_EXAMPLES || {};
 const EXAMPLE_PLACEHOLDER = 'Select an example';
 let selectedExampleKey = null;
 
@@ -208,78 +140,26 @@ function resetExampleDropdownSelection() {
   updateExampleDropdownSelection(null);
 }
 
-function loadExample(key) {
-  const ex = EXAMPLES[key];
-  if (!ex) return false;
-  document.getElementById('structure').value = ex.structure;
-  document.getElementById('sequence').value = ex.sequence;
-  document.getElementById('cropping').value = ex.cropping;
-  document.getElementById('startIndex1').value = ex.startIndex1;
-  document.getElementById('startIndex2').value = ex.startIndex2;
-  document.getElementById('coloring').value = ex.coloring;
-  document.getElementById('forceLayout').checked = !!ex.forceLayout;
-  document.getElementById('forceLayoutFreeTails').checked = !!ex.forceLayoutFreeTails;
-  document.getElementById('forceLayoutPullCrossing').checked = !!ex.forceLayoutPullCrossing;
-  syncAnimationDependentControls();
-  document.getElementById('highlighting').value = ex.highlighting;
-  document.getElementById('backgroundhighlighting').value = ex.backgroundhighlighting;
-  document.getElementById('guBasepairs').checked = ex.guBasepairs;
-  document.getElementById('profileData1').value = ex.profileData1 || '';
-  document.getElementById('profileIdxRef1').value = ex.profileIndexReference1 || '1';
-  document.getElementById('profileData2').value = ex.profileData2 || '';
-  document.getElementById('profileIdxRef2').value = ex.profileIndexReference2 || '1';
-  document.getElementById('profileColorRepresentsOne1').checked = !!ex.profileColor1RepresentsOne;
-  document.getElementById('profileColorRepresentsOne2').checked = !!ex.profileColor2RepresentsOne;
-  
-  vaRRI.clearSubsequenceHighlights();
-  const exampleHighlights = Array.isArray(ex.subsequenceHighlights)
-  ? ex.subsequenceHighlights
-  : [];
-  if (exampleHighlights.length > 0) {
-    const sequenceContext = getHighlightSequenceContext();
-    exampleHighlights.forEach(highlight => {
-      vaRRI.registerSubsequenceHighlight({
-        sequence: highlight.sequence,
-        range: highlight.range,
-        color: highlight.color,
-        alpha: highlight.alpha,
-      }, sequenceContext);
-    });
-  }
-  
-  vaRRI.clearRegionHighlights();
-  const exampleRegionHighlights = Array.isArray(ex.regionHighlights)
-    ? ex.regionHighlights
-    : [];
-    if (exampleRegionHighlights.length > 0) {
-      const sequenceContext = getHighlightSequenceContext();
-      exampleRegionHighlights.forEach(region => {
-      vaRRI.registerRegionHighlight({
-        sequence1Range: region.sequence1Range,
-        sequence2Range: region.sequence2Range,
-        color: region.color,
-        alpha: region.alpha,
-        generated: region.generated,
-      }, sequenceContext);
-    });
-  }
-  
-  vaRRI.clearPointMutations();
-  const exampleMutations = Array.isArray(ex.pointMutations)
-  ? ex.pointMutations
-  : [];
-  if (exampleMutations.length > 0) {
-    const sequenceContext = getHighlightSequenceContext();
-    exampleMutations.forEach(mutation => {
-      vaRRI.registerPointMutation({
-        sequence: mutation.sequence,
-        position: mutation.position,
-        replacement: mutation.replacement,
-        color: mutation.color,
-      }, sequenceContext);
-    });
-  }
+function getExampleUrlParameters(example) {
+  const params = new URLSearchParams();
+  Object.entries(example.vaRRIParams || {}).forEach(([key, value]) => {
+    if (key !== 'showRenderingOnly' && value !== undefined && value !== null) {
+      params.set(key, value);
+    }
+  });
+  return params;
+}
 
+function loadExample(key) {
+  const example = EXAMPLES[key];
+  if (!example || !example.vaRRIParams) return false;
+
+  // Example links assume a fresh page. Reset all state before applying the
+  // same URL parameters here so switching examples cannot leak prior values.
+  vaRRI.setColors(INITIAL_COLORS);
+  clearAll();
+  loadAllUrlParameters(getExampleUrlParameters(example), { revealProfilePanel: false });
+  syncAnimationDependentControls();
 
   renderHighlightList();
   renderRegionList();
@@ -2333,7 +2213,10 @@ function syncGeneratedRegionHighlight() {
   }
 }
 
-function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.search)) {
+function loadAllUrlParameters(
+  urlParams = new URLSearchParams(window.location.search),
+  { revealProfilePanel = true } = {}
+) {
   let hasProfileData = false;
 
   // Rendering-only flag.
@@ -2381,7 +2264,7 @@ function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.se
   }
 
   // Reveal the profile panel when a share link contains profile data.
-  if (hasProfileData) {
+  if (hasProfileData && revealProfilePanel) {
     const profileDetails = document.getElementById('profileData1')?.closest('details');
     if (profileDetails) {
       profileDetails.open = true;
@@ -2481,7 +2364,7 @@ function registerSequenceBackdropSync(textareaId) {
 
 
 window.addEventListener('load', () => {
-  // Build example controls from the same dictionary used to load their values.
+  // Build example controls from the shared catalog used by the literature links.
   renderExampleDropdown();
 
   // Reset state before applying examples or URL parameters.

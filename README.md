@@ -190,12 +190,12 @@ Details about supported sequence and dot-bracket structure encodings are provide
 
 ### Example Input
 
-When loading the page, a pre-filled RNA-RNA interaction example is automatically rendered.
-Open the **Example** dropdown to choose another input. Each open menu item shows the example name and a short use-case description; after selection, the control shows only the chosen name.
+When loading the page, a feature-overview RNA-RNA interaction is automatically rendered.
+Open the **Example** dropdown to choose another RNA-RNA interaction. Each open menu item shows the example name and a short use-case description; after selection, the control shows only the chosen name.
 
 | Control | Description |
 |---|---|
-| **Example dropdown** | Loads the feature-rich RNA-RNA interaction, a single RNA hairpin, or a pseudoknot example. |
+| **Example dropdown** | Loads the feature overview or an existing literature example demonstrating SHAPE profiles, cropping and highlights, or mutations and sequence context. |
 | **✕ Clear** | Clears all input fields, resets the visualisation, and clears the example selection. |
 
 

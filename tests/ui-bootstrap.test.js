@@ -28,6 +28,7 @@ test('boots through bound UI actions without inline handlers', async () => {
   installDomGlobals(dom);
   global.vaRRI = vaRRI;
 
+  require('../examples-data.js');
   const renderSpy = jest.spyOn(vaRRI, 'render').mockResolvedValue({ cancelled: false });
   require('../index.js');
 
@@ -40,6 +41,11 @@ test('boots through bound UI actions without inline handlers', async () => {
   expect(document.getElementById('subseqCounterUI').textContent).toBe('(2)');
   expect(document.getElementById('regionCounterUI').textContent).toBe('(1)');
   expect(document.getElementById('mutationCounterUI').textContent).toBe('(2)');
+
+  const inputPanel = document.querySelector('aside.control-panel > details');
+  expect(inputPanel.open).toBe(true);
+  const profilePanel = document.getElementById('profileData1').closest('details');
+  expect(profilePanel.open).toBe(false);
 
   const dropdown = document.getElementById('exampleDropdown');
   const trigger = document.getElementById('exampleDropdownTrigger');
@@ -60,32 +66,77 @@ test('boots through bound UI actions without inline handlers', async () => {
   expect(trigger.textContent).not.toContain(defaultDescription);
   expect(defaultButton.getAttribute('aria-current')).toBe('true');
 
+  const catalog = window.VARRI_EXAMPLES;
   const freeTails = document.getElementById('forceLayoutFreeTails');
   const pullCrossing = document.getElementById('forceLayoutPullCrossing');
+  const selectExample = async key => {
+    dropdown.open = true;
+    const button = options.querySelector(`[data-example="${key}"]`);
+    button.click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    return button;
+  };
+
   freeTails.checked = true;
   pullCrossing.checked = true;
 
-  dropdown.open = true;
-  const pseudoknotButton = options.querySelector('[data-example="pseudoknot"]');
-  pseudoknotButton.click();
-  await new Promise(resolve => setTimeout(resolve, 0));
+  const profileExample = catalog['coronel-tellez-2022'];
+  const profileButton = await selectExample('coronel-tellez-2022');
 
   expect(dropdown.open).toBe(false);
   expect(document.activeElement).toBe(trigger);
-  expect(trigger.textContent.trim()).toBe('RNA pseudoknot');
-  expect(trigger.textContent).not.toContain('crossing base pairs');
-  expect(pseudoknotButton.getAttribute('aria-current')).toBe('true');
-  expect(document.getElementById('sequence').value).toBe('ACGUACGUACGUA');
-  expect(document.getElementById('structure').value).toBe('((.[[..))..]]');
-  expect(document.getElementById('cropping').value).toBe('-1');
+  expect(trigger.textContent.trim()).toBe(profileExample.name);
+  expect(trigger.textContent).not.toContain(profileExample.description);
+  expect(profileButton.getAttribute('aria-current')).toBe('true');
+  expect(document.getElementById('sequence').value).toBe(profileExample.vaRRIParams.sequence);
+  expect(document.getElementById('structure').value).toBe(profileExample.vaRRIParams.structure);
+  expect(document.getElementById('cropping').value).toBe('3');
+  expect(document.getElementById('highlighting').value).toBe('basepairs');
+  expect(document.getElementById('backgroundhighlighting').value).toBe('nothing');
+  expect(document.getElementById('colorSeq1').value).toBe('#c9c1c9');
+  expect(document.getElementById('colorSeq2').value).toBe('#c9c1c9');
+  expect(document.getElementById('profileColor1').value).toBe('#ea373c');
+  expect(document.getElementById('profileColor2').value).toBe('#ea373c');
+  expect(document.getElementById('subseqCounterUI').textContent).toBe('(4)');
+  expect(document.getElementById('regionCounterUI').textContent).toBe('');
+  expect(document.getElementById('mutationCounterUI').textContent).toBe('');
+  expect(document.getElementById('profileCounterUI').textContent).toBe('(2)');
+  expect(inputPanel.open).toBe(true);
+  expect(profilePanel.open).toBe(false);
   expect(document.getElementById('forceLayout').checked).toBe(false);
   expect(freeTails.checked).toBe(false);
   expect(freeTails.disabled).toBe(true);
   expect(pullCrossing.checked).toBe(false);
   expect(pullCrossing.disabled).toBe(true);
-  expect(document.getElementById('subseqCounterUI').textContent).toBe('');
+
+  const mutationExample = catalog['wu-2024'];
+  const mutationButton = await selectExample('wu-2024');
+
+  expect(trigger.textContent.trim()).toBe(mutationExample.name);
+  expect(mutationButton.getAttribute('aria-current')).toBe('true');
+  expect(document.getElementById('sequence').value).toBe(mutationExample.vaRRIParams.sequence);
+  expect(document.getElementById('structure').value).toBe(mutationExample.vaRRIParams.structure);
+  expect(document.getElementById('startIndex1').value).toBe('-35');
+  expect(document.getElementById('startIndex2').value).toBe('2');
+  expect(document.getElementById('cropping').value).toBe('-1');
+  expect(document.getElementById('coloring').value).toBe('strand');
+  expect(document.getElementById('highlighting').value).toBe('region');
+  expect(document.getElementById('backgroundhighlighting').value).toBe('basepairs');
+  expect(document.getElementById('guBasepairs').checked).toBe(true);
+  expect(document.getElementById('colorSeq1').value).toBe('#add8e6');
+  expect(document.getElementById('profileData1').value).toBe('');
+  expect(document.getElementById('profileData2').value).toBe('');
+  expect(document.getElementById('subseqCounterUI').textContent).toBe('(1)');
   expect(document.getElementById('regionCounterUI').textContent).toBe('');
-  expect(document.getElementById('mutationCounterUI').textContent).toBe('');
+  expect(document.getElementById('mutationCounterUI').textContent).toBe('(4)');
+  expect(document.getElementById('profileCounterUI').textContent).toBe('');
+
+  await selectExample('2mol');
+  expect(trigger.textContent.trim()).toBe(defaultName);
+  expect(document.getElementById('subseqCounterUI').textContent).toBe('(2)');
+  expect(document.getElementById('regionCounterUI').textContent).toBe('(1)');
+  expect(document.getElementById('mutationCounterUI').textContent).toBe('(2)');
+  expect(document.getElementById('profileCounterUI').textContent).toBe('(1)');
 
   dropdown.open = true;
   dropdown.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));

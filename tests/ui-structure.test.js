@@ -5,6 +5,7 @@ const path = require('path');
 
 const html = fs.readFileSync(path.resolve(__dirname, '../index.html'), 'utf8');
 const css = fs.readFileSync(path.resolve(__dirname, '../style.css'), 'utf8');
+const examplesHtml = fs.readFileSync(path.resolve(__dirname, '../examples.html'), 'utf8');
 const library = fs.readFileSync(path.resolve(__dirname, '../src/vaRRI.js'), 'utf8');
 const apiDocs = fs.readFileSync(path.resolve(__dirname, '../src/README.md'), 'utf8');
 const pagesWorkflow = fs.readFileSync(path.resolve(__dirname, '../.github/workflows/pages.yml'), 'utf8');
@@ -20,9 +21,15 @@ describe('UI document structure', () => {
       'fornac/d3.js',
       'fornac/fornac.js',
       'src/vaRRI.js',
+      'examples-data.js',
       'index.js',
     ]);
     expect(html).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/i);
+
+    const exampleSources = [...examplesHtml.matchAll(/<script[^>]+src="([^"]+)"[^>]*><\/script>/g)]
+      .map(match => match[1]);
+    expect(exampleSources).toEqual(['examples-data.js', 'examples.js']);
+    expect(examplesHtml).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/i);
   });
 
   test('uses source locally and the minified library on GitHub Pages', () => {
