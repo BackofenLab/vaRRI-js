@@ -12,8 +12,8 @@ const DEFAULT_VALUES = {
   startIndex2: '1',
   rotationSlider: '0',
   cropping: '-1',
-  get colorSeq1() { return cssColorToHex(vaRRI.getColors().sequence1); },
-  get colorSeq2() { return cssColorToHex(vaRRI.getColors().sequence2); },
+  colorSeq1: cssColorToHex(INITIAL_COLORS.sequence1).toString(),
+  colorSeq2: cssColorToHex(INITIAL_COLORS.sequence2),
   coloring: 'strand',
   highlighting: 'region',
   backgroundhighlighting: 'basepairs',
@@ -21,20 +21,20 @@ const DEFAULT_VALUES = {
   // profile data
   profileData1: '',
   profileIdxRef1: '1',
-  get profileColor1() { return cssColorToHex(vaRRI.getColors().seq1profileColor); },
+  profileColor1: cssColorToHex(INITIAL_COLORS.seq1profileColor),
   profileColorRepresentsOne1: true,
   profileData2: '',
   profileIdxRef2: '1',
-  get profileColor2() { return cssColorToHex(vaRRI.getColors().seq2profileColor); },
+  profileColor2: cssColorToHex(INITIAL_COLORS.seq2profileColor),
   profileColorRepresentsOne2: true,
   // visualization
   forceLayout: false,
   forceLayoutFreeTails: false,
   forceLayoutPullCrossing: false,
   hideFooterAndHeader: false,
-  get colorRriNodes() { return cssColorToHex(vaRRI.getColors().intermolecularHighlight); },
-  get colorRriRegion() { return cssColorToHex(vaRRI.getColors().backgroundHighlight); },
-  get colorBasepair() { return cssColorToHex(vaRRI.getColors().basepair); },
+  colorRriNodes: cssColorToHex(INITIAL_COLORS.intermolecularHighlight),
+  colorRriRegion: cssColorToHex(INITIAL_COLORS.backgroundHighlight),
+  colorBasepair: cssColorToHex(INITIAL_COLORS.basepair),
   // subsequence highlighting
   subseqEditId: '',
   subseqSequence: '1',
@@ -101,11 +101,11 @@ function renderExampleDropdown() {
 
     const name = document.createElement('span');
     name.className = 'example-option-name';
-    name.textContent = example.name;
+    name.textContent = example.nameShort || example.name || key;
 
     const description = document.createElement('span');
     description.className = 'example-option-description';
-    description.textContent = example.description;
+    description.textContent = example.descriptionShort || example.description;
 
     button.append(name, description);
     if (key === selectedExampleKey) {
@@ -122,7 +122,7 @@ function updateExampleDropdownSelection(key) {
   selectedExampleKey = example ? key : null;
 
   const label = document.getElementById('selectedExampleName');
-  if (label) label.textContent = example ? example.name : EXAMPLE_PLACEHOLDER;
+  if (label) label.textContent = example ? (example.nameShort || example.name) : EXAMPLE_PLACEHOLDER;
 
   const dropdown = document.getElementById('exampleDropdown');
   if (dropdown) dropdown.open = false;
@@ -134,6 +134,21 @@ function updateExampleDropdownSelection(key) {
       button.removeAttribute('aria-current');
     }
   });
+
+  const caption = document.getElementById('rendering-caption');
+  if (caption) {
+    if (selectedExampleKey && example && example.description && example.description.trim() !== '') {
+      let captionText = "**Example** *"+example.nameShort+"*: "
+                      + example.description;
+      caption.innerHTML = marked.parse(captionText);
+      caption.style.display = '';
+    } else {
+      caption.innerText = '';
+      caption.style.display = 'none';
+    }
+  } else {
+    console.warn('Rendering caption element not found.');
+  }
 }
 
 function resetExampleDropdownSelection() {

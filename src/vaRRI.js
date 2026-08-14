@@ -30,7 +30,8 @@
     let _pendingRenderResolve = null;
 
     /**
-     * Default colours used by vaRRI rendering functions.
+     * Colours used by vaRRI rendering functions initialized to defaults.
+     * 
      *
      * Change these at runtime with {@link setColors}; the new values take
      * effect on the next call to any rendering function.

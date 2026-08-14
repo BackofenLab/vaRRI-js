@@ -12,6 +12,12 @@ class ResizeObserverStub {
   disconnect() {}
 }
 
+// Minimaler Dummy-Mock für marked (gibt den Text einfach unverändert zurück)
+const markedStub = Object.assign(
+  jest.fn((str) => str),
+  { parse: jest.fn((str) => str) }
+);
+
 function installDomGlobals(dom) {
   global.window = dom.window;
   global.document = dom.window.document;
@@ -19,6 +25,8 @@ function installDomGlobals(dom) {
   global.FileReader = dom.window.FileReader;
   global.ResizeObserver = ResizeObserverStub;
   dom.window.ResizeObserver = ResizeObserverStub;
+  global.marked = markedStub;
+  dom.window.marked = markedStub;
 }
 
 test('boots through bound UI actions without inline handlers', async () => {
@@ -28,7 +36,7 @@ test('boots through bound UI actions without inline handlers', async () => {
   installDomGlobals(dom);
   global.vaRRI = vaRRI;
 
-  require('../examples-data.js');
+  require('../example-data.js');
   const renderSpy = jest.spyOn(vaRRI, 'render').mockResolvedValue({ cancelled: false });
   require('../index.js');
 
@@ -52,7 +60,7 @@ test('boots through bound UI actions without inline handlers', async () => {
   const options = document.getElementById('exampleDropdownOptions');
   const exampleButtons = [...options.querySelectorAll('[data-example]')];
 
-  expect(exampleButtons).toHaveLength(3);
+  expect(exampleButtons).toHaveLength(4);
   exampleButtons.forEach(button => {
     expect(button.querySelector('.example-option-name').textContent.trim()).not.toBe('');
     expect(button.querySelector('.example-option-description').textContent.trim()).not.toBe('');
@@ -85,8 +93,8 @@ test('boots through bound UI actions without inline handlers', async () => {
 
   expect(dropdown.open).toBe(false);
   expect(document.activeElement).toBe(trigger);
-  expect(trigger.textContent.trim()).toBe(profileExample.name);
-  expect(trigger.textContent).not.toContain(profileExample.description);
+  expect(trigger.textContent.trim()).toBe(profileExample.nameShort);
+  expect(trigger.textContent).not.toContain(profileExample.descriptionShort);
   expect(profileButton.getAttribute('aria-current')).toBe('true');
   expect(document.getElementById('sequence').value).toBe(profileExample.vaRRIParams.sequence);
   expect(document.getElementById('structure').value).toBe(profileExample.vaRRIParams.structure);
@@ -112,7 +120,7 @@ test('boots through bound UI actions without inline handlers', async () => {
   const mutationExample = catalog['wu-2024'];
   const mutationButton = await selectExample('wu-2024');
 
-  expect(trigger.textContent.trim()).toBe(mutationExample.name);
+  expect(trigger.textContent.trim()).toBe(mutationExample.nameShort);
   expect(mutationButton.getAttribute('aria-current')).toBe('true');
   expect(document.getElementById('sequence').value).toBe(mutationExample.vaRRIParams.sequence);
   expect(document.getElementById('structure').value).toBe(mutationExample.vaRRIParams.structure);

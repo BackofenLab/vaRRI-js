@@ -776,6 +776,19 @@ a.btn:active {
   height: 100%;
 }
 
+#rendering-caption {
+  background: var(--surface);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(15, 46, 74, .12);
+  padding: .6rem 1.2rem;
+  margin-top: .75rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  font-size: smaller;
+  color: var(--text-muted);
+}
+
 .viz-control {
   background: var(--surface);
   border-radius: 8px;

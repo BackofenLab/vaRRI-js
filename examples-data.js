@@ -112,7 +112,9 @@
   const examples = {
     '2mol': {
       name: 'RNA–RNA interaction feature overview',
+      nameShort: 'All feature showcase',
       description: 'Demonstrates cropping, probability profiles, region and subsequence highlights, and point mutations in one interaction.',
+      descriptionShort: 'Showcases all features of vaRRI-js.',
       vaRRIParams: {
         sequence: 'ACGAUCAUGGAUUAGAGCAUUCGACAGCAG&ACGAAAAAAAGAGCAUACGACAGUAG',
         structure: '..<<<<...>>>>...((..(((...((..&............))...)))..))..',
@@ -135,20 +137,11 @@
     },
     'coronel-tellez-2022': {
       name: 'sRNA-controlled iron sparing response in Staphylococci',
+      nameShort: 'SHAPE annotation & cropping',
       authors: 'Coronel-Tellez, et al., 2022',
       doi: 'http://dx.doi.org/10.1093/nar/gkac648',
-      description: 'Reproduction of Figure 6A-bottom showing an interaction with position-specific SHAPE probing data annotation and subsequence highlighting that is cropped to the region of interaction +3 nucleotides.',
-      originalFigure: {
-        title: 'Original Figure 6A-bottom',
-        url: 'https://www.biorxiv.org/content/10.1101/2022.06.26.497478v1.full#F6',
-        imageUrl: 'https://www.biorxiv.org/content/biorxiv/early/2022/06/26/2022.06.26.497478/F6.large.jpg',
-        crop: {
-          x: 0,
-          y: 0,
-          width: 100,
-          height: 65,
-        },
-      },
+      description: 'Reproduction of *Figure 6A-bottom* [(Coronel-Tellez, et al., 2022)](http://dx.doi.org/10.1093/nar/gkac648) showing an interaction with position-specific SHAPE probing data annotation and subsequence highlighting. The long input sequences are cropped to the region of interaction +3 nucleotides.',
+      descriptionShort: 'Position-specific SHAPE probing data annotation and cropping of long sequences to RRI region.',
       vaRRIParams: {
         sequence: 'AAUUCUAUCUGAAAGAUGUGUGGGGCAUCGUUAUUUUAGGUGGAUAUGAGCAAUUUAUUAAAAGUCAUUUACGGAAAAUAUAUAUAGACGGGGUGAGUAAUAUGCAAGAACAUUUGGUGGUUACACUUGAUAGCAAAGGAGAAGAACUU&UUGAAAAUGAUUAUCAAUACCACAUAGAACAUCCCCCCCACAACGUUUCGUUCUUGUUGGAUUGGUCAUUUUCAAAUAUUCCCCUUUUAUAUGCCCGUAAAAGACAAUAUACGUUAUAACAACGUUUUAUAAAAGCAGUAAACCCUUACGACACUUUAGGUUUACUGCUUUUGU',
         structure: '...............................................................(((.(((((((......((((((((.((((.((((((.(((.............................................&..................................................................))))......))))))))))))))))).))))))).))).....................................................................',
@@ -171,20 +164,11 @@
     },
     'wu-2024': {
       name: 'RNA interactome of hypervirulent Klebsiella pneumoniae reveals a small RNA inhibitor of capsular mucoviscosity and virulence',
+      nameShort: 'Mutations & highlighting',
       authors: 'Wu et al., 2024',
       doi: 'https://doi.org/10.1101/2024.06.23.600155',
-      description: 'Reproduction of Figure 4C showing an interaction with 4 mutations and a subsequence highlighting within a sequence context upstream of the start codon.',
-      originalFigure: {
-        title: 'Original Figure 4C',
-        url: 'https://www.biorxiv.org/content/10.1101/2024.06.23.600155v1.full#F4',
-        imageUrl: 'https://www.biorxiv.org/content/biorxiv/early/2024/06/23/2024.06.23.600155/F4.large.jpg',
-        crop: {
-          x: 0,
-          y: 80,
-          width: 48,
-          height: 30,
-        },
-      },
+      description: 'Reproduction of Figure 4C [(Wu et al., 2024)](https://doi.org/10.1101/2024.06.23.600155) showing an interaction with 4 mutations and a subsequence highlighting within a sequence context upstream of the start codon.',
+      descriptionShort: 'Subsequence highlighting and mutations within a sequence context.',
       vaRRIParams: {
         sequence: 'AACUCGCGAAAGCCAUAAAAACCAGGGAGACA&UUCCCUGGUGUUGGCGCAGUAUUCGCGCA',
         structure: '....((((((.((((.....((((((((....&.))))))))..))))......))))))..',
@@ -192,6 +176,27 @@
         startIndex2: 2,
         subseqHighlights: '1:-12--6:0dec3f:0.9',
         mutations: '1:-14G:fb0bcb,1:-13G:fb0bcb,2:8C:fb0bcb,2:9C:fb0bcb',
+        forceLayout: 'off',
+      },
+    },    
+    'IntaRNA-seeds': {
+      name: 'Showcasing potential seed regions considered by IntaRNA',
+      nameShort: 'IntaRNA seed regions',
+      description: 'Highlighting of the two potential seed interactions considered by IntaRNA to predict the shown interaction between the two sequences. The highlighting is done using a semi-transparent purple color, which allows to show overlapping regions.',
+      descriptionShort: 'Opaque highlighting of multiple potential IntaRNA seed regions.',
+      vaRRIParams: {
+        sequence:'CUUAGCCGUAAUUGGAUUAGCUGAUGAACAAACUUCUCGUGAGUCUGCUGUUGACCCUGGGUCUGAC&GAGAGACCCACGCAGUCGGACUCUUCAGAUUAUCUCCUCAUCAGGCUAAUCACGGUUUUU',
+        colorSeq1:'#add8e6',
+        startIndex1:-23,
+        colorSeq2:'#f4bb44',
+        startIndex2:64,
+        structure:'...((((((.....(((((((((((((.......(((...((((((((((.......(((((((...&...)))))))..))).)))))))...)))........)))))).)))))))))))))...',
+        colorBasepair:'#ff0000',
+        coloring:'strand',
+        highlighting:'region',
+        colorRriNodes:'#ff0000',
+        guBasepairs:1,
+        regionHighlights:'35-41&67-73:0D00FF:0.4,-9--3&108-114:0D00FF:0.4',
         forceLayout: 'off',
       },
     },

@@ -1,7 +1,7 @@
 'use strict';
 
 const vaRRI = require('../src/vaRRI.js');
-const examples = require('../examples-data.js');
+const examples = require('../example-data.js');
 
 describe('shared example catalog', () => {
   test('contains the feature overview and the two existing literature examples', () => {
@@ -9,10 +9,11 @@ describe('shared example catalog', () => {
       '2mol',
       'coronel-tellez-2022',
       'wu-2024',
+      'IntaRNA-seeds'
     ]);
 
     const literatureIds = Object.entries(examples)
-      .filter(([, example]) => example.originalFigure)
+      .filter(([, example]) => example.doi)
       .map(([id]) => id);
 
     expect(literatureIds).toEqual([
