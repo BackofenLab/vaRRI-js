@@ -472,6 +472,8 @@ textarea.drag-over {
 .action-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-end;
   gap: .6rem;
   margin-top: .5rem;
 }

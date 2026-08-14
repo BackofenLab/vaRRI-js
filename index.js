@@ -917,7 +917,7 @@ function resetAnnotationForm(fieldIds, submitButtonId, activeItemSelector) {
 function resetRegionForm() {
   resetAnnotationForm(
     ['regionEditId', 'region1', 'region2', 'regionColor', 'regionAlpha'],
-    'regionSubmitBtn',
+    null,
     '.region-item.active'
   );
 }
@@ -925,7 +925,7 @@ function resetRegionForm() {
 function resetHighlightForm() {
   resetAnnotationForm(
     ['subseqEditId', 'subseqSequence', 'subseqRange', 'subseqColor', 'subseqAlpha'],
-    'highlightSubmitBtn',
+    null,
     '.highlight-item.active'
   );
 }
@@ -951,6 +951,7 @@ function renderHighlightList() {
     info.className = 'highlight-item-main';
     info.textContent = `Seq ${highlight.sequence} : ${highlight.rangeText}`;
     info.style.borderLeft = `10px solid ${cssColorToRGB(highlight.color, highlight.alpha)}`;
+    info.title = 'Click to edit subsequence highlighting.';
 
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
@@ -958,8 +959,8 @@ function renderHighlightList() {
     removeBtn.setAttribute('aria-label', `Remove highlight ${highlight.id}`);
     removeBtn.textContent = '🗑️'; // trash can icon
     removeBtn.title = 'Remove highlight';
-
-    info.addEventListener('click', () => {
+    
+    info.addEventListener('click', (e) => {
       document.querySelectorAll('.highlight-item.active').forEach(el => el.classList.remove('active'));
       item.classList.add('active');
       document.getElementById('subseqEditId').value = String(highlight.id);
@@ -967,8 +968,12 @@ function renderHighlightList() {
       document.getElementById('subseqRange').value = highlight.rangeText;
       document.getElementById('subseqColor').value = cssColorToHex(highlight.color);
       document.getElementById('subseqAlpha').value = highlight.alpha.toFixed(1);
-      document.getElementById('highlightSubmitBtn').textContent = 'Update';
       clearFieldErrors(['subseqSequence', 'subseqRange', 'subseqColor']);
+      // open dialog and store if needed
+      openDialog('subseqHighlightDialog', 'Changing Subsequence Highlighting ...', highlight.rangeText, e, function(label, value) {
+        submitHighlightForm();
+        resetHighlightForm();
+      });
     });
 
     removeBtn.addEventListener('click', () => {
@@ -1066,6 +1071,8 @@ function renderRegionList() {
     if (region.generated) {
       info.disabled = true;
       info.title = 'Generated region highlight';
+    } else {
+      info.title = 'Click to edit region highlight';
     }
 
     if (!region.generated) {
@@ -1076,7 +1083,7 @@ function renderRegionList() {
       removeBtn.textContent = '🗑️';
       removeBtn.title = 'Remove region highlight';
 
-      info.addEventListener('click', () => {
+      info.addEventListener('click', (e) => {
         document.querySelectorAll('.region-item.active').forEach(el => el.classList.remove('active'));
         item.classList.add('active');
         document.getElementById('regionEditId').value = String(region.id);
@@ -1084,8 +1091,12 @@ function renderRegionList() {
         document.getElementById('region2').value = `${region.sequence2Range[0]}-${region.sequence2Range[1]}`;
         document.getElementById('regionColor').value = cssColorToHex(region.color);
         document.getElementById('regionAlpha').value = region.alpha.toFixed(1);
-        document.getElementById('regionSubmitBtn').textContent = 'Update';
         clearFieldErrors(['region1', 'region2', 'regionColor']);
+        // open dialog and store if needed
+        openDialog('regionHighlightDialog', 'Changing RRI Region Highlighting ...', `${region.sequence1Range[0]}-${region.sequence1Range[1]}`, e, function(label, value) {
+          submitRegionForm();
+          resetRegionForm();
+        });
       });
 
       removeBtn.addEventListener('click', () => {
@@ -1189,7 +1200,7 @@ function submitRegionForm(event) {
 function resetMutationForm() {
   resetAnnotationForm(
     ['mutationEditId', 'mutationSequence', 'mutationPosition', 'mutationBase', 'mutationColor'],
-    'mutationSubmitBtn',
+    null,
     '.mutation-item.active'
   );
 }
@@ -1215,6 +1226,7 @@ function renderMutationList() {
     info.className = 'highlight-item-main';
     info.textContent = `Seq ${mutation.sequence} : ${mutation.labelText}`;
     info.style.borderLeft = `10px solid ${mutation.color}`;
+    info.title = 'Click to edit point mutation.';
 
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
@@ -1223,7 +1235,7 @@ function renderMutationList() {
     removeBtn.textContent = '🗑️';
     removeBtn.title = 'Remove mutation';
 
-    info.addEventListener('click', () => {
+    info.addEventListener('click', (e) => {
       document.querySelectorAll('.mutation-item.active').forEach(el => el.classList.remove('active'));
       item.classList.add('active');
       document.getElementById('mutationEditId').value = String(mutation.id);
@@ -1231,8 +1243,12 @@ function renderMutationList() {
       document.getElementById('mutationPosition').value = String(mutation.position);
       document.getElementById('mutationBase').value = mutation.replacement;
       document.getElementById('mutationColor').value = cssColorToHex(mutation.color);
-      document.getElementById('mutationSubmitBtn').textContent = 'Update';
       clearFieldErrors(['mutationSequence', 'mutationPosition', 'mutationBase', 'mutationColor']);
+      // open dialog and store if needed
+      openDialog('mutationDialog', 'Changing Point Mutation ...', mutation.position, e, function(label, value) {
+        submitMutationForm();
+        resetMutationForm();
+      });
     });
 
     removeBtn.addEventListener('click', () => {
@@ -1689,16 +1705,16 @@ function openDialog(dialogId, dialogHeader, initialValue, clickEvent, callback) 
 }
 
 /**
- * Attaches the number dialog directly to an ID or DOM element.
+ * Attaches a respective dialog directly to an ID or DOM element.
  */
-function bindNumberDialog(targetId, dialogHeader, onUpdate) {
+function bindDialog(dialogType, targetId, dialogHeader, onUpdate) {
   var element = typeof targetId === 'string' ? document.getElementById(targetId) : targetId;
   if (!element) return;
 
   element.addEventListener('click', function(e) {
     var currentValue = element.value !== undefined ? element.value : element.textContent;
 
-    openDialog('numberDialog', dialogHeader, currentValue, e, function(newValue) {
+    openDialog(dialogType, dialogHeader, currentValue, e, function(newValue) {
       if (onUpdate) {
         // Custom update behavior if provided
         onUpdate(element, newValue);
@@ -1714,14 +1730,25 @@ function bindNumberDialog(targetId, dialogHeader, onUpdate) {
 
 function attachDialogListeners() {
   // Simple input:
-  //bindNumberDialog('numInput');
+  //bindDialog('numberDialog', 'numInput');
+
+  // add highlight dialog to the highlight range input
+  bindDialog('subseqHighlightDialog', 'highlightSubmitBtn', 'Highlight Subsequence ...', function(label, newValue) {
+    submitHighlightForm();
+  });
+  bindDialog('regionHighlightDialog', 'regionSubmitBtn', 'Highlight RRI Region ...', function(label, newValue) {
+    submitRegionForm();
+  });
+  bindDialog('mutationDialog', 'mutationSubmitBtn', 'Define Point Mutation ...', function(label, newValue) {
+    submitMutationForm();
+  });
   
   // Slider label with custom handler:
-  bindNumberDialog('rotation', 'Rotate ...°', function(label, newValue) {
+  bindDialog('numberDialog', 'rotation', 'Rotate ...°', function(label, newValue) {
     committedRotationDeg = Number(newValue);
     document.getElementById('rotationSlider').dispatchEvent(new Event('change', { bubbles: true }));
   });
-  bindNumberDialog('cropping-value', 'Crop to ... free nt', function(label, newValue) {
+  bindDialog('numberDialog', 'cropping-value', 'Crop to ... free nt', function(label, newValue) {
     document.getElementById('cropping').value = newValue;
     document.getElementById('cropping').dispatchEvent(new Event('change', { bubbles: true }));
   });
@@ -2297,14 +2324,8 @@ function attachUiActionListeners() {
     clearAllBtn: clearAll,
     exportPngBtn: exportPNG,
     exportSvgBtn: exportSVG,
-    highlightCancelBtn: resetHighlightForm,
-    highlightSubmitBtn: submitHighlightForm,
-    mutationCancelBtn: resetMutationForm,
-    mutationSubmitBtn: submitMutationForm,
     profileApplyBtn: runVisualization,
     profileClearBtn: resetProfileForm,
-    regionCancelBtn: resetRegionForm,
-    regionSubmitBtn: submitRegionForm,
     shareLinkBtn: event => generateShareableURLToClipboard(event.currentTarget),
     openVarriBtn: () => window.open(generateShareableURL(), '_blank'),
   };

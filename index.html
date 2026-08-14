@@ -186,7 +186,7 @@
         <div class="control-group-body">
 
                     <div class="label-dropdown-col-row">
-                      <label for="backgroundhighlighting">&thinsp;of RRI background</label>
+                      <label for="backgroundhighlighting">&thinsp;Highlight of RRI region:</label>
                       <select id="backgroundhighlighting">
                         <option value="basepairs" selected>basepairs</option>
                         <option value="region">region</option>
@@ -200,51 +200,8 @@
 
           <input type="hidden" id="regionEditId" value="">
 
-          <div class="regionInput">
-            <div>
-              <label for="region1">Region 1</label>
-              <div class="input-wrap">
-                <input type="text" id="region1" placeholder="e.g. 2-4">
-                <span class="field-tooltip"></span>
-              </div>
-            </div>
-            <div>
-              <label for="region2">Region 2</label>
-              <div class="input-wrap">
-                <input type="text" id="region2" placeholder="e.g. 5-7">
-                <span class="field-tooltip"></span>
-              </div>
-            </div>
-            <div>
-              <label for="regionColor">Color</label>
-              <div class="input-wrap">
-                <input type="color" id="regionColor">
-                <span class="field-tooltip"></span>
-              </div>
-            </div>
-            <div>
-              <label for="regionAlpha" title="Opacity of the highlight (0.0 = fully transparent, 1.0 = fully opaque)">&nbsp;&nbsp;&nbsp;&nbsp;◐</label>
-              <div class="input-wrap">
-                <select id="regionAlpha">
-                  <option value="0.1">0.1</option>
-                  <option value="0.2">0.2</option>
-                  <option value="0.3">0.3</option>
-                  <option value="0.4">0.4</option>
-                  <option value="0.5">0.5</option>
-                  <option value="0.6">0.6</option>
-                  <option value="0.7">0.7</option>
-                  <option value="0.8">0.8</option>
-                  <option value="0.9">0.9</option>
-                  <option value="1.0" selected>1.0</option>
-                </select>
-                <span class="field-tooltip"></span>
-              </div>
-            </div>
-          </div>
-
           <div class="action-row">
             <button id="regionSubmitBtn" class="btn btn-primary btn-sm" type="button">Add</button>
-            <button id="regionCancelBtn" class="btn btn-secondary btn-sm" type="button">Clear</button>
           </div>
         </div>
       </details>
@@ -264,54 +221,8 @@
 
           <input type="hidden" id="subseqEditId" value="">
 
-          <div class="highlightInput">
-            <div>
-              <label for="subseqSequence">Seq.</label>
-              <div class="input-wrap">
-                <select id="subseqSequence">
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                </select>
-                <span class="field-tooltip"></span>
-              </div>
-            </div>
-            <div>
-              <label for="subseqRange">Range</label>
-              <div class="input-wrap">
-                <input type="text" id="subseqRange" placeholder="e.g. 3-8">
-                <span class="field-tooltip"></span>
-              </div>
-            </div>
-            <div>
-              <label for="subseqColor">Color</label>
-              <div class="input-wrap">
-                <input type="color" id="subseqColor">
-                <span class="field-tooltip"></span>
-              </div>
-            </div>
-            <div>
-              <label for="subseqAlpha" title="Opacity of the highlight (0.0 = fully transparent, 1.0 = fully opaque)">&nbsp;&nbsp;&nbsp;&nbsp;◐</label>
-              <div class="input-wrap">
-                <select id="subseqAlpha">
-                  <option value="0.1">0.1</option>
-                  <option value="0.2">0.2</option>
-                  <option value="0.3">0.3</option>
-                  <option value="0.4">0.4</option>
-                  <option value="0.5">0.5</option>
-                  <option value="0.6">0.6</option>
-                  <option value="0.7">0.7</option>
-                  <option value="0.8">0.8</option>
-                  <option value="0.9">0.9</option>
-                  <option value="1.0" selected>1.0</option>
-                </select>
-                <span class="field-tooltip"></span>
-              </div>
-            </div>
-          </div>
-
           <div class="action-row">
-            <button id="highlightSubmitBtn" class="btn btn-primary btn-sm" type="button">Add</button>
-            <button id="highlightCancelBtn" class="btn btn-secondary btn-sm" type="button">Clear</button>
+            <button id="highlightSubmitBtn" class="btn btn-primary btn-sm" type="button" title="Add subsequence highlighting">Add</button>
           </div>
         </div>
       </details>
@@ -401,43 +312,8 @@
 
           <input type="hidden" id="mutationEditId" value="">
 
-          <div class="mutationInput">
-            <div>
-              <label for="mutationSequence">Seq.</label>
-              <div class="input-wrap">
-                <select id="mutationSequence">
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                </select>
-                <span class="field-tooltip"></span>
-              </div>
-            </div>
-            <div>
-              <label for="mutationPosition">Position</label>
-              <div class="input-wrap">
-                <input type="text" id="mutationPosition" inputmode="text" autocomplete="off" spellcheck="false" placeholder="e.g. -2">
-                <span class="field-tooltip"></span>
-              </div>
-            </div>
-            <div>
-              <label for="mutationBase">To</label>
-              <div class="input-wrap">
-                <input type="text" id="mutationBase" maxlength="1" inputmode="text" autocomplete="off" spellcheck="false" placeholder="A">
-                <span class="field-tooltip"></span>
-              </div>
-            </div>
-            <div>
-              <label for="mutationColor">Color</label>
-              <div class="input-wrap">
-                <input type="color" id="mutationColor">
-                <span class="field-tooltip"></span>
-              </div>
-            </div>
-          </div>
-
           <div class="action-row">
             <button id="mutationSubmitBtn" class="btn btn-primary btn-sm" type="button">Add</button>
-            <button id="mutationCancelBtn" class="btn btn-secondary btn-sm" type="button">Clear</button>
           </div>
         </div>
       </details>
@@ -506,7 +382,7 @@
 </footer>
 
 
-<!-- 1. Zahlen-Dialog -->
+
 <dialog id="numberDialog" class="app-dialog">
   <form method="dialog">
     <div class="dialog-header">Change to</div>
@@ -521,12 +397,171 @@
   </form>
 </dialog>
 
-<!-- 2. Text-Dialog -->
+
 <dialog id="textDialog" class="app-dialog">
   <form method="dialog">
     <div class="dialog-header">Change to</div>
     <div class="dialog-body">
       <input type="text">
+    </div>
+    <div class="dialog-actions">
+      <!-- OK an 1. Stelle im DOM -> ENTER wählt automatisch diesen Button -->
+      <button value="ok" class="btn btn-primary">OK</button>
+      <button value="cancel" class="btn btn-secondary">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+
+<dialog id="subseqHighlightDialog" class="app-dialog">
+  <form method="dialog">
+    <div class="dialog-header">Highlight Subsequence ...</div>
+    <div class="dialog-body">
+      <div class="highlightInput">
+        <div>
+          <label for="subseqSequence">Seq.</label>
+          <div class="input-wrap">
+            <select id="subseqSequence">
+              <option value="1">1</option>
+              <option value="2">2</option>
+            </select>
+            <span class="field-tooltip"></span>
+          </div>
+        </div>
+        <div>
+          <label for="subseqRange">Range</label>
+          <div class="input-wrap">
+            <input type="text" id="subseqRange" placeholder="e.g. 3-8">
+            <span class="field-tooltip"></span>
+          </div>
+        </div>
+        <div>
+          <label for="subseqColor">Color</label>
+          <div class="input-wrap">
+            <input type="color" id="subseqColor">
+            <span class="field-tooltip"></span>
+          </div>
+        </div>
+        <div>
+          <label for="subseqAlpha" title="Opacity of the highlight (0.0 = fully transparent, 1.0 = fully opaque)">&nbsp;&nbsp;&nbsp;&nbsp;◐</label>
+          <div class="input-wrap">
+            <select id="subseqAlpha">
+              <option value="0.1">0.1</option>
+              <option value="0.2">0.2</option>
+              <option value="0.3">0.3</option>
+              <option value="0.4">0.4</option>
+              <option value="0.5">0.5</option>
+              <option value="0.6">0.6</option>
+              <option value="0.7">0.7</option>
+              <option value="0.8">0.8</option>
+              <option value="0.9">0.9</option>
+              <option value="1.0" selected>1.0</option>
+            </select>
+            <span class="field-tooltip"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-actions">
+      <!-- OK an 1. Stelle im DOM -> ENTER wählt automatisch diesen Button -->
+      <button value="ok" class="btn btn-primary">OK</button>
+      <button value="cancel" class="btn btn-secondary">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+
+<dialog id="regionHighlightDialog" class="app-dialog">
+  <form method="dialog">
+    <div class="dialog-header">Highlight RRI region ...</div>
+    <div class="dialog-body">         
+      <div class="regionInput">
+        <div>
+          <label for="region1">Region 1</label>
+          <div class="input-wrap">
+            <input type="text" id="region1" placeholder="e.g. 2-4">
+            <span class="field-tooltip"></span>
+          </div>
+        </div>
+        <div>
+          <label for="region2">Region 2</label>
+          <div class="input-wrap">
+            <input type="text" id="region2" placeholder="e.g. 5-7">
+            <span class="field-tooltip"></span>
+          </div>
+        </div>
+        <div>
+          <label for="regionColor">Color</label>
+          <div class="input-wrap">
+            <input type="color" id="regionColor">
+            <span class="field-tooltip"></span>
+          </div>
+        </div>
+        <div>
+          <label for="regionAlpha" title="Opacity of the highlight (0.0 = fully transparent, 1.0 = fully opaque)">&nbsp;&nbsp;&nbsp;&nbsp;◐</label>
+          <div class="input-wrap">
+            <select id="regionAlpha">
+              <option value="0.1">0.1</option>
+              <option value="0.2">0.2</option>
+              <option value="0.3">0.3</option>
+              <option value="0.4">0.4</option>
+              <option value="0.5">0.5</option>
+              <option value="0.6">0.6</option>
+              <option value="0.7">0.7</option>
+              <option value="0.8">0.8</option>
+              <option value="0.9">0.9</option>
+              <option value="1.0" selected>1.0</option>
+            </select>
+            <span class="field-tooltip"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-actions">
+      <!-- OK an 1. Stelle im DOM -> ENTER wählt automatisch diesen Button -->
+      <button value="ok" class="btn btn-primary">OK</button>
+      <button value="cancel" class="btn btn-secondary">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="mutationDialog" class="app-dialog">
+  <form method="dialog">
+    <div class="dialog-header">Add Point Mutation ...</div>
+    <div class="dialog-body">  
+      <div class="mutationInput">
+        <div>
+          <label for="mutationSequence">Seq.</label>
+          <div class="input-wrap">
+            <select id="mutationSequence">
+              <option value="1">1</option>
+              <option value="2">2</option>
+            </select>
+            <span class="field-tooltip"></span>
+          </div>
+        </div>
+        <div>
+          <label for="mutationPosition">Position</label>
+          <div class="input-wrap">
+            <input type="text" id="mutationPosition" inputmode="text" autocomplete="off" spellcheck="false" placeholder="e.g. -2">
+            <span class="field-tooltip"></span>
+          </div>
+        </div>
+        <div>
+          <label for="mutationBase">To</label>
+          <div class="input-wrap">
+            <input type="text" id="mutationBase" maxlength="1" inputmode="text" autocomplete="off" spellcheck="false" placeholder="A">
+            <span class="field-tooltip"></span>
+          </div>
+        </div>
+        <div>
+          <label for="mutationColor">Color</label>
+          <div class="input-wrap">
+            <input type="color" id="mutationColor">
+            <span class="field-tooltip"></span>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="dialog-actions">
       <!-- OK an 1. Stelle im DOM -> ENTER wählt automatisch diesen Button -->
