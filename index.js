@@ -423,8 +423,13 @@ function clearFieldErrors(fieldIds) {
 
 function resetFormDefaultValue(fieldIds) {
   if (!fieldIds) return;
+  // list of UI-control fields to ignore
+  const ignoreFields = new Set(['hideFooterAndHeader']);
+
   const ids = Array.isArray(fieldIds) ? fieldIds : [fieldIds];
   for (const fieldId of ids) {
+    // skip any fields that are in the ignore list
+    if (ignoreFields.has(fieldId)) continue;
     let defaultValue = DEFAULT_VALUES[fieldId];
     if (typeof defaultValue === 'function') {
       defaultValue = defaultValue();
