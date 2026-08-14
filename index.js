@@ -2,6 +2,7 @@
 // -------------------------------------------------------------------------
 // Default data
 // -------------------------------------------------------------------------
+const INITIAL_COLORS = vaRRI.getColors();
 
 const DEFAULT_VALUES = {
   // input + rendering
@@ -11,25 +12,29 @@ const DEFAULT_VALUES = {
   startIndex2: '1',
   rotationSlider: '0',
   cropping: '-1',
-  get colorSeq1() { return cssColorToHex(vaRRI.getColors().sequence1); },
-  get colorSeq2() { return cssColorToHex(vaRRI.getColors().sequence2); },
+  colorSeq1: cssColorToHex(INITIAL_COLORS.sequence1).toString(),
+  colorSeq2: cssColorToHex(INITIAL_COLORS.sequence2),
+  coloring: 'strand',
+  highlighting: 'region',
+  backgroundhighlighting: 'basepairs',
+  guBasepairs: true,
   // profile data
   profileData1: '',
   profileIdxRef1: '1',
-  get profileColor1() { return cssColorToHex(vaRRI.getColors().seq1profileColor); },
+  profileColor1: cssColorToHex(INITIAL_COLORS.seq1profileColor),
   profileColorRepresentsOne1: true,
   profileData2: '',
   profileIdxRef2: '1',
-  get profileColor2() { return cssColorToHex(vaRRI.getColors().seq2profileColor); },
+  profileColor2: cssColorToHex(INITIAL_COLORS.seq2profileColor),
   profileColorRepresentsOne2: true,
   // visualization
   forceLayout: false,
   forceLayoutFreeTails: false,
   forceLayoutPullCrossing: false,
   hideFooterAndHeader: false,
-  get colorRriNodes() { return cssColorToHex(vaRRI.getColors().intermolecularHighlight); },
-  get colorRriRegion() { return cssColorToHex(vaRRI.getColors().backgroundHighlight); },
-  get colorBasepair() { return cssColorToHex(vaRRI.getColors().basepair); },
+  colorRriNodes: cssColorToHex(INITIAL_COLORS.intermolecularHighlight),
+  colorRriRegion: cssColorToHex(INITIAL_COLORS.backgroundHighlight),
+  colorBasepair: cssColorToHex(INITIAL_COLORS.basepair),
   // subsequence highlighting
   subseqEditId: '',
   subseqSequence: '1',
@@ -79,134 +84,97 @@ const UI_ONLY_FIELDS = [
 // -------------------------------------------------------------------------
 // Example data
 // -------------------------------------------------------------------------
-const SINGLE_MOLECULE_EXAMPLE_DEFAULTS = {
-  startIndex1: '1',
-  startIndex2: '1',
-  coloring: 'loop',
-  highlighting: 'nothing',
-  backgroundhighlighting: 'nothing',
-  guBasepairs: false,
-  subsequenceHighlights: [],
-  pointMutations: [],
-  profileColor1RepresentsOne: false,
-  profileColor2RepresentsOne: false,
-  profileData1: '',
-  profileData2: '',
-};
+const EXAMPLES = window.VARRI_EXAMPLES || {};
+const EXAMPLE_PLACEHOLDER = 'Select an example';
+let selectedExampleKey = null;
 
-const EXAMPLES = {
-  '2mol': {
-    structure: '..<<<<...>>>>...((..(((...((..&............))...)))..))..',
-    sequence: 'ACGAUCAUGGAUUAGAGCAUUCGACAGCAG&ACGAAAAAAAGAGCAUACGACAGUAG',
-    startIndex1: '-6', startIndex2: '100',
-    coloring: 'strand', highlighting: 'region',
-    backgroundhighlighting: 'basepairs', guBasepairs: true,
-    cropping: '2',
-    forceLayout: false,
-    regionHighlights: [
-      { sequence1Range: '13-14', sequence2Range: '120-121', color: '#0d00ff', generated: false },
-    ],
-    subsequenceHighlights: [
-      { sequence: '1', range: '18-20', color: '#338a29', alpha: 1 },
-      { sequence: '2', range: '114-116', color: '#1e1ee4', alpha: 0.7 },
-    ],
-    pointMutations: [
-      { sequence: '1', position: 16, replacement: 'G', color: '#338a29' },
-      { sequence: '2', position: 118, replacement: 'C', color: '#1e1ee4' },
-    ],
-    profileColor1RepresentsOne: true,
-    profileColor2RepresentsOne: false,
-    profileData1: `# unpaired probabilities
-1 0.9
-2 0.7
-3 0.3
-4 0.1
-7 0.3
-8 0.7
-9 0.6`,
-    profileIndexReference1: '1',
-  },
-  '1mol': {
-    ...SINGLE_MOLECULE_EXAMPLE_DEFAULTS,
-    structure: '(((....)))',
-    sequence: 'GGGCAAAACC',
-  },
-  'pseudoknot': {
-    ...SINGLE_MOLECULE_EXAMPLE_DEFAULTS,
-    structure: '((.[[..))..]]',
-    sequence: 'ACGUACGUACGUA',
-  },
-};
+function renderExampleDropdown() {
+  const options = document.getElementById('exampleDropdownOptions');
+  if (!options) return;
+
+  const fragment = document.createDocumentFragment();
+  Object.entries(EXAMPLES).forEach(([key, example]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'example-option';
+    button.dataset.example = key;
+
+    const name = document.createElement('span');
+    name.className = 'example-option-name';
+    name.textContent = example.nameShort || example.name || key;
+
+    const description = document.createElement('span');
+    description.className = 'example-option-description';
+    description.textContent = example.descriptionShort || example.description;
+
+    button.append(name, description);
+    if (key === selectedExampleKey) {
+      button.setAttribute('aria-current', 'true');
+    }
+    fragment.appendChild(button);
+  });
+
+  options.replaceChildren(fragment);
+}
+
+function updateExampleDropdownSelection(key) {
+  const example = EXAMPLES[key];
+  selectedExampleKey = example ? key : null;
+
+  const label = document.getElementById('selectedExampleName');
+  if (label) label.textContent = example ? (example.nameShort || example.name) : EXAMPLE_PLACEHOLDER;
+
+  const dropdown = document.getElementById('exampleDropdown');
+  if (dropdown) dropdown.open = false;
+
+  document.querySelectorAll('#exampleDropdownOptions [data-example]').forEach(button => {
+    if (button.dataset.example === selectedExampleKey) {
+      button.setAttribute('aria-current', 'true');
+    } else {
+      button.removeAttribute('aria-current');
+    }
+  });
+
+  const caption = document.getElementById('rendering-caption');
+  if (caption) {
+    if (selectedExampleKey && example && example.description && example.description.trim() !== '') {
+      let captionText = "**Example** *"+example.nameShort+"*: "
+                      + example.description;
+      caption.innerHTML = marked.parse(captionText);
+      caption.style.display = '';
+    } else {
+      caption.innerText = '';
+      caption.style.display = 'none';
+    }
+  } else {
+    console.warn('Rendering caption element not found.');
+  }
+}
+
+function resetExampleDropdownSelection() {
+  updateExampleDropdownSelection(null);
+}
+
+function getExampleUrlParameters(example) {
+  const params = new URLSearchParams();
+  Object.entries(example.vaRRIParams || {}).forEach(([key, value]) => {
+    if (key !== 'showRenderingOnly' && value !== undefined && value !== null) {
+      params.set(key, value);
+    }
+  });
+  return params;
+}
 
 function loadExample(key) {
-  const ex = EXAMPLES[key];
-  if (!ex) return;
-  document.getElementById('structure').value = ex.structure;
-  document.getElementById('sequence').value = ex.sequence;
-  document.getElementById('cropping').value = ex.cropping;
-  document.getElementById('startIndex1').value = ex.startIndex1;
-  document.getElementById('startIndex2').value = ex.startIndex2;
-  document.getElementById('coloring').value = ex.coloring;
-  document.getElementById('forceLayout').checked = !!ex.forceLayout;
-  document.getElementById('highlighting').value = ex.highlighting;
-  document.getElementById('backgroundhighlighting').value = ex.backgroundhighlighting;
-  document.getElementById('guBasepairs').checked = ex.guBasepairs;
-  document.getElementById('profileData1').value = ex.profileData1 || '';
-  document.getElementById('profileIdxRef1').value = ex.profileIndexReference1 || '1';
-  document.getElementById('profileData2').value = ex.profileData2 || '';
-  document.getElementById('profileIdxRef2').value = ex.profileIndexReference2 || '1';
-  document.getElementById('profileColorRepresentsOne1').checked = !!ex.profileColor1RepresentsOne;
-  document.getElementById('profileColorRepresentsOne2').checked = !!ex.profileColor2RepresentsOne;
-  
-  vaRRI.clearSubsequenceHighlights();
-  const exampleHighlights = Array.isArray(ex.subsequenceHighlights)
-  ? ex.subsequenceHighlights
-  : [];
-  if (exampleHighlights.length > 0) {
-    const sequenceContext = getHighlightSequenceContext();
-    exampleHighlights.forEach(highlight => {
-      vaRRI.registerSubsequenceHighlight({
-        sequence: highlight.sequence,
-        range: highlight.range,
-        color: highlight.color,
-        alpha: highlight.alpha,
-      }, sequenceContext);
-    });
-  }
-  
-  vaRRI.clearRegionHighlights();
-  const exampleRegionHighlights = Array.isArray(ex.regionHighlights)
-    ? ex.regionHighlights
-    : [];
-    if (exampleRegionHighlights.length > 0) {
-      const sequenceContext = getHighlightSequenceContext();
-      exampleRegionHighlights.forEach(region => {
-      vaRRI.registerRegionHighlight({
-        sequence1Range: region.sequence1Range,
-        sequence2Range: region.sequence2Range,
-        color: region.color,
-        alpha: region.alpha,
-        generated: region.generated,
-      }, sequenceContext);
-    });
-  }
-  
-  vaRRI.clearPointMutations();
-  const exampleMutations = Array.isArray(ex.pointMutations)
-  ? ex.pointMutations
-  : [];
-  if (exampleMutations.length > 0) {
-    const sequenceContext = getHighlightSequenceContext();
-    exampleMutations.forEach(mutation => {
-      vaRRI.registerPointMutation({
-        sequence: mutation.sequence,
-        position: mutation.position,
-        replacement: mutation.replacement,
-        color: mutation.color,
-      }, sequenceContext);
-    });
-  }
+  const example = EXAMPLES[key];
+  if (!example || !example.vaRRIParams) return false;
 
+  // Example links assume a fresh page. Reset all state before applying the
+  // same URL parameters here so switching examples cannot leak prior values.
+  vaRRI.setColors(INITIAL_COLORS);
+  clearAll();
+  loadAllUrlParameters(getExampleUrlParameters(example), { revealProfilePanel: false });
+  syncAnimationDependentControls();
 
   renderHighlightList();
   renderRegionList();
@@ -215,7 +183,9 @@ function loadExample(key) {
   resetRegionForm();
   resetMutationForm();
 
+  updateExampleDropdownSelection(key);
   runVisualization();
+  return true;
 }
 
 // -------------------------------------------------------------------------
@@ -312,6 +282,7 @@ function clearMsg() {
 }
 
 function clearAll() {
+  resetExampleDropdownSelection();
   resetFormDefaultValue(Object.keys(DEFAULT_VALUES));
   vaRRI.clearSubsequenceHighlights();
   vaRRI.clearRegionHighlights();
@@ -452,8 +423,13 @@ function clearFieldErrors(fieldIds) {
 
 function resetFormDefaultValue(fieldIds) {
   if (!fieldIds) return;
+  // list of UI-control fields to ignore
+  const ignoreFields = new Set(['hideFooterAndHeader']);
+
   const ids = Array.isArray(fieldIds) ? fieldIds : [fieldIds];
   for (const fieldId of ids) {
+    // skip any fields that are in the ignore list
+    if (ignoreFields.has(fieldId)) continue;
     let defaultValue = DEFAULT_VALUES[fieldId];
     if (typeof defaultValue === 'function') {
       defaultValue = defaultValue();
@@ -2257,7 +2233,10 @@ function syncGeneratedRegionHighlight() {
   }
 }
 
-function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.search)) {
+function loadAllUrlParameters(
+  urlParams = new URLSearchParams(window.location.search),
+  { revealProfilePanel = true } = {}
+) {
   let hasProfileData = false;
 
   // Rendering-only flag.
@@ -2305,7 +2284,7 @@ function loadAllUrlParameters(urlParams = new URLSearchParams(window.location.se
   }
 
   // Reveal the profile panel when a share link contains profile data.
-  if (hasProfileData) {
+  if (hasProfileData && revealProfilePanel) {
     const profileDetails = document.getElementById('profileData1')?.closest('details');
     if (profileDetails) {
       profileDetails.open = true;
@@ -2334,8 +2313,28 @@ function attachUiActionListeners() {
     document.getElementById(id)?.addEventListener('click', handler);
   });
 
-  document.querySelectorAll('[data-example]').forEach(button => {
-    button.addEventListener('click', () => loadExample(button.dataset.example));
+  const exampleDropdown = document.getElementById('exampleDropdown');
+  const exampleOptions = document.getElementById('exampleDropdownOptions');
+
+  exampleOptions?.addEventListener('click', event => {
+    const button = event.target.closest('[data-example]');
+    if (button && loadExample(button.dataset.example)) {
+      document.getElementById('exampleDropdownTrigger')?.focus();
+    }
+  });
+
+  exampleDropdown?.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && exampleDropdown.open) {
+      event.preventDefault();
+      exampleDropdown.open = false;
+      document.getElementById('exampleDropdownTrigger')?.focus();
+    }
+  });
+
+  document.addEventListener('click', event => {
+    if (exampleDropdown?.open && !exampleDropdown.contains(event.target)) {
+      exampleDropdown.open = false;
+    }
   });
 
   document.querySelectorAll('.js-render-color').forEach(input => {
@@ -2385,6 +2384,9 @@ function registerSequenceBackdropSync(textareaId) {
 
 
 window.addEventListener('load', () => {
+  // Build example controls from the shared catalog used by the literature links.
+  renderExampleDropdown();
+
   // Reset state before applying examples or URL parameters.
   clearAll();
 

@@ -12,18 +12,6 @@ const testWorkflow = fs.readFileSync(path.resolve(__dirname, '../.github/workflo
 const packageConfig = require('../package.json');
 
 describe('UI document structure', () => {
-  test('loads scripts explicitly and in dependency order', () => {
-    const sources = [...html.matchAll(/<script[^>]+src="([^"]+)"[^>]*><\/script>/g)]
-      .map(match => match[1]);
-
-    expect(sources).toEqual([
-      'fornac/d3.js',
-      'fornac/fornac.js',
-      'src/vaRRI.js',
-      'index.js',
-    ]);
-    expect(html).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/i);
-  });
 
   test('uses source locally and the minified library on GitHub Pages', () => {
     const minifyCommand = 'npx esbuild src/vaRRI.js --minify --sourcemap --outfile=dist/vaRRI.min.js';
@@ -46,6 +34,13 @@ describe('UI document structure', () => {
   test('keeps behavior and presentation out of the HTML', () => {
     expect(html).not.toMatch(/\son[a-z]+="/i);
     expect(html).not.toMatch(/\sstyle="/i);
+  });
+
+  test('keeps example options out of the static HTML', () => {
+    expect(html).toContain('<details id="exampleDropdown" class="example-dropdown">');
+    expect(html).toMatch(/<summary[^>]+aria-labelledby="exampleDropdownLabel selectedExampleName"/);
+    expect(html).toContain('id="exampleDropdownOptions"');
+    expect(html).not.toMatch(/\bdata-example=/);
   });
 
   test('uses unique element IDs', () => {

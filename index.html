@@ -15,7 +15,11 @@
   <!-- Local development uses the source file; the Pages workflow rewrites this path to dist/vaRRI.min.js. -->
   <script src="src/vaRRI.js"></script>
   
+  <!-- Marked synchron laden -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
   <!-- vaRRI-js UI -->
+  <script src="example-data.js" defer></script>
   <script src="index.js" defer></script>
 </head>
 <body>
@@ -47,9 +51,14 @@
         <summary>Sequence &amp; Structure Input</summary>
         <div class="control-group-body">
         <!-- Quick examples -->
-        <label>Example</label>
+        <span id="exampleDropdownLabel" class="example-label">Example</span>
         <div class="examples">
-          <button class="example-btn" type="button" data-example="2mol">RNA-RNA interaction</button>
+          <details id="exampleDropdown" class="example-dropdown">
+            <summary id="exampleDropdownTrigger" aria-labelledby="exampleDropdownLabel selectedExampleName">
+              <span id="selectedExampleName">Select an example</span>
+            </summary>
+            <div id="exampleDropdownOptions" class="example-options" role="group" aria-label="Available examples"></div>
+          </details>
           <button id="clearAllBtn" class="btn btn-secondary btn-sm" type="button">✕ Clear</button>
         </div>
 
@@ -454,6 +463,8 @@
   <!-- ================================================================== -->
   <section class="result-panel">
     <div id="rendering-canvas" tabindex="0"></div>
+
+    <div id="rendering-caption"></div>
 
     <div class="viz-control">
       <label for="rotationSlider">Rotate: <span id="rotation" class="rotation-value">0</span></label>

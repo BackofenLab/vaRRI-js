@@ -31,21 +31,89 @@ describe('browser global export', () => {
 });
 
 function createIndexSandbox(options = {}) {
-    const formElements = options.formElements || [];
-    const document = {
-        getElementById: () => ({
+const formElements = options.formElements || [];
+
+    // Dummy 2D-Context für Canvas
+    const createMock2DContext = () => ({
+        fillRect: () => {},
+        clearRect: () => {},
+        getImageData: (x, y, w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
+        putImageData: () => {},
+        createImageData: () => [],
+        setTransform: () => {},
+        drawImage: () => {},
+        save: () => {},
+        restore: () => {},
+        beginPath: () => {},
+        moveTo: () => {},
+        lineTo: () => {},
+        closePath: () => {},
+        stroke: () => {},
+        fill: () => {},
+        arc: () => {},
+        rect: () => {},
+        fillText: () => {},
+        strokeText: () => {},
+        measureText: () => ({ width: 0, actualBoundingBoxAscent: 0, actualBoundingBoxDescent: 0 }),
+        translate: () => {},
+        scale: () => {},
+        rotate: () => {},
+    });
+
+    // Hilfsfunktion zur Erstellung von Dummy-DOM-Elementen
+    const createMockElement = (tagName = 'div') => {
+        const element = {
+            tagName: String(tagName).toUpperCase(),
             value: '',
             checked: false,
             type: '',
-            dispatchEvent() {},
+            textContent: '',
+            innerHTML: '',
+            style: {},
+            width: 300,  // Standard-Canvas Breiten-/Höhenwerte
+            height: 150,
+            classList: {
+                add: () => {},
+                remove: () => {},
+                toggle: () => {},
+                contains: () => false,
+            },
+            setAttribute: () => {},
+            getAttribute: () => null,
+            removeAttribute: () => {},
+            appendChild: (child) => child,
+            removeChild: (child) => child,
+            replaceChild: (child) => child,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispatchEvent: () => true,
             closest: () => null,
             querySelector: () => null,
-        }),
+            querySelectorAll: () => [],
+
+            // <-- HIER HINZUGEFÜGT: getContext Support
+            getContext: (contextType) => {
+                if (contextType === '2d') {
+                    return createMock2DContext();
+                }
+                return null;
+            },
+            toDataURL: () => 'data:image/png;base64,',
+        };
+
+        return element;
+    };
+
+    const document = {
+        createElement: (tagName) => createMockElement(tagName), // <-- HIER HINZUGEFÜGT
+        getElementById: () => createMockElement('div'),
         querySelectorAll: selector => selector === 'input, textarea, select' ? formElements : [],
     };
+
     const navigator = options.clipboardWrite
         ? { clipboard: { writeText: options.clipboardWrite } }
         : {};
+
     const window = {
         location: {
             protocol: 'https:',
@@ -62,6 +130,7 @@ function createIndexSandbox(options = {}) {
         setTimeout,
         clearTimeout,
     };
+
     const sandbox = {
         window,
         document,
@@ -103,7 +172,6 @@ describe('region input helpers', () => {
 
 describe('region highlight URL helpers', () => {
     test('serializes and loads region highlights through the browser script helpers', () => {
-        let clipboardText = '';
         const registeredRegionHighlights = [];
         const stubbedRegionHighlights = [{
             id: 1,
@@ -114,7 +182,6 @@ describe('region highlight URL helpers', () => {
             generated: false,
         }];
         const sandbox = createIndexSandbox({
-            clipboardWrite: async value => { clipboardText = value; },
             vaRRIOverrides: {
                 getPointMutations: () => [],
                 getSubsequenceHighlights: () => [],
@@ -127,10 +194,10 @@ describe('region highlight URL helpers', () => {
             },
         });
 
-        sandbox.generateShareableURL();
-        expect(clipboardText).toContain('regionHighlights=');
+        const shareUrlText = sandbox.generateShareableURL();
+        expect(shareUrlText).toContain('regionHighlights=');
 
-        const shareUrl = new URL(clipboardText);
+        const shareUrl = new URL(shareUrlText);
         sandbox.loadUrlRegionHighlightsToVaRRI('regionHighlights', shareUrl.searchParams);
 
         expect(registeredRegionHighlights).toHaveLength(1);
@@ -142,13 +209,11 @@ describe('region highlight URL helpers', () => {
     });
 
     test('does not serialize generated region highlights into the share URL', () => {
-        let clipboardText = '';
         const stubbedRegionHighlights = [
             { id: 1, sequence1Range: [2, 4], sequence2Range: [5, 7], color: '#123456', rangeText: '2-4&5-7', generated: false },
             { id: 2, sequence1Range: [8, 9], sequence2Range: [10, 11], color: '#654321', rangeText: '8-9&10-11', generated: true },
         ];
         const sandbox = createIndexSandbox({
-            clipboardWrite: async value => { clipboardText = value; },
             vaRRIOverrides: {
                 getPointMutations: () => [],
                 getSubsequenceHighlights: () => [],
@@ -156,17 +221,15 @@ describe('region highlight URL helpers', () => {
             },
         });
 
-        sandbox.generateShareableURL();
+        const shareUrlText = sandbox.generateShareableURL();
 
-        const shareUrl = new URL(clipboardText);
+        const shareUrl = new URL(shareUrlText);
         expect(shareUrl.searchParams.get('regionHighlights')).toBe('2-4&5-7:123456');
         expect(shareUrl.searchParams.get('regionHighlights')).not.toContain('8-9&10-11');
     });
 
     test('uses URLSearchParams encoding for parentheses', () => {
-        let clipboardText = '';
         const sandbox = createIndexSandbox({
-            clipboardWrite: async value => { clipboardText = value; },
             formElements: [{ id: 'structure', type: 'textarea', value: '((..))' }],
             vaRRIOverrides: {
                 getPointMutations: () => [],
@@ -175,9 +238,9 @@ describe('region highlight URL helpers', () => {
             },
         });
 
-        sandbox.generateShareableURL();
+        const shareUrlText = sandbox.generateShareableURL();
 
-        expect(clipboardText).toContain('structure=%28%28..%29%29');
+        expect(shareUrlText).toContain('structure=%28%28..%29%29');
     });
 
     test('rejects malformed URL alpha values', () => {

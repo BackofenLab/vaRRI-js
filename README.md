@@ -57,11 +57,9 @@ applies all of vaRRI's annotations and tweaks.
 
 ## Examples from Literature reproduced with vaRRI-js
 
-To showcase the capabilities of vaRRI-js, we provide a collection of [examples from the literature that have been reproduced using vaRRI-js](https://backofenlab.github.io/vaRRI-js/examples.html).
+To showcase the capabilities of vaRRI-js, we provide a collection of examples from the literature that have been reproduced using vaRRI-js.
+The examples can be loaded directly in the input website via the **Example** dropdown.
 
-Click the following image to view the examples page, which contains the gallery.
-
-[![vaRRI-js example visualization](doc/example-page-screenshot.png)](https://backofenlab.github.io/vaRRI-js/examples.html)
 
 ---
 
@@ -190,13 +188,13 @@ Details about supported sequence and dot-bracket structure encodings are provide
 
 ### Example Input
 
-When loading the page, a pre-filled RNA-RNA interaction example is automatically rendered. 
-You can also use the respective button to load or unload the example input.
+When loading the page, a feature-overview RNA-RNA interaction is automatically rendered.
+Open the **Example** dropdown to choose another RNA-RNA interaction. Each open menu item shows the example name and a short use-case description; after selection, the control shows only the chosen name.
 
-| Button | Description |
+| Control | Description |
 |---|---|
-| **RNA-RNA interaction** | An RNA-RNA interaction demonstrating all features of vaRRI-js. |
-| **X Clear** | Clears all input fields and resets the visualisation. |
+| **Example dropdown** | Loads the feature overview or an existing literature example demonstrating SHAPE profiles, cropping and highlights, or mutations and sequence context. |
+| **✕ Clear** | Clears all input fields, resets the visualisation, and clears the example selection. |
 
 
 ### Visualisation Settings
