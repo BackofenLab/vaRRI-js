@@ -1099,7 +1099,6 @@ dialog.app-dialog {
 /* 2. Abdunkelung des Hintergrunds (Backdrop) */
 dialog.app-dialog::backdrop {
   background-color: rgba(15, 25, 45, 0.25);
-  backdrop-filter: blur(1px);
 }
 
 /* 3. Dialog Header */
@@ -1117,8 +1116,7 @@ dialog.app-dialog::backdrop {
   padding: 12px;
 }
 
-.app-dialog input[type="number"],
-.app-dialog input[type="text"] {
+.app-dialog input {
   width: 100%;
   box-sizing: border-box;
   padding: 6px 10px;
