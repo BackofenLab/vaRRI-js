@@ -229,6 +229,27 @@
     </aside>
 
     <!-- ================================================================== -->
+    <!-- Mutation panel                                                 -->
+    <!-- ================================================================== -->
+    <aside class="panel control-panel" aria-label="Point mutations">
+      <details class="control-group" name="controls-accordion" >
+        <summary>
+          Point Mutations
+          <span id="mutationCounterUI" class="list-counter"></span>
+        </summary>
+        <div class="control-group-body">
+          <ul id="mutation-list" class="highlight-list"></ul>
+
+          <input type="hidden" id="mutationEditId" value="">
+
+          <div class="action-row">
+            <button id="mutationSubmitBtn" class="btn btn-primary btn-sm" type="button">Add</button>
+          </div>
+        </div>
+      </details>
+    </aside>
+
+    <!-- ================================================================== -->
     <!-- Profile panel                                                 -->
     <!-- ================================================================== -->
     <aside class="panel control-panel" aria-label="Probability profiles">
@@ -294,27 +315,6 @@
             <button id="profileClearBtn" class="btn btn-secondary btn-sm" type="button">Clear</button>
           </div>
 
-        </div>
-      </details>
-    </aside>
-
-    <!-- ================================================================== -->
-    <!-- Mutation panel                                                 -->
-    <!-- ================================================================== -->
-    <aside class="panel control-panel" aria-label="Point mutations">
-      <details class="control-group" name="controls-accordion" >
-        <summary>
-          Point Mutations
-          <span id="mutationCounterUI" class="list-counter"></span>
-        </summary>
-        <div class="control-group-body">
-          <ul id="mutation-list" class="highlight-list"></ul>
-
-          <input type="hidden" id="mutationEditId" value="">
-
-          <div class="action-row">
-            <button id="mutationSubmitBtn" class="btn btn-primary btn-sm" type="button">Add</button>
-          </div>
         </div>
       </details>
     </aside>
