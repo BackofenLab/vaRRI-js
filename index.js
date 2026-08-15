@@ -31,6 +31,8 @@ const DEFAULT_VALUES = {
   forceLayout: false,
   forceLayoutFreeTails: false,
   forceLayoutPullCrossing: false,
+  forceLayoutLinearStructure: false,
+  forceLayoutLinear: false,
   hideFooterAndHeader: false,
   colorRriNodes: cssColorToHex(INITIAL_COLORS.intermolecularHighlight),
   colorRriRegion: cssColorToHex(INITIAL_COLORS.backgroundHighlight),
@@ -174,6 +176,7 @@ function loadExample(key) {
   vaRRI.setColors(INITIAL_COLORS);
   clearAll();
   loadAllUrlParameters(getExampleUrlParameters(example), { revealProfilePanel: false });
+  enableForceLayoutForSelectedLinearOptions();
   syncAnimationDependentControls();
 
   renderHighlightList();
@@ -313,7 +316,9 @@ function resetForceLayoutControl() {
   resetFormDefaultValue([
     'forceLayout',
     'forceLayoutFreeTails',
-    'forceLayoutPullCrossing'
+    'forceLayoutPullCrossing',
+    'forceLayoutLinearStructure',
+    'forceLayoutLinear'
   ]);
 }
 
@@ -1608,6 +1613,10 @@ async function runVisualization() {
   container.style.visibility = 'hidden';
 
   const forceLayout = document.getElementById('forceLayout').checked;
+  const forceLayoutLinearStructure = forceLayout &&
+    !!document.getElementById('forceLayoutLinearStructure')?.checked;
+  const forceLayoutLinear = forceLayout &&
+    !!document.getElementById('forceLayoutLinear')?.checked;
   const freeTrailingEnds = forceLayout && !!document.getElementById('forceLayoutFreeTails')?.checked;
   const pullPseudoknotBasepairs = forceLayout && !!document.getElementById('forceLayoutPullCrossing')?.checked;
   const accessColors = getProfileAccessibilityColors();
@@ -1616,6 +1625,8 @@ async function runVisualization() {
   try {
     const renderState = await vaRRI.render(currentContainerId, v, {
       forceLayout,
+      forceLayoutLinearStructure,
+      forceLayoutLinear,
       freeTrailingEnds,
       pullPseudoknotBasepairs,
       accessData,
@@ -1657,6 +1668,20 @@ function syncAnimationDependentControls() {
   if (!animationCheckbox) return;
 
   const enabled = !!animationCheckbox.checked;
+
+  const linearCheckboxes = [
+    document.getElementById('forceLayoutLinearStructure'),
+    document.getElementById('forceLayoutLinear'),
+  ];
+
+  // Linear layouts can turn force layout on themselves. Turning force layout
+  // off explicitly clears both while leaving them available for the next use.
+  linearCheckboxes.forEach(checkbox => {
+    if (!checkbox) return;
+    checkbox.disabled = false;
+    if (!enabled) checkbox.checked = false;
+  });
+
   [
     document.getElementById('forceLayoutFreeTails'),
     document.getElementById('forceLayoutPullCrossing'),
@@ -1665,6 +1690,16 @@ function syncAnimationDependentControls() {
     checkbox.disabled = !enabled;
     if (!enabled) checkbox.checked = false;
   });
+}
+
+function enableForceLayoutForSelectedLinearOptions() {
+  const forceLayout = document.getElementById('forceLayout');
+  if (!forceLayout) return;
+
+  if (document.getElementById('forceLayoutLinearStructure')?.checked ||
+      document.getElementById('forceLayoutLinear')?.checked) {
+    forceLayout.checked = true;
+  }
 }
 
 /* ##################### DIALOGS ##################### */
@@ -1776,6 +1811,8 @@ function attachAutoVisualizationListeners() {
     forceLayout: { eventName: 'change' },
     forceLayoutFreeTails: { eventName: 'change' },
     forceLayoutPullCrossing: { eventName: 'change' },
+    forceLayoutLinearStructure: { eventName: 'change' },
+    forceLayoutLinear: { eventName: 'change' },
     profileColor1: { eventName: 'change' },
     profileColor2: { eventName: 'change' },
     profileColorRepresentsOne1: { eventName: 'change' },
@@ -1817,6 +1854,10 @@ function attachAutoVisualizationListeners() {
     if (!el) return;
 
     el.addEventListener(config.eventName, () => {
+      if ((id === 'forceLayoutLinearStructure' || id === 'forceLayoutLinear') && el.checked) {
+        enableForceLayoutForSelectedLinearOptions();
+        syncAnimationDependentControls();
+      }
       if (id === 'forceLayout') syncAnimationDependentControls();
       clearFieldError(id);
       queueVisualization();
@@ -2455,6 +2496,7 @@ window.addEventListener('load', () => {
     resetMutationForm();
     updateInputCounter(profileInputIds, 'profileCounterUI');
 
+    enableForceLayoutForSelectedLinearOptions();
     syncAnimationDependentControls();
 
     // Render once after all URL state has been applied.

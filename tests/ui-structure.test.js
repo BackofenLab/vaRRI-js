@@ -69,6 +69,17 @@ describe('UI document structure', () => {
     });
   });
 
+  test('exposes the linear layout controls in their requested order', () => {
+    expect(html).toMatch(
+      /id="forceLayoutLinearStructure"[\s\S]*?<label for="forceLayoutLinearStructure">Linear structure helix layout<\/label>/
+    );
+    expect(html).toMatch(
+      /id="forceLayoutLinear"[\s\S]*?<label for="forceLayoutLinear">Make RRI horizontal<\/label>/
+    );
+    expect(html.indexOf('id="forceLayoutLinearStructure"'))
+      .toBeLessThan(html.indexOf('id="forceLayoutLinear"'));
+  });
+
   test('documents every public API function', () => {
     const apiBlock = library.match(/const vaRRI = \{([\s\S]*?)\n    \};/);
     expect(apiBlock).not.toBeNull();

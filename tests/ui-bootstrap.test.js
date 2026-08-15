@@ -162,3 +162,141 @@ test('boots through bound UI actions without inline handlers', async () => {
 
   dom.window.close();
 });
+
+test('linear layout controls enable force, survive example loading, share, and forward render flags', async () => {
+  jest.resetModules();
+  const vaRRI = require('../src/vaRRI.js');
+  const dom = new JSDOM(html, { url: 'http://localhost/' });
+  installDomGlobals(dom);
+  global.vaRRI = vaRRI;
+
+  require('../example-data.js');
+  const featureOverview = window.VARRI_EXAMPLES['2mol'];
+  window.VARRI_EXAMPLES['linear-test'] = {
+    ...featureOverview,
+    name: 'Linear layout test',
+    nameShort: 'Linear layout test',
+    descriptionShort: 'Exercises the linear RRI option.',
+    vaRRIParams: {
+      ...featureOverview.vaRRIParams,
+      forceLayout: '0',
+      forceLayoutLinear: '1',
+    },
+  };
+
+  const renderSpy = jest.spyOn(vaRRI, 'render').mockResolvedValue({ cancelled: false });
+  const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+  require('../index.js');
+
+  window.dispatchEvent(new window.Event('load'));
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  const forceLayout = document.getElementById('forceLayout');
+  const linearStructure = document.getElementById('forceLayoutLinearStructure');
+  const linearRri = document.getElementById('forceLayoutLinear');
+  const options = document.getElementById('exampleDropdownOptions');
+
+  expect(linearStructure.checked).toBe(false);
+  expect(linearRri.checked).toBe(false);
+  expect(linearStructure.disabled).toBe(false);
+  expect(linearRri.disabled).toBe(false);
+
+  options.querySelector('[data-example="linear-test"]').click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(forceLayout.checked).toBe(true);
+  expect(linearStructure.checked).toBe(false);
+  expect(linearRri.checked).toBe(true);
+  expect(renderSpy).toHaveBeenLastCalledWith(
+    expect.any(String),
+    expect.any(Object),
+    expect.objectContaining({
+      forceLayout: true,
+      forceLayoutLinearStructure: false,
+      forceLayoutLinear: true,
+    })
+  );
+
+  options.querySelector('[data-example="2mol"]').click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(linearStructure.checked).toBe(false);
+  expect(linearRri.checked).toBe(false);
+
+  linearStructure.checked = true;
+  linearStructure.dispatchEvent(new window.Event('change'));
+  expect(forceLayout.checked).toBe(true);
+  expect(renderSpy).toHaveBeenLastCalledWith(
+    expect.any(String),
+    expect.any(Object),
+    expect.objectContaining({
+      forceLayout: true,
+      forceLayoutLinearStructure: true,
+      forceLayoutLinear: false,
+    })
+  );
+
+  linearRri.checked = true;
+  linearRri.dispatchEvent(new window.Event('change'));
+  expect(forceLayout.checked).toBe(true);
+  expect(renderSpy).toHaveBeenLastCalledWith(
+    expect.any(String),
+    expect.any(Object),
+    expect.objectContaining({
+      forceLayout: true,
+      forceLayoutLinearStructure: true,
+      forceLayoutLinear: true,
+    })
+  );
+
+  document.getElementById('openVarriBtn').click();
+  const sharedUrl = new URL(openSpy.mock.calls.at(-1)[0]);
+  expect(sharedUrl.searchParams.get('forceLayoutLinearStructure')).toBe('1');
+  expect(sharedUrl.searchParams.get('forceLayoutLinear')).toBe('1');
+
+  forceLayout.checked = false;
+  forceLayout.dispatchEvent(new window.Event('change'));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(linearStructure.checked).toBe(false);
+  expect(linearRri.checked).toBe(false);
+  expect(linearStructure.disabled).toBe(false);
+  expect(linearRri.disabled).toBe(false);
+  expect(renderSpy).toHaveBeenLastCalledWith(
+    expect.any(String),
+    expect.any(Object),
+    expect.objectContaining({
+      forceLayout: false,
+      forceLayoutLinearStructure: false,
+      forceLayoutLinear: false,
+    })
+  );
+
+  dom.window.close();
+});
+
+test.each([
+  'forceLayoutLinearStructure',
+  'forceLayoutLinear',
+])('URL-loaded %s enables force layout before the initial render', async optionId => {
+  jest.resetModules();
+  const vaRRI = require('../src/vaRRI.js');
+  const url = `http://localhost/?sequence=AAAA&structure=....&forceLayout=0&${optionId}=1`;
+  const dom = new JSDOM(html, { url });
+  installDomGlobals(dom);
+  global.vaRRI = vaRRI;
+
+  const renderSpy = jest.spyOn(vaRRI, 'render').mockResolvedValue({ cancelled: false });
+  require('../index.js');
+
+  window.dispatchEvent(new window.Event('load'));
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(document.getElementById(optionId).checked).toBe(true);
+  expect(document.getElementById('forceLayout').checked).toBe(true);
+  expect(renderSpy).toHaveBeenLastCalledWith(
+    expect.any(String),
+    expect.any(Object),
+    expect.objectContaining({ forceLayout: true, [optionId]: true })
+  );
+
+  dom.window.close();
+});

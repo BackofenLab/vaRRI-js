@@ -210,6 +210,8 @@ Open the **Example** dropdown to choose another RNA-RNA interaction. Each open m
 | **Fornac force-layout** | When checked, the rendered structure is shown in an interactive force-directed layout. When unchecked, the structure is drawn in a fixed layout. |
 | - **Free trailing ends** | When checked, the trailing ends of the sequences are not fixed in the force-directed layout and can move freely. |
 | - **Pull Pseudoknot Basepairs** | When checked, pseudoknot basepairs are pulled together in the force-directed layout. |
+| - **Linear structure helix layout** | Keeps intramolecular helices containing bulges or interior loops on straight, parallel rails. Stems stop at multiloops or crossing pairs. Enabling it also enables the force layout. |
+| - **Make RRI horizontal** | Keeps a noncrossing intermolecular helix on straight, parallel rails and rotates the complete two-molecule interaction so its axis is horizontal. Enabling it also enables the force layout. |
 | - **Full screen UI** | When checked, the header and footer sections are hidden, and the visualisation canvas is maximized. |
 
 ### Region Highlights
@@ -377,6 +379,8 @@ See descriptions above and the [Input Format Reference](#input-format-reference)
 | **`colorRriNodes` / `colorRriRegion` / `colorBasepair`** | Hex color codes for nucleotide highlights, background highlights, and base pairs. |
 | **`guBasepairs`** | Toggle display of G-U Wobble base pairs as dashed lines (`true` / `false`). |
 | **`forceLayout`** | Enable or disable Fornac force-layout physics simulation (`true` / `false`). |
+| **`forceLayoutLinearStructure`** | Apply the linear rail constraint to intramolecular stems containing bulges or interior loops. Enabling it also enables `forceLayout`. |
+| **`forceLayoutLinear`** | Apply the linear rail constraint to a noncrossing RRI and orient the complete interaction horizontally. Enabling it also enables `forceLayout`. |
 
 To simplify sequence and structure input validation, sequence and structure inputs are highlighted with the chosen strand-specific colors.
 
