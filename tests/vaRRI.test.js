@@ -697,7 +697,7 @@ describe('region highlight registry', () => {
             coloring: 'strand',
             highlighting: 'region',
             backgroundhighlighting,
-            guBasepairs: true,
+            distinctBpTypes: true,
         });
     }
 
@@ -2959,7 +2959,7 @@ describe('validate', () => {
         coloring: 'strand',
         highlighting: 'region',
         backgroundhighlighting: 'basepairs',
-        guBasepairs: true,
+        distinctBpTypes: true,
     };
 
     test('produces correct molecules count for two-molecule input', () => {

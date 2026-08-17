@@ -124,7 +124,7 @@
         highlighting: 'region',
         backgroundhighlighting: 'basepairs',
         forceLayoutLinearRRI: 1,
-        guBasepairs: 1,
+        distinctBpTypes: 1,
         cropping: 2,
         forceLayout: 0,
         regionHighlights: '21-25&113-114:0d00ff:0.2',
@@ -197,11 +197,21 @@
         highlighting:'region',
         colorRriNodes:'#ff0000',
         forceLayoutLinearRRI: 1,
-        guBasepairs:1,
+        distinctBpTypes:1,
         regionHighlights:'35-41&67-73:0D00FF:0.4,-9--3&108-114:0D00FF:0.4',
         forceLayout: 'off',
       },
     },
+    'crossing-rri': {
+      name: 'Crossing RRI showcase',
+      nameShort: 'Crossing RRI',
+      description: 'Showcases a crossing RNA–RNA interaction with a linear layout of the intramolecular helices.',
+      descriptionShort: 'Crossing RNA–RNA interaction with linear intramolecular helices.',
+      vaRRIParams: {
+        sequence: 'gnnnnnnnnnnnnnnng&unnnnnnunnnnn',
+        structure:'((..((...<<<..<<<&))))...>>>>>>',
+      },  
+    },    
   };
 
   root.VARRI_EXAMPLES = examples;

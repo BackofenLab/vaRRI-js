@@ -42,7 +42,7 @@ describe('shared example catalog', () => {
       coloring: example.vaRRIParams.coloring ?? 'strand',
       highlighting: example.vaRRIParams.highlighting ?? 'region',
       backgroundhighlighting: example.vaRRIParams.backgroundhighlighting ?? 'basepairs',
-      guBasepairs: example.vaRRIParams.guBasepairs !== 0,
+      distinctBpTypes: example.vaRRIParams.distinctBpTypes !== 0,
     });
 
     expect(validated.molecules).toBe('2');

@@ -32,7 +32,7 @@ object expected by `render()`.
 | `coloring` | `string` | `strand` | `strand` or `loop`. |
 | `highlighting` | `string` | `region` | `nothing`, `basepairs`, or `region`. |
 | `backgroundhighlighting` | `string` | `basepairs` | `nothing`, `basepairs`, or `region`. |
-| `guBasepairs` | `boolean` | `true` | Render G-U pairs with dashed links. |
+| `distinctBpTypes` | `boolean` | `true` | Render G-U pairs with dashed links. |
 | `subsequenceHighlights` | `Array` | `[]` | Subsequence highlight definitions. |
 | `regionHighlights` | `Array` | `[]` | Region highlight definitions. |
 | `pointMutations` | `Array` | `[]` | Point-mutation definitions. |

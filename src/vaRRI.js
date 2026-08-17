@@ -1095,7 +1095,7 @@
      * @param {string} [args.coloring="strand"]  Coloring option: `"strand"` or `"loop"`.
      * @param {string} [args.highlighting="region"]  Highlighting option: `"nothing"`, `"basepairs"`, `"region"`.
      * @param {string} [args.backgroundhighlighting="basepairs"]  Background-highlighting option.
-     * @param {boolean} [args.guBasepairs=true]  Whether to display G-U basepairs as dashed lines.
+     * @param {boolean} [args.distinctBpTypes=true]  Whether to display G-U basepairs as dashed lines.
     * @param {Array<{sequence:string|number, range:string|Array<[number, number]>, color?:string}>} [args.subsequenceHighlights=[]]
     *     Generic subsequence-highlight definitions.
      * @returns {Object}  Validated parameter dictionary.
@@ -1141,7 +1141,7 @@
         v.backgroundhighlighting = validateBackgroundhighlighting(
             args.backgroundhighlighting || 'basepairs'
         );
-        v.guBasepairs = args.guBasepairs !== false; // default true
+        v.distinctBpTypes = args.distinctBpTypes !== false; // default true
         v.labelInterval = parseInt(String(args.labelInterval || '10'), 10) || 10;
 
         // Subsequence highlights
@@ -2006,7 +2006,7 @@
             link.style.stroke = COLORS.basepair;
         });
 
-        if (v.guBasepairs) {
+        if (v.distinctBpTypes) {
             // Build a 1-based sequence map including gap dots
             const seq1 = v.sequence1;
             const seq2 = v.sequence2;
@@ -2017,17 +2017,25 @@
                 seqDict[String(i + 1)] = combined[i];
             }
 
-            document.querySelectorAll('[link_type="basepair"]').forEach(link => {
+            document.querySelectorAll('[link_type="basepair"], [link_type="pseudoknot"]').forEach(link => {
                 const l1 = seqDict[link.getAttribute('start')];
                 const l2 = seqDict[link.getAttribute('end')];
-                if ((l1 === 'G' && l2 === 'U') || (l1 === 'U' && l2 === 'G')) {
-                    link.style.strokeDasharray = '1,1';
-                } else {
+                const bp = [l1, l2].sort().join('-').toLowerCase();
+                console.log(`Basepair ${l1}-${l2} (${bp})`);
+                if (bp === 'g-u') {
+                    link.style.strokeLinecap = 'butt';
+                    link.style.strokeDasharray = '1 1';
+                } else if (bp === 'c-g' || bp === 'a-u') {
+                    link.style.strokeLinecap = 'butt';
                     link.style.strokeDasharray = '';
+                } else {
+                    link.style.strokeLinecap = 'round';
+                    link.style.strokeDasharray = '0 3';
                 }
             });
         } else {
-            document.querySelectorAll('[link_type="basepair"]').forEach(link => {
+            document.querySelectorAll('[link_type="basepair"], [link_type="pseudoknot"]').forEach(link => {
+                link.style.strokeLinecap = 'butt';
                 link.style.strokeDasharray = '';
             });
         }
