@@ -1680,6 +1680,8 @@ function syncAnimationDependentControls() {
  */
 function openDialog(dialogId, dialogHeader, initialValue, clickEvent, callback) {
   var dialog = document.getElementById(dialogId);
+  makeDialogDraggable(dialog);
+  
   var input = dialog.querySelector('input');
   var header = dialog.querySelector('.dialog-header');
 
@@ -1702,6 +1704,52 @@ function openDialog(dialogId, dialogHeader, initialValue, clickEvent, callback) 
 
   dialog.showModal();
   if (input) { input.focus(); input.select(); }
+}
+
+/**
+ * Macht ein Dialog-Element über seinen .dialog-header verschiebbar.
+ * 
+ * @param {HTMLElement|string} dialogRef - Das Dialog DOM-Element oder dessen ID
+ */
+function makeDialogDraggable(dialogRef) {
+  var dialog = typeof dialogRef === 'string' ? document.getElementById(dialogRef) : dialogRef;
+  if (!dialog) return;
+
+  var header = dialog.querySelector('.dialog-header');
+  if (!header || header._isDraggableInitialized) return;
+
+  header._isDraggableInitialized = true;
+  var offsetX = 0;
+  var offsetY = 0;
+
+  header.addEventListener('pointerdown', function(e) {
+    // Interaktion ignorieren, falls im Header Buttons geklickt werden
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+
+    var rect = dialog.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+
+    header.setPointerCapture(e.pointerId);
+
+    function onPointerMove(pe) {
+      var newLeft = pe.clientX - offsetX;
+      var newTop = pe.clientY - offsetY;
+
+      // Position direkt am Element aktualisieren
+      dialog.style.left = newLeft + 'px';
+      dialog.style.top = newTop + 'px';
+    }
+
+    function onPointerUp(pe) {
+      header.releasePointerCapture(pe.pointerId);
+      header.removeEventListener('pointermove', onPointerMove);
+      header.removeEventListener('pointerup', onPointerUp);
+    }
+
+    header.addEventListener('pointermove', onPointerMove);
+    header.addEventListener('pointerup', onPointerUp);
+  });
 }
 
 /**

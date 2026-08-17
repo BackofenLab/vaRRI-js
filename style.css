@@ -1109,6 +1109,8 @@ dialog.app-dialog::backdrop {
   font-size: 13px;
   font-weight: 700;
   padding: 8px 12px;
+  cursor: move;
+  user-select: none;
 }
 
 /* 4. Dialog Body / Input Bereich */
