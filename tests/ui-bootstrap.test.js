@@ -197,7 +197,7 @@ test('linear layout controls enable force, survive example loading, share, and f
   const options = document.getElementById('exampleDropdownOptions');
 
   expect(linearStructure.checked).toBe(false);
-  expect(linearRri.checked).toBe(false);
+  expect(linearRri.checked).toBe(true);
   expect(linearStructure.disabled).toBe(false);
   expect(linearRri.disabled).toBe(false);
 
@@ -220,7 +220,7 @@ test('linear layout controls enable force, survive example loading, share, and f
   options.querySelector('[data-example="2mol"]').click();
   await new Promise(resolve => setTimeout(resolve, 0));
   expect(linearStructure.checked).toBe(false);
-  expect(linearRri.checked).toBe(false);
+  expect(linearRri.checked).toBe(true);
 
   linearStructure.checked = true;
   linearStructure.dispatchEvent(new window.Event('change'));
@@ -231,7 +231,7 @@ test('linear layout controls enable force, survive example loading, share, and f
     expect.objectContaining({
       forceLayout: true,
       forceLayoutLinearStructure: true,
-      forceLayoutLinearRRI: false,
+      forceLayoutLinearRRI: true,
     })
   );
 
