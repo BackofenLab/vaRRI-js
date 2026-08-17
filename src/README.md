@@ -53,9 +53,14 @@ profiles, and link styling. It returns a promise resolving to
 `{ cancelled: boolean }`. Starting a newer render cancels pending
 post-processing from the previous render.
 
+`vaRRI.cancelActiveRender()` stops the active force simulation, removes
+linear-layout listeners, and resolves any pending render as cancelled.
+
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `forceLayout` | `boolean` | `false` | Enable Fornac force-layout animation. |
+| `forceLayoutLinearStructure` | `boolean` | `false` | Apply a rigid two-rail constraint independently to intramolecular stems containing bulges or interior loops. Requires `forceLayout`. |
+| `forceLayoutLinearRRI` | `boolean` | `false` | Keep a noncrossing RRI helix on two parallel rails and rotate the complete two-molecule interaction so its axis is horizontal. Requires `forceLayout`. |
 | `freeTrailingEnds` | `boolean` | `false` | Relax the external-loop closure scaffold when force layout is active. |
 | `pullPseudoknotBasepairs` | `boolean` | `false` | Increase pseudoknot link strength when force layout is active. |
 | `accessData` | `Object<number, number>\|null` | `null` | Node-ID to probability map. |
@@ -65,6 +70,8 @@ post-processing from the previous render.
 ```javascript
 const state = await vaRRI.render('rendering-canvas', validated, {
   forceLayout: true,
+  forceLayoutLinearStructure: true,
+  forceLayoutLinearRRI: true,
   accessData: { 1: 0.8, 2: 0.3 },
 });
 ```
@@ -167,9 +174,13 @@ const sequenceContext = {
 ## Base-pair utilities
 
 - `vaRRI.getIntermolBasepairRegion(structure1, structure2)`
+- `vaRRI.getLinearRriConstraintSpecs(validated)`
+- `vaRRI.getLinearStructureConstraintSpecs(validated)`
 - `vaRRI.listBasepairs(structureDictionary)`
 - `vaRRI.listIntermolNodes(structure, shift?)`
 - `vaRRI.listIntermolPairs(validated)`
+- `vaRRI.listRriLoopBoundaryPairs(validated)`
+- `vaRRI.listStructureLoopBoundaryPairs(validated)`
 - `vaRRI.sequenceColoring(sequence1, sequence2)`
 
 ## DOM modification helpers
@@ -181,6 +192,7 @@ should call `render()` and let it coordinate them.
 |---|---|
 | `addElement(elementType, attributes)` | Insert an SVG element in the plot. |
 | `addStyleToNodes(nodeIds, style)` | Append inline style to nucleotide nodes. |
+| `applyLinearHelixSprings(container, validated, options?)` | Apply requested RRI and/or intramolecular two-rail constraints to an active Fornac force layout. |
 | `applyPointMutations(validated)` | Apply validated mutation overlays. |
 | `applyRegionHighlights(validated)` | Draw registered or validated region polygons. |
 | `applySubsequenceHighlights(validated)` | Draw validated subsequence overlays. |

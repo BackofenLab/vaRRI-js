@@ -945,6 +945,1982 @@ describe('getIntermolBasepairRegion', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Linear helix loop identification and invisible spring constraints
+// ---------------------------------------------------------------------------
+
+function validateLinearHelixFixture(sequence, structure, overrides = {}) {
+    return vaRRI.validate({
+        sequence,
+        structure,
+        startIndex1: '1',
+        startIndex2: '1',
+        ...overrides,
+    });
+}
+
+function constraintEndpoints(specs) {
+    return specs.map(spec => [spec.source, spec.target, spec.sequence]);
+}
+
+describe('RRI helix loop constraints', () => {
+    test('excludes uninterrupted stacks and interactions with only one pair', () => {
+        const stack = validateLinearHelixFixture('AAA&UUU', '(((&)))');
+        const single = validateLinearHelixFixture('AAAA&UUUU', '(...&...)');
+
+        [stack, single].forEach(v => {
+            expect(vaRRI.listRriLoopBoundaryPairs(v)).toEqual([]);
+            expect(vaRRI.getLinearRriConstraintSpecs(v)).toEqual([]);
+        });
+    });
+
+    test.each([
+        {
+            name: 'one-sided bulge',
+            sequence: 'AAAAA&UU',
+            structure: '(...(&))',
+            pairs: [[1, 10], [5, 9]],
+            boundary: {
+                outer: [1, 10],
+                inner: [5, 9],
+                gaps: [3, 0],
+                loopType: 'bulge',
+            },
+            endpoints: [[1, 5, '1'], [9, 10, '2']],
+        },
+        {
+            name: 'two-sided interior loop',
+            sequence: 'AAAA&UUUU',
+            structure: '(..(&)..)',
+            pairs: [[1, 11], [4, 8]],
+            boundary: {
+                outer: [1, 11],
+                inner: [4, 8],
+                gaps: [2, 2],
+                loopType: 'interior',
+            },
+            endpoints: [[1, 4, '1'], [8, 11, '2']],
+        },
+    ])('identifies an RRI $name', ({
+        sequence,
+        structure,
+        pairs,
+        boundary,
+        endpoints,
+    }) => {
+        const v = validateLinearHelixFixture(sequence, structure);
+
+        expect(vaRRI.listIntermolPairs(v)).toEqual(pairs);
+        expect(vaRRI.listRriLoopBoundaryPairs(v)).toEqual([boundary]);
+        const specs = vaRRI.getLinearRriConstraintSpecs(v);
+        expect(constraintEndpoints(specs)).toEqual(endpoints);
+        expect(specs.map(spec => [spec.kind, spec.loopType])).toEqual([
+            ['rri', boundary.loopType],
+            ['rri', boundary.loopType],
+        ]);
+        expect(specs[0].loopId).toBe(specs[1].loopId);
+        expect(specs.every(spec => spec.distanceUnits === undefined)).toBe(true);
+    });
+
+    test('uses the exact nesting cover and is invariant to biological offsets', () => {
+        const input = ['AAAAA&UUUUU', '((..(&)..))'];
+        const v = validateLinearHelixFixture(...input);
+        const shifted = validateLinearHelixFixture(...input, {
+            startIndex1: '-20',
+            startIndex2: '500',
+        });
+        const expected = [{
+            outer: [2, 12],
+            inner: [5, 9],
+            gaps: [2, 2],
+            loopType: 'interior',
+        }];
+
+        expect(vaRRI.listIntermolPairs(v)).toEqual([
+            [1, 13],
+            [2, 12],
+            [5, 9],
+        ]);
+        expect(vaRRI.listRriLoopBoundaryPairs(v)).toEqual(expected);
+        expect(vaRRI.listRriLoopBoundaryPairs(shifted)).toEqual(expected);
+        expect(constraintEndpoints(vaRRI.getLinearRriConstraintSpecs(v)))
+            .toEqual([[2, 5, '1'], [9, 12, '2']]);
+        expect(vaRRI.getLinearRriConstraintSpecs(shifted))
+            .toEqual(vaRRI.getLinearRriConstraintSpecs(v));
+    });
+
+    test('conservatively excludes candidates touched by a crossing pair', () => {
+        const v = validateLinearHelixFixture(
+            'AAAA&UUUUUUUUU',
+            '([.{&...}...)]'
+        );
+
+        expect(vaRRI.listIntermolPairs(v)).toEqual([
+            [1, 15],
+            [2, 16],
+            [4, 11],
+        ]);
+        expect(vaRRI.listRriLoopBoundaryPairs(v)).toEqual([]);
+        expect(vaRRI.getLinearRriConstraintSpecs(v)).toEqual([]);
+    });
+});
+
+describe('intramolecular helix loop constraints', () => {
+    test.each([
+        ['stack ending in a hairpin', 'AAAAAAAAA', '(((...)))'],
+        ['single-pair hairpin', 'AAAAA', '(...)'],
+        ['separate stems', 'AAAAAAAAAAAAAA', '((..))..((..))'],
+        ['multibranch loop', 'AAAAAAAAAA', '((..)(..))'],
+    ])('excludes a %s', (_name, sequence, structure) => {
+        const v = validateLinearHelixFixture(sequence, structure);
+
+        expect(vaRRI.listStructureLoopBoundaryPairs(v)).toEqual([]);
+        expect(vaRRI.getLinearStructureConstraintSpecs(v)).toEqual([]);
+    });
+
+    test.each([
+        {
+            name: 'bulge',
+            sequence: 'AAAAAAAAA',
+            structure: '((...()))',
+            boundary: {
+                outer: [2, 8],
+                inner: [6, 7],
+                gaps: [3, 0],
+                loopType: 'bulge',
+                sequence: '1',
+            },
+            endpoints: [[2, 6, '1'], [7, 8, '1']],
+        },
+        {
+            name: 'interior loop',
+            sequence: 'AAAAAAAAAAAA',
+            structure: '((..(..)..))',
+            boundary: {
+                outer: [2, 11],
+                inner: [5, 8],
+                gaps: [2, 2],
+                loopType: 'interior',
+                sequence: '1',
+            },
+            endpoints: [[2, 5, '1'], [8, 11, '1']],
+        },
+    ])('identifies an intramolecular $name', ({
+        sequence,
+        structure,
+        boundary,
+        endpoints,
+    }) => {
+        const v = validateLinearHelixFixture(sequence, structure);
+
+        expect(vaRRI.listStructureLoopBoundaryPairs(v)).toEqual([boundary]);
+        const specs = vaRRI.getLinearStructureConstraintSpecs(v);
+        expect(constraintEndpoints(specs)).toEqual(endpoints);
+        expect(specs.map(spec => [spec.kind, spec.loopType])).toEqual([
+            ['structure', boundary.loopType],
+            ['structure', boundary.loopType],
+        ]);
+        expect(specs[0].loopId).toBe(specs[1].loopId);
+    });
+
+    test('maps both strands through the three synthetic Fornac gap nodes', () => {
+        const v = validateLinearHelixFixture(
+            'AAAAAAAAAAAA&UUUUUUUUU',
+            '((..(..)..))&((...()))'
+        );
+
+        expect(vaRRI.listStructureLoopBoundaryPairs(v)).toEqual([
+            {
+                outer: [2, 11],
+                inner: [5, 8],
+                gaps: [2, 2],
+                loopType: 'interior',
+                sequence: '1',
+            },
+            {
+                outer: [17, 23],
+                inner: [21, 22],
+                gaps: [3, 0],
+                loopType: 'bulge',
+                sequence: '2',
+            },
+        ]);
+        expect(constraintEndpoints(vaRRI.getLinearStructureConstraintSpecs(v)))
+            .toEqual([
+                [2, 5, '1'],
+                [8, 11, '1'],
+                [17, 21, '2'],
+                [22, 23, '2'],
+            ]);
+    });
+
+    test('conservatively excludes candidates touched by crossing pairs', () => {
+        const v = validateLinearHelixFixture('AAAAAAAAAAA', '([.{..}..)]');
+
+        expect(vaRRI.listStructureLoopBoundaryPairs(v)).toEqual([]);
+        expect(vaRRI.getLinearStructureConstraintSpecs(v)).toEqual([]);
+    });
+});
+
+function createLinearHelixTestNode(num, x, y, fixed) {
+    return {
+        nodeType: 'nucleotide',
+        num,
+        x,
+        y,
+        px: x - 0.25,
+        py: y + 0.5,
+        fixed,
+    };
+}
+
+function createLinearHelixTestLabel(name, x, y, fixed = 0) {
+    return {
+        nodeType: 'label',
+        num: -1,
+        name: String(name),
+        radius: 6,
+        x,
+        y,
+        px: x - 0.75,
+        py: y + 0.25,
+        fixed,
+    };
+}
+
+function createLinearHelixTestContainer(nodes, links = [], multiplier = 4) {
+    const handlers = {};
+    const force = {
+        on: jest.fn((eventName, handler) => {
+            if (handler === null) delete handlers[eventName];
+            else handlers[eventName] = handler;
+            return force;
+        }),
+        start: jest.fn(),
+    };
+    return {
+        container: {
+            graph: { nodes, links },
+            options: { linkDistanceMultiplier: multiplier },
+            linkStrengths: { backbone: 10 },
+            force,
+            centerView: jest.fn(),
+            update: jest.fn(),
+        },
+        force,
+        handlers,
+    };
+}
+
+function linearHelixConstraintSummary(constraints = []) {
+    return constraints.map(constraint => ({
+        endpoints: [constraint.source.num, constraint.target.num],
+        kind: constraint.varriLinearHelixKind,
+        loop: constraint.varriLinearHelixLoop,
+        type: constraint.linkType,
+        target: constraint.varriTargetDistance,
+        value: constraint.value,
+    }));
+}
+
+function linearHelixNode(nodes, num) {
+    return nodes.find(node => node.num === num);
+}
+
+function linearHelixVector(first, second, xField = 'x', yField = 'y') {
+    return {
+        x: second[xField] - first[xField],
+        y: second[yField] - first[yField],
+    };
+}
+
+function linearHelixVectorLength(vector) {
+    return Math.hypot(vector.x, vector.y);
+}
+
+function linearHelixDot(first, second) {
+    return first.x * second.x + first.y * second.y;
+}
+
+function linearHelixCross(first, second) {
+    return first.x * second.y - first.y * second.x;
+}
+
+function linearHelixExteriorScore(label, anchor, partner) {
+    const outward = linearHelixVector(partner, anchor);
+    const length = linearHelixVectorLength(outward);
+    return linearHelixDot(
+        linearHelixVector(anchor, label),
+        { x: outward.x / length, y: outward.y / length }
+    );
+}
+
+function linearHelixNucleotideCoordinateSnapshot(nodes) {
+    return nodes
+        .filter(node => node.nodeType === 'nucleotide')
+        .map(node => ({
+            node,
+            coordinates: [node.x, node.y, node.px, node.py],
+        }));
+}
+
+function expectLinearHelixNucleotideCoordinatesUnchanged(snapshot) {
+    snapshot.forEach(({ node, coordinates }) => {
+        [node.x, node.y, node.px, node.py].forEach((value, index) => {
+            expect(value).toBeCloseTo(coordinates[index], 10);
+        });
+    });
+}
+
+function linearHelixCoordinateSnapshot(nodes) {
+    return nodes.map(node => ({
+        node,
+        coordinates: [node.x, node.y, node.px, node.py],
+    }));
+}
+
+function expectLinearHelixCoordinatesClose(snapshot, precision = 10) {
+    snapshot.forEach(({ node, coordinates }) => {
+        [node.x, node.y, node.px, node.py].forEach((value, index) => {
+            expect(value).toBeCloseTo(coordinates[index], precision);
+        });
+    });
+}
+
+function linearHelixPairwiseDistanceSnapshot(nodes, xField = 'x', yField = 'y') {
+    const distances = [];
+    nodes.forEach((first, firstIndex) => {
+        nodes.slice(firstIndex + 1).forEach(second => {
+            distances.push(linearHelixVectorLength(
+                linearHelixVector(first, second, xField, yField)
+            ));
+        });
+    });
+    return distances;
+}
+
+function expectLinearHelixPairwiseDistancesPreserved(
+    snapshot,
+    nodes,
+    xField = 'x',
+    yField = 'y',
+    precision = 10
+) {
+    const current = linearHelixPairwiseDistanceSnapshot(nodes, xField, yField);
+    expect(current).toHaveLength(snapshot.length);
+    current.forEach((distance, index) => {
+        expect(distance).toBeCloseTo(snapshot[index], precision);
+    });
+}
+
+function linearHelixPairCenters(nodes, pairs, xField = 'x', yField = 'y') {
+    return pairs.map(pair => {
+        const first = linearHelixNode(nodes, pair[0]);
+        const second = linearHelixNode(nodes, pair[1]);
+        return {
+            x: (first[xField] + second[xField]) / 2,
+            y: (first[yField] + second[yField]) / 2,
+        };
+    });
+}
+
+function expectLinearHelixHorizontalAxis(
+    nodes,
+    pairs,
+    xField = 'x',
+    yField = 'y',
+    direction = null
+) {
+    const centers = linearHelixPairCenters(nodes, pairs, xField, yField);
+    const yValues = centers.map(center => center.y);
+    expect(Math.max(...yValues) - Math.min(...yValues)).toBeCloseTo(0, 10);
+    const xDelta = centers.at(-1).x - centers[0].x;
+    expect(Math.abs(xDelta)).toBeGreaterThan(1e-8);
+    if (direction !== null) expect(Math.sign(xDelta)).toBe(direction);
+    return { centers, xDelta };
+}
+
+function linearHelixTransformPoint(point, radians, translation) {
+    const cosine = Math.cos(radians);
+    const sine = Math.sin(radians);
+    return {
+        x: translation.x + cosine * point.x - sine * point.y,
+        y: translation.y + sine * point.x + cosine * point.y,
+    };
+}
+
+function linearHelixListenerActions(force) {
+    return force.on.mock.calls.map(([eventName, handler]) => [
+        eventName,
+        handler === null ? 'clear' : 'set',
+    ]);
+}
+
+function expectLinearHelixRailGeometry(
+    nodes,
+    pairs,
+    intervals,
+    rungSpacing,
+    xField = 'x',
+    yField = 'y'
+) {
+    const firstRail = pairs.map(pair => linearHelixNode(nodes, pair[0]));
+    const secondRail = pairs.map(pair => linearHelixNode(nodes, pair[1]));
+    const firstSteps = firstRail.slice(1).map((node, index) =>
+        linearHelixVector(firstRail[index], node, xField, yField)
+    );
+    const secondSteps = secondRail.slice(1).map((node, index) =>
+        linearHelixVector(secondRail[index], node, xField, yField)
+    );
+    const rungs = firstRail.map((node, index) =>
+        linearHelixVector(node, secondRail[index], xField, yField)
+    );
+
+    firstSteps.forEach((step, index) => {
+        expect(linearHelixVectorLength(step)).toBeCloseTo(intervals[index], 10);
+        expect(linearHelixVectorLength(secondSteps[index]))
+            .toBeCloseTo(intervals[index], 10);
+        expect(linearHelixCross(step, secondSteps[index])).toBeCloseTo(0, 10);
+        expect(linearHelixDot(step, secondSteps[index])).toBeGreaterThan(0);
+    });
+
+    const axis = firstSteps[0];
+    [...firstSteps, ...secondSteps].forEach(step => {
+        expect(linearHelixCross(axis, step)).toBeCloseTo(0, 10);
+        expect(linearHelixDot(axis, step)).toBeGreaterThan(0);
+    });
+    rungs.forEach(rung => {
+        expect(linearHelixVectorLength(rung)).toBeCloseTo(rungSpacing, 10);
+        expect(linearHelixCross(rungs[0], rung)).toBeCloseTo(0, 10);
+        expect(linearHelixDot(rungs[0], rung)).toBeGreaterThan(0);
+        expect(linearHelixDot(axis, rung)).toBeCloseTo(0, 10);
+    });
+}
+
+describe('applyLinearHelixSprings', () => {
+    test('stores max-span metadata outside graph links and enforces a rigid RRI ladder', () => {
+        const v = validateLinearHelixFixture('AAAAA&UUUUU', '((..(&)..))');
+        const nodes = [
+            createLinearHelixTestNode(1, -4, -3, 0),
+            createLinearHelixTestNode(13, -2, 2, 0),
+            createLinearHelixTestNode(2, 0, 0, 0),
+            createLinearHelixTestNode(12, 10, 0, 0),
+            createLinearHelixTestNode(5, 3, 4, 0),
+            createLinearHelixTestNode(9, 10, 12, 0),
+        ];
+        const fixedSnapshot = nodes.map(node => [node.num, node.fixed]);
+        const existing = {
+            source: nodes[0],
+            target: nodes[2],
+            linkType: 'backbone',
+            marker: 'preserve-me',
+        };
+        const links = [existing];
+        const { container, force, handlers } = createLinearHelixTestContainer(
+            nodes,
+            links,
+            4
+        );
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(2);
+        expect(container.graph.links).toBe(links);
+        expect(container.graph.links).toEqual([existing]);
+        expect(linearHelixConstraintSummary(container.varriLinearHelixConstraints))
+            .toEqual([
+                {
+                    endpoints: [2, 5],
+                    kind: 'rri',
+                    loop: 'rri:0',
+                    type: 'rri_linear',
+                    target: 12,
+                    value: 3,
+                },
+                {
+                    endpoints: [9, 12],
+                    kind: 'rri',
+                    loop: 'rri:0',
+                    type: 'rri_linear',
+                    target: 12,
+                    value: 3,
+                },
+            ]);
+        container.varriLinearHelixConstraints.forEach(constraint => {
+            expect(constraint).toMatchObject({
+                extraLinkType: 'constraint',
+                varriLinearHelix: true,
+            });
+            expect(container.graph.links).not.toContain(constraint);
+        });
+        expect(container.varriLinearHelixTemplates).toHaveLength(1);
+        expect(container.varriLinearHelixTemplates[0]).toMatchObject({
+            kind: 'rri',
+            pairs: [[1, 13], [2, 12], [5, 9]],
+            intervals: [
+                { span: 4, isLoop: false, gaps: [0, 0] },
+                { span: 12, isLoop: true, gaps: [2, 2] },
+            ],
+            railGap: 4,
+        });
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4
+        );
+        expect(nodes.map(node => [node.num, node.fixed])).toEqual(fixedSnapshot);
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4,
+            'px',
+            'py'
+        );
+        expectLinearHelixHorizontalAxis(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]]
+        );
+        expectLinearHelixHorizontalAxis(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            'px',
+            'py'
+        );
+        nodes.forEach(node => {
+            expect(node.px - node.x).toBeCloseTo(-0.25, 10);
+            expect(node.py - node.y).toBeCloseTo(0.5, 10);
+            expect(node.varriLinearHelix).toBe(true);
+            expect(node.varriLinearHelixKind).toBe('rri');
+        });
+
+        linearHelixNode(nodes, 1).x += 17;
+        linearHelixNode(nodes, 2).y -= 9;
+        linearHelixNode(nodes, 9).x -= 5;
+        linearHelixNode(nodes, 13).px -= 8;
+        linearHelixNode(nodes, 5).py += 6;
+        linearHelixNode(nodes, 12).px += 3;
+        expect(linearHelixVectorLength(linearHelixVector(
+            linearHelixNode(nodes, 1),
+            linearHelixNode(nodes, 2)
+        ))).not.toBeCloseTo(4, 5);
+        handlers['tick.varriLinearHelix']();
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4
+        );
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4,
+            'px',
+            'py'
+        );
+        expectLinearHelixHorizontalAxis(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]]
+        );
+        expectLinearHelixHorizontalAxis(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            'px',
+            'py'
+        );
+        expect(container.centerView).not.toHaveBeenCalled();
+
+        linearHelixNode(nodes, 13).y += 11;
+        linearHelixNode(nodes, 5).x -= 8;
+        linearHelixNode(nodes, 1).py -= 13;
+        linearHelixNode(nodes, 9).px += 7;
+        handlers['end.varriLinearHelix']();
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4
+        );
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4,
+            'px',
+            'py'
+        );
+        expectLinearHelixHorizontalAxis(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]]
+        );
+        expectLinearHelixHorizontalAxis(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            'px',
+            'py'
+        );
+        expect(container.centerView).toHaveBeenCalledTimes(1);
+        expect(nodes.map(node => [node.num, node.fixed])).toEqual(fixedSnapshot);
+        expect(linearHelixListenerActions(force)).toEqual([
+            ['tick.varriLinearHelix', 'set'],
+            ['end.varriLinearHelix', 'set'],
+        ]);
+        expect(force.start).toHaveBeenCalledTimes(1);
+        expect(container.linkStrengths).toEqual({ backbone: 10 });
+        expect(container.update).not.toHaveBeenCalled();
+    });
+
+    test('gently moves only retained wrong-side labels before convergence', () => {
+        const v = validateLinearHelixFixture('AAAAA&UUUUU', '((..(&)..))');
+        const nucleotideNodes = [
+            createLinearHelixTestNode(1, 0, -2, 0),
+            createLinearHelixTestNode(13, 0, 2, 0),
+            createLinearHelixTestNode(2, 4, -2, 0),
+            createLinearHelixTestNode(12, 4, 2, 0),
+            createLinearHelixTestNode(5, 16, -2, 0),
+            createLinearHelixTestNode(9, 16, 2, 0),
+        ];
+        const insideLabel = createLinearHelixTestLabel(5, 16, 1);
+        const correctSideLabel = createLinearHelixTestLabel(1, 16, 5);
+        const hiddenLabel = createLinearHelixTestLabel(2, 4, 1);
+        const nodes = [
+            ...nucleotideNodes,
+            insideLabel,
+            correctSideLabel,
+            hiddenLabel,
+        ];
+        const insideLink = {
+            source: linearHelixNode(nodes, 5),
+            target: insideLabel,
+            value: 1,
+            linkType: 'label_link',
+        };
+        const links = [
+            insideLink,
+            {
+                source: linearHelixNode(nodes, 9),
+                target: correctSideLabel,
+                value: 1,
+                linkType: 'label_link',
+            },
+            {
+                source: linearHelixNode(nodes, 2),
+                target: hiddenLabel,
+                value: 1,
+                linkType: 'label_link',
+            },
+        ];
+        const nucleotideSnapshot = linearHelixNucleotideCoordinateSnapshot(nodes);
+        const insideBefore = { ...insideLabel };
+        const correctBefore = { ...correctSideLabel };
+        const hiddenBefore = { ...hiddenLabel };
+        const initialInsideScore = linearHelixExteriorScore(
+            insideLabel,
+            linearHelixNode(nodes, 5),
+            linearHelixNode(nodes, 9)
+        );
+        const { container, handlers } = createLinearHelixTestContainer(nodes, links, 4);
+
+        expect(initialInsideScore).toBeCloseTo(-3, 10);
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(2);
+        expect(container.graph.links).toBe(links);
+        expect(container.graph.links).toHaveLength(3);
+        expect(container.varriLinearHelixLabelBiases.map(bias => bias.label))
+            .toEqual([insideLabel, correctSideLabel]);
+        expect(container.varriLinearHelixLabelBiases.map(bias => ({
+            anchor: bias.anchor.num,
+            partner: bias.partner.num,
+            linkDistance: bias.linkDistance,
+        }))).toEqual([
+            { anchor: 5, partner: 9, linkDistance: 4 },
+            { anchor: 9, partner: 5, linkDistance: 4 },
+        ]);
+
+        const scoreAfterApply = linearHelixExteriorScore(
+            insideLabel,
+            linearHelixNode(nodes, 5),
+            linearHelixNode(nodes, 9)
+        );
+        expect(scoreAfterApply - initialInsideScore).toBeCloseTo(0.2, 10);
+        expect(insideLabel.x - insideLabel.px)
+            .toBeCloseTo(insideBefore.x - insideBefore.px, 10);
+        expect(insideLabel.y - insideLabel.py)
+            .toBeCloseTo(insideBefore.y - insideBefore.py, 10);
+        expect(correctSideLabel).toEqual(correctBefore);
+        expect(hiddenLabel).toEqual(hiddenBefore);
+        expectLinearHelixNucleotideCoordinatesUnchanged(nucleotideSnapshot);
+
+        handlers['tick.varriLinearHelix']();
+        const scoreAfterTick = linearHelixExteriorScore(
+            insideLabel,
+            linearHelixNode(nodes, 5),
+            linearHelixNode(nodes, 9)
+        );
+        expect(scoreAfterTick - scoreAfterApply).toBeCloseTo(0.2, 10);
+        expect(scoreAfterTick).toBeLessThan(0);
+
+        for (let tick = 0; tick < 40 && linearHelixExteriorScore(
+            insideLabel,
+            linearHelixNode(nodes, 5),
+            linearHelixNode(nodes, 9)
+        ) < 0; tick++) {
+            handlers['tick.varriLinearHelix']();
+        }
+        const scoreAfterCrossing = linearHelixExteriorScore(
+            insideLabel,
+            linearHelixNode(nodes, 5),
+            linearHelixNode(nodes, 9)
+        );
+        expect(scoreAfterCrossing).toBeGreaterThanOrEqual(0);
+        expect(scoreAfterCrossing).toBeLessThan(0.4);
+        handlers['tick.varriLinearHelix']();
+        const scoreAfterMarginTick = linearHelixExteriorScore(
+            insideLabel,
+            linearHelixNode(nodes, 5),
+            linearHelixNode(nodes, 9)
+        );
+        expect(scoreAfterMarginTick).toBeGreaterThan(scoreAfterCrossing);
+        expect(scoreAfterMarginTick - scoreAfterCrossing).toBeLessThanOrEqual(0.2);
+        expect(scoreAfterMarginTick).toBeLessThanOrEqual(0.4);
+        expect(correctSideLabel).toEqual(correctBefore);
+        expect(hiddenLabel).toEqual(hiddenBefore);
+        expectLinearHelixNucleotideCoordinatesUnchanged(nucleotideSnapshot);
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4
+        );
+    });
+
+    test('keeps hidden labels out but includes a mutation label on a rail', () => {
+        const v = validateLinearHelixFixture('AAAAA&UUUUU', '((..(&)..))');
+        v.pointMutations = [{ nodeId: 12 }];
+        const nucleotideNodes = [
+            createLinearHelixTestNode(1, 0, -2, 0),
+            createLinearHelixTestNode(13, 0, 2, 0),
+            createLinearHelixTestNode(2, 4, -2, 0),
+            createLinearHelixTestNode(12, 4, 2, 0),
+            createLinearHelixTestNode(5, 16, -2, 0),
+            createLinearHelixTestNode(9, 16, 2, 0),
+        ];
+        const hiddenLabel = createLinearHelixTestLabel(2, 4, 1);
+        const mutationLabel = createLinearHelixTestLabel(4, 4, -1);
+        const nodes = [...nucleotideNodes, hiddenLabel, mutationLabel];
+        const links = [
+            {
+                source: linearHelixNode(nodes, 2),
+                target: hiddenLabel,
+                value: 1,
+                linkType: 'label_link',
+            },
+            {
+                source: mutationLabel,
+                target: linearHelixNode(nodes, 12),
+                value: 1,
+                linkType: 'label_link',
+            },
+        ];
+        const hiddenBefore = { ...hiddenLabel };
+        const mutationScoreBefore = linearHelixExteriorScore(
+            mutationLabel,
+            linearHelixNode(nodes, 12),
+            linearHelixNode(nodes, 2)
+        );
+        const { container } = createLinearHelixTestContainer(nodes, links, 4);
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(2);
+        expect(container.varriLinearHelixLabelBiases).toHaveLength(1);
+        expect(container.varriLinearHelixLabelBiases[0]).toMatchObject({
+            label: mutationLabel,
+            anchor: linearHelixNode(nodes, 12),
+            partner: linearHelixNode(nodes, 2),
+            linkDistance: 4,
+        });
+        expect(hiddenLabel).toEqual(hiddenBefore);
+        expect(linearHelixExteriorScore(
+            mutationLabel,
+            linearHelixNode(nodes, 12),
+            linearHelixNode(nodes, 2)
+        ) - mutationScoreBefore).toBeCloseTo(0.2, 10);
+        expect(container.graph.links).toBe(links);
+    });
+
+    test('uses live pair geometry for rotated and reflected rails', () => {
+        const v = validateLinearHelixFixture('AAAAA&UUUUU', '((..(&)..))');
+        const nucleotideNodes = [
+            createLinearHelixTestNode(1, -2, 0, 0),
+            createLinearHelixTestNode(13, 2, 0, 0),
+            createLinearHelixTestNode(2, -2, 4, 0),
+            createLinearHelixTestNode(12, 2, 4, 0),
+            createLinearHelixTestNode(5, -2, 16, 0),
+            createLinearHelixTestNode(9, 2, 16, 0),
+        ];
+        nucleotideNodes.forEach(node => {
+            node.px = node.x + 0.5;
+            node.py = node.y - 0.25;
+        });
+        const firstRailLabel = createLinearHelixTestLabel(5, 1, 16);
+        const secondRailLabel = createLinearHelixTestLabel(1, -1, 16);
+        const nodes = [...nucleotideNodes, firstRailLabel, secondRailLabel];
+        const links = [
+            {
+                source: linearHelixNode(nodes, 5),
+                target: firstRailLabel,
+                value: 1,
+                linkType: 'label_link',
+            },
+            {
+                source: linearHelixNode(nodes, 9),
+                target: secondRailLabel,
+                value: 1,
+                linkType: 'label_link',
+            },
+        ];
+        const currentDistances = linearHelixPairwiseDistanceSnapshot(nucleotideNodes);
+        const previousDistances = linearHelixPairwiseDistanceSnapshot(
+            nucleotideNodes,
+            'px',
+            'py'
+        );
+        const firstScoreBefore = linearHelixExteriorScore(
+            firstRailLabel,
+            linearHelixNode(nodes, 5),
+            linearHelixNode(nodes, 9)
+        );
+        const secondScoreBefore = linearHelixExteriorScore(
+            secondRailLabel,
+            linearHelixNode(nodes, 9),
+            linearHelixNode(nodes, 5)
+        );
+        const { container } = createLinearHelixTestContainer(nodes, links, 4);
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(2);
+        expect(container.varriLinearHelixTemplates[0].reflection).toBe(-1);
+        expect(linearHelixExteriorScore(
+            firstRailLabel,
+            linearHelixNode(nodes, 5),
+            linearHelixNode(nodes, 9)
+        ) - firstScoreBefore).toBeCloseTo(0.2, 10);
+        expect(linearHelixExteriorScore(
+            secondRailLabel,
+            linearHelixNode(nodes, 9),
+            linearHelixNode(nodes, 5)
+        ) - secondScoreBefore).toBeCloseTo(0.2, 10);
+        expectLinearHelixPairwiseDistancesPreserved(
+            currentDistances,
+            nucleotideNodes
+        );
+        expectLinearHelixPairwiseDistancesPreserved(
+            previousDistances,
+            nucleotideNodes,
+            'px',
+            'py'
+        );
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4
+        );
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4,
+            'px',
+            'py'
+        );
+        expectLinearHelixHorizontalAxis(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            'x',
+            'y',
+            1
+        );
+        expectLinearHelixHorizontalAxis(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            'px',
+            'py',
+            1
+        );
+    });
+
+    test('skips fixed, invalid, and unpaired labels without blocking valid ones', () => {
+        const v = validateLinearHelixFixture('AAAAA&UUUUU', '((..(&)..))');
+        v.pointMutations = [{ nodeId: 99 }];
+        const nucleotideNodes = [
+            createLinearHelixTestNode(1, 0, -2, 0),
+            createLinearHelixTestNode(13, 0, 2, 0),
+            createLinearHelixTestNode(2, 4, -2, 0),
+            createLinearHelixTestNode(12, 4, 2, 0),
+            createLinearHelixTestNode(5, 16, -2, 0),
+            createLinearHelixTestNode(9, 16, 2, 0),
+            createLinearHelixTestNode(99, 80, 80, 0),
+        ];
+        const validLabel = createLinearHelixTestLabel(1, 0, 1);
+        const fixedLabel = createLinearHelixTestLabel(5, 16, 1, 2);
+        const invalidLabel = createLinearHelixTestLabel(1, 16, -1);
+        invalidLabel.py = Infinity;
+        const unpairedLabel = createLinearHelixTestLabel(99, 79, 80);
+        const nodes = [
+            ...nucleotideNodes,
+            validLabel,
+            fixedLabel,
+            invalidLabel,
+            unpairedLabel,
+        ];
+        const links = [
+            [linearHelixNode(nodes, 1), validLabel],
+            [linearHelixNode(nodes, 5), fixedLabel],
+            [linearHelixNode(nodes, 9), invalidLabel],
+            [linearHelixNode(nodes, 99), unpairedLabel],
+        ].map(([source, target]) => ({
+            source,
+            target,
+            value: 1,
+            linkType: 'label_link',
+        }));
+        const validScoreBefore = linearHelixExteriorScore(
+            validLabel,
+            linearHelixNode(nodes, 1),
+            linearHelixNode(nodes, 13)
+        );
+        const fixedBefore = { ...fixedLabel };
+        const invalidBefore = { ...invalidLabel };
+        const unpairedBefore = { ...unpairedLabel };
+        const { container, handlers } = createLinearHelixTestContainer(nodes, links, 4);
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(2);
+        expect(container.varriLinearHelixLabelBiases.map(bias => bias.label))
+            .toEqual([validLabel, fixedLabel, invalidLabel]);
+        expect(linearHelixExteriorScore(
+            validLabel,
+            linearHelixNode(nodes, 1),
+            linearHelixNode(nodes, 13)
+        ) - validScoreBefore).toBeCloseTo(0.2, 10);
+        expect(fixedLabel).toEqual(fixedBefore);
+        expect(invalidLabel).toEqual(invalidBefore);
+        expect(unpairedLabel).toEqual(unpairedBefore);
+
+        handlers['tick.varriLinearHelix']();
+        expect(fixedLabel).toEqual(fixedBefore);
+        expect(invalidLabel).toEqual(invalidBefore);
+        expect(unpairedLabel).toEqual(unpairedBefore);
+        expect(nucleotideNodes.every(node =>
+            [node.x, node.y, node.px, node.py].every(Number.isFinite)
+        )).toBe(true);
+    });
+
+    test('end remains capped, guides the centreline outward, and synchronizes label DOM', () => {
+        const v = validateLinearHelixFixture('AAAAA&UUUUU', '((..(&)..))');
+        const nucleotideNodes = [
+            createLinearHelixTestNode(1, 0, -2, 0),
+            createLinearHelixTestNode(13, 0, 2, 0),
+            createLinearHelixTestNode(2, 4, -2, 0),
+            createLinearHelixTestNode(12, 4, 2, 0),
+            createLinearHelixTestNode(5, 16, -2, 0),
+            createLinearHelixTestNode(9, 16, 2, 0),
+        ];
+        const label = createLinearHelixTestLabel(5, 16, 1);
+        const nodes = [...nucleotideNodes, label];
+        const labelLink = {
+            source: linearHelixNode(nodes, 5),
+            target: label,
+            value: 1.5,
+            linkType: 'label_link',
+        };
+        const groupAttributes = {};
+        const lineAttributes = {};
+        const labelGroup = {
+            __data__: label,
+            setAttribute: jest.fn((name, value) => {
+                groupAttributes[name] = value;
+            }),
+        };
+        const labelLine = {
+            __data__: labelLink,
+            setAttribute: jest.fn((name, value) => {
+                lineAttributes[name] = value;
+            }),
+        };
+        const hadDocument = Object.prototype.hasOwnProperty.call(global, 'document');
+        const previousDocument = global.document;
+        global.document = {
+            querySelectorAll: jest.fn(selector => {
+                if (selector === 'g.gnode') return [labelGroup];
+                if (selector === 'line.link') return [labelLine];
+                return [];
+            }),
+        };
+
+        try {
+            const { container, handlers } = createLinearHelixTestContainer(
+                nodes,
+                [labelLink],
+                4
+            );
+            expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+                .toBe(2);
+            expect(container.varriLinearHelixLabelBiases[0].linkDistance).toBe(6);
+
+            const anchor = linearHelixNode(nodes, 5);
+            const partner = linearHelixNode(nodes, 9);
+            const outward = linearHelixVector(partner, anchor);
+            const outwardLength = linearHelixVectorLength(outward);
+            const unit = {
+                x: outward.x / outwardLength,
+                y: outward.y / outwardLength,
+            };
+            label.x = anchor.x - 2 * unit.x;
+            label.y = anchor.y - 2 * unit.y;
+            label.px = label.x - 0.75;
+            label.py = label.y + 0.25;
+            const velocityBefore = [label.x - label.px, label.y - label.py];
+            const insideScoreBeforeEnd = linearHelixExteriorScore(label, anchor, partner);
+
+            handlers['end.varriLinearHelix']();
+            const insideScoreAfterEnd = linearHelixExteriorScore(label, anchor, partner);
+            expect(insideScoreBeforeEnd).toBeCloseTo(-2, 10);
+            expect(insideScoreAfterEnd - insideScoreBeforeEnd).toBeCloseTo(0.3, 10);
+            expect(insideScoreAfterEnd).toBeLessThan(0);
+            expect(label.x - label.px).toBeCloseTo(velocityBefore[0], 10);
+            expect(label.y - label.py).toBeCloseTo(velocityBefore[1], 10);
+
+            label.x = anchor.x;
+            label.y = anchor.y;
+            label.px = label.x - 0.75;
+            label.py = label.y + 0.25;
+            const centrelineBefore = [label.x, label.y, label.px, label.py];
+            handlers['end.varriLinearHelix']();
+            const centrelineScoreAfterEnd = linearHelixExteriorScore(
+                label,
+                anchor,
+                partner
+            );
+            expect(centrelineScoreAfterEnd).toBeCloseTo(0.12, 10);
+            expect(centrelineScoreAfterEnd).toBeGreaterThan(0);
+            expect(Math.hypot(
+                label.x - centrelineBefore[0],
+                label.y - centrelineBefore[1]
+            )).toBeCloseTo(0.12, 10);
+            expect(Math.hypot(
+                label.px - centrelineBefore[2],
+                label.py - centrelineBefore[3]
+            )).toBeCloseTo(0.12, 10);
+            expect(groupAttributes.transform)
+                .toBe(`translate(${label.x},${label.y})`);
+            expect(lineAttributes).toEqual({
+                x1: String(anchor.x),
+                y1: String(anchor.y),
+                x2: String(label.x),
+                y2: String(label.y),
+            });
+            expect(container.centerView).toHaveBeenCalledTimes(1);
+        } finally {
+            if (hadDocument) global.document = previousDocument;
+            else delete global.document;
+        }
+    });
+
+    test('refits the viewport only on the first end while later ends still enforce', () => {
+        const v = validateLinearHelixFixture('AAAAA&UUUUU', '((..(&)..))');
+        const nodes = [
+            createLinearHelixTestNode(1, -4, -3, 0),
+            createLinearHelixTestNode(13, -2, 2, 0),
+            createLinearHelixTestNode(2, 0, 0, 0),
+            createLinearHelixTestNode(12, 10, 0, 0),
+            createLinearHelixTestNode(5, 3, 4, 0),
+            createLinearHelixTestNode(9, 10, 12, 0),
+        ];
+        const { container, handlers } = createLinearHelixTestContainer(
+            nodes,
+            [],
+            4
+        );
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(2);
+        expect(container.centerView).not.toHaveBeenCalled();
+
+        handlers['end.varriLinearHelix']();
+        expect(container.centerView).toHaveBeenCalledTimes(1);
+
+        linearHelixNode(nodes, 1).x += 19;
+        linearHelixNode(nodes, 12).y -= 7;
+        linearHelixNode(nodes, 13).px -= 11;
+        handlers['tick.varriLinearHelix']();
+        expect(container.centerView).toHaveBeenCalledTimes(1);
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4
+        );
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4,
+            'px',
+            'py'
+        );
+
+        linearHelixNode(nodes, 5).y += 13;
+        linearHelixNode(nodes, 9).px -= 9;
+        handlers['end.varriLinearHelix']();
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4
+        );
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4,
+            'px',
+            'py'
+        );
+        expect(container.centerView).toHaveBeenCalledTimes(1);
+    });
+
+    test('cancelActiveRender removes helix end handlers before synchronous force.stop', async () => {
+        vaRRI.cancelActiveRender();
+        const v = validateLinearHelixFixture('AAAAA&UUUUU', '((..(&)..))');
+        const nodes = [
+            createLinearHelixTestNode(1, -4, -3, 0),
+            createLinearHelixTestNode(13, -2, 2, 0),
+            createLinearHelixTestNode(2, 0, 0, 0),
+            createLinearHelixTestNode(12, 10, 0, 0),
+            createLinearHelixTestNode(5, 3, 4, 0),
+            createLinearHelixTestNode(9, 10, 12, 0),
+        ];
+        const listeners = {};
+        const lifecycle = [];
+        const force = {
+            on: jest.fn((eventName, handler) => {
+                lifecycle.push((handler === null ? 'clear:' : 'set:') + eventName);
+                if (handler === null) delete listeners[eventName];
+                else listeners[eventName] = handler;
+                return force;
+            }),
+            start: jest.fn(() => {
+                lifecycle.push('start');
+                return force;
+            }),
+            stop: jest.fn(() => {
+                lifecycle.push('stop');
+                const endHandler = listeners['end.varriLinearHelix'];
+                if (endHandler) {
+                    lifecycle.push('dispatch:end.varriLinearHelix');
+                    endHandler();
+                }
+                return force;
+            }),
+        };
+        const container = {
+            graph: { nodes, links: [] },
+            options: { linkDistanceMultiplier: 4 },
+            linkStrengths: { backbone: 10 },
+            force,
+            addRNA: jest.fn(),
+            centerView: jest.fn(),
+            update: jest.fn(),
+        };
+        const hadFornac = Object.prototype.hasOwnProperty.call(global, 'fornac');
+        const previousFornac = global.fornac;
+        global.fornac = {
+            FornaContainer: jest.fn(function FakeFornaContainer() {
+                return container;
+            }),
+        };
+
+        try {
+            const renderPromise = vaRRI.render('linear-cancel-test', v, {
+                forceLayout: true,
+                forceLayoutLinearRRI: true,
+            });
+            expect(typeof listeners['end.varriLinearHelix']).toBe('function');
+            expect(container.varriLinearHelixTemplates).toHaveLength(1);
+            expect(container.varriLinearHelixLabelBiases).toEqual([]);
+
+            vaRRI.cancelActiveRender();
+            await expect(renderPromise).resolves.toEqual({ cancelled: true });
+
+            expect(lifecycle.slice(-3)).toEqual([
+                'clear:tick.varriLinearHelix',
+                'clear:end.varriLinearHelix',
+                'stop',
+            ]);
+            expect(lifecycle).not.toContain('dispatch:end.varriLinearHelix');
+            expect(listeners).toEqual({});
+            expect(container.varriLinearHelixConstraints).toBeUndefined();
+            expect(container.varriLinearHelixTemplates).toBeUndefined();
+            expect(container.varriLinearHelixLabelBiases).toBeUndefined();
+            expect(container.centerView).not.toHaveBeenCalled();
+            expect(force.stop).toHaveBeenCalledTimes(1);
+        } finally {
+            vaRRI.cancelActiveRender();
+            if (hadFornac) global.fornac = previousFornac;
+            else delete global.fornac;
+        }
+    });
+
+    test('skips the whole helix when one pair coordinate is invalid', () => {
+        const v = validateLinearHelixFixture('AAAAA&UU', '(...(&))');
+        const nodes = [
+            createLinearHelixTestNode(1, 0, 0, 0),
+            createLinearHelixTestNode(5, 3, 4, 0),
+            createLinearHelixTestNode(9, 10, 0, 0),
+            createLinearHelixTestNode(10, 10, Infinity, 0),
+        ];
+        const snapshot = nodes.map(node => ({ ...node }));
+        const existing = { linkType: 'backbone' };
+        const links = [existing];
+        const { container, force, handlers } = createLinearHelixTestContainer(
+            nodes,
+            links
+        );
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(0);
+        expect(container.graph.links).toBe(links);
+        expect(container.graph.links).toEqual([existing]);
+        expect(container.varriLinearHelixConstraints).toBeUndefined();
+        expect(container.varriLinearHelixTemplates).toBeUndefined();
+        expect(container.varriLinearHelixLabelBiases).toBeUndefined();
+        expect(container.linkStrengths).toEqual({ backbone: 10 });
+        expect(nodes).toEqual(snapshot);
+        expect(handlers).toEqual({});
+        expect(linearHelixListenerActions(force)).toEqual([]);
+        expect(force.start).not.toHaveBeenCalled();
+        expect(container.update).not.toHaveBeenCalled();
+    });
+
+    test.each([
+        {
+            name: 'single-pair interaction',
+            sequence: 'AAAA&UUUU',
+            structure: '(...&...)',
+            nodeNumbers: [1, 11],
+        },
+        {
+            name: 'crossing interaction',
+            sequence: 'AAAA&UUUUUUUUU',
+            structure: '([.{&...}...)]',
+            nodeNumbers: [1, 15, 2, 16, 4, 11],
+        },
+    ])('leaves a $name unchanged because no unique RRI axis exists', ({
+        sequence,
+        structure,
+        nodeNumbers,
+    }) => {
+        const v = validateLinearHelixFixture(sequence, structure);
+        const nodes = nodeNumbers.map((num, index) =>
+            createLinearHelixTestNode(num, 3 * index, 5 - 2 * index, 0)
+        );
+        const snapshot = nodes.map(node => ({ ...node }));
+        const links = [{
+            source: nodes[0],
+            target: nodes[1],
+            linkType: 'basepair',
+        }];
+        const { container, force, handlers } = createLinearHelixTestContainer(
+            nodes,
+            links,
+            4
+        );
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(0);
+        expect(container.graph.links).toBe(links);
+        expect(container.varriLinearHelixConstraints).toBeUndefined();
+        expect(container.varriLinearHelixTemplates).toBeUndefined();
+        expect(container.varriLinearHelixLabelBiases).toBeUndefined();
+        expect(nodes).toEqual(snapshot);
+        expect(handlers).toEqual({});
+        expect(force.on).not.toHaveBeenCalled();
+        expect(force.start).not.toHaveBeenCalled();
+    });
+
+    test('preserves reflected rail handedness instead of mirroring the helix', () => {
+        const v = validateLinearHelixFixture('AAAAA&UUUUU', '((..(&)..))');
+        const nodes = [
+            createLinearHelixTestNode(1, 0, 2, 0),
+            createLinearHelixTestNode(13, 0, -2, 0),
+            createLinearHelixTestNode(2, 4, 2, 0),
+            createLinearHelixTestNode(12, 4, -2, 0),
+            createLinearHelixTestNode(5, 16, 2, 0),
+            createLinearHelixTestNode(9, 16, -2, 0),
+        ];
+        const links = [{ linkType: 'backbone' }];
+        const { container } = createLinearHelixTestContainer(nodes, links, 4);
+        const handednessBefore = linearHelixCross(
+            linearHelixVector(
+                linearHelixNode(nodes, 1),
+                linearHelixNode(nodes, 2)
+            ),
+            linearHelixVector(
+                linearHelixNode(nodes, 1),
+                linearHelixNode(nodes, 13)
+            )
+        );
+
+        expect(handednessBefore).toBeLessThan(0);
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(2);
+        expect(container.graph.links).toBe(links);
+        expect(container.varriLinearHelixTemplates).toHaveLength(1);
+        expect(container.varriLinearHelixTemplates[0].reflection).toBe(-1);
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4
+        );
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4,
+            'px',
+            'py'
+        );
+        expect(linearHelixCross(
+            linearHelixVector(
+                linearHelixNode(nodes, 1),
+                linearHelixNode(nodes, 2)
+            ),
+            linearHelixVector(
+                linearHelixNode(nodes, 1),
+                linearHelixNode(nodes, 13)
+            )
+        )).toBeLessThan(0);
+    });
+
+    test.each([
+        ['permanently pinned', 1],
+        ['drag-active', 2],
+        ['hover-active', 4],
+    ])('skips a helix with a %s endpoint (fixed=%i)', (_state, fixed) => {
+        const v = validateLinearHelixFixture('AAAAA&UU', '(...(&))');
+        const nodes = [
+            createLinearHelixTestNode(1, 0, 0, 0),
+            createLinearHelixTestNode(5, 3, 4, fixed),
+            createLinearHelixTestNode(9, 10, 0, 0),
+            createLinearHelixTestNode(10, 10, 12, 0),
+        ];
+        const snapshot = nodes.map(node => ({ ...node }));
+        const links = [{ linkType: 'backbone' }];
+        const { container, force, handlers } = createLinearHelixTestContainer(
+            nodes,
+            links
+        );
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(0);
+        expect(container.graph.links).toBe(links);
+        expect(container.varriLinearHelixConstraints).toBeUndefined();
+        expect(container.varriLinearHelixTemplates).toBeUndefined();
+        expect(nodes).toEqual(snapshot);
+        expect(handlers).toEqual({});
+        expect(force.on).not.toHaveBeenCalled();
+        expect(force.start).not.toHaveBeenCalled();
+    });
+
+    test('keeps the graph orientation when an unrelated node is pinned', () => {
+        const v = validateLinearHelixFixture('AAAAA&UUUUU', '((..(&)..))');
+        const nodes = [
+            createLinearHelixTestNode(1, -2, 0, 0),
+            createLinearHelixTestNode(13, 2, 0, 0),
+            createLinearHelixTestNode(2, -2, 4, 0),
+            createLinearHelixTestNode(12, 2, 4, 0),
+            createLinearHelixTestNode(5, -2, 16, 0),
+            createLinearHelixTestNode(9, 2, 16, 0),
+            createLinearHelixTestNode(99, 40, -30, 1),
+        ];
+        const coordinateSnapshot = linearHelixCoordinateSnapshot(nodes);
+        const { container, force, handlers } = createLinearHelixTestContainer(
+            nodes,
+            [],
+            4
+        );
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(2);
+        expect(container.varriLinearHelixTemplates).toHaveLength(1);
+        expect(container.varriLinearHelixTemplates[0].lastHorizontalRotation)
+            .toBeUndefined();
+        const centers = linearHelixPairCenters(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]]
+        );
+        expect(Math.max(...centers.map(center => center.x)) -
+            Math.min(...centers.map(center => center.x))).toBeCloseTo(0, 10);
+        expect(Math.abs(centers.at(-1).y - centers[0].y)).toBeGreaterThan(1e-8);
+        expectLinearHelixCoordinatesClose(coordinateSnapshot);
+        handlers['tick.varriLinearHelix']();
+        expectLinearHelixCoordinatesClose(coordinateSnapshot);
+        expect(linearHelixListenerActions(force)).toEqual([
+            ['tick.varriLinearHelix', 'set'],
+            ['end.varriLinearHelix', 'set'],
+        ]);
+        expect(force.start).toHaveBeenCalledTimes(1);
+    });
+
+    test('horizontalizes a rotated pure RRI stack with one rigid graph-wide transform', () => {
+        const v = validateLinearHelixFixture('AAA&UUU', '(((&)))');
+        const exteriorLabel = createLinearHelixTestLabel(3, 0, 0);
+        const pointEntries = [
+            [createLinearHelixTestNode(1, 0, 0, 0), { x: 0, y: -2 }],
+            [createLinearHelixTestNode(9, 0, 0, 0), { x: 0, y: 2 }],
+            [createLinearHelixTestNode(2, 0, 0, 0), { x: 4, y: -2 }],
+            [createLinearHelixTestNode(8, 0, 0, 0), { x: 4, y: 2 }],
+            [createLinearHelixTestNode(3, 0, 0, 0), { x: 8, y: -2 }],
+            [createLinearHelixTestNode(7, 0, 0, 0), { x: 8, y: 2 }],
+            [createLinearHelixTestNode(99, 0, 0, 0), { x: 13, y: 7 }],
+            [exteriorLabel, { x: 8, y: -6 }],
+        ];
+        const nodes = pointEntries.map(([node]) => node);
+        const currentAngle = 2 * Math.PI / 3;
+        const previousAngle = 5 * Math.PI / 9;
+        pointEntries.forEach(([node, point]) => {
+            const current = linearHelixTransformPoint(
+                point,
+                currentAngle,
+                { x: 30, y: -10 }
+            );
+            const previous = linearHelixTransformPoint(
+                point,
+                previousAngle,
+                { x: -12, y: 25 }
+            );
+            node.x = current.x;
+            node.y = current.y;
+            node.px = previous.x;
+            node.py = previous.y;
+        });
+        const basepairLink = {
+            source: linearHelixNode(nodes, 1),
+            target: linearHelixNode(nodes, 9),
+            linkType: 'basepair',
+        };
+        const labelLink = {
+            source: linearHelixNode(nodes, 3),
+            target: exteriorLabel,
+            value: 1,
+            linkType: 'label_link',
+        };
+        const links = [basepairLink, labelLink];
+        const currentDistances = linearHelixPairwiseDistanceSnapshot(nodes);
+        const previousDistances = linearHelixPairwiseDistanceSnapshot(nodes, 'px', 'py');
+        const exteriorScoreBefore = linearHelixExteriorScore(
+            exteriorLabel,
+            linearHelixNode(nodes, 3),
+            linearHelixNode(nodes, 7)
+        );
+        const nodeElements = nodes.map(node => ({
+            __data__: node,
+            attributes: {},
+            setAttribute: jest.fn(function setAttribute(name, value) {
+                this.attributes[name] = value;
+            }),
+        }));
+        const linkElements = links.map(link => ({
+            __data__: link,
+            attributes: {},
+            setAttribute: jest.fn(function setAttribute(name, value) {
+                this.attributes[name] = value;
+            }),
+        }));
+        const hadDocument = Object.prototype.hasOwnProperty.call(global, 'document');
+        const previousDocument = global.document;
+        global.document = {
+            querySelectorAll: jest.fn(selector => {
+                if (selector === 'g.gnode') return nodeElements;
+                if (selector === 'line.link') return linkElements;
+                return [];
+            }),
+        };
+
+        try {
+            const { container, force, handlers } = createLinearHelixTestContainer(
+                nodes,
+                links,
+                4
+            );
+
+            expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+                .toBe(0);
+            expect(container.graph.links).toBe(links);
+            expect(container.varriLinearHelixConstraints).toEqual([]);
+            expect(container.varriLinearHelixTemplates).toHaveLength(1);
+            expect(container.varriLinearHelixTemplates[0]).toMatchObject({
+                kind: 'rri',
+                pairs: [[1, 9], [2, 8], [3, 7]],
+                horizontalDirection: -1,
+            });
+            expect(container.varriLinearHelixTemplates[0].lastHorizontalRotation)
+                .toBeCloseTo(Math.PI / 3, 10);
+            expect(container.varriLinearHelixLabelBiases.map(bias => bias.label))
+                .toEqual([exteriorLabel]);
+            expectLinearHelixHorizontalAxis(
+                nodes,
+                [[1, 9], [2, 8], [3, 7]],
+                'x',
+                'y',
+                -1
+            );
+            expectLinearHelixHorizontalAxis(
+                nodes,
+                [[1, 9], [2, 8], [3, 7]],
+                'px',
+                'py',
+                -1
+            );
+            expectLinearHelixRailGeometry(
+                nodes,
+                [[1, 9], [2, 8], [3, 7]],
+                [4, 4],
+                4
+            );
+            expectLinearHelixRailGeometry(
+                nodes,
+                [[1, 9], [2, 8], [3, 7]],
+                [4, 4],
+                4,
+                'px',
+                'py'
+            );
+            expectLinearHelixPairwiseDistancesPreserved(currentDistances, nodes);
+            expectLinearHelixPairwiseDistancesPreserved(
+                previousDistances,
+                nodes,
+                'px',
+                'py'
+            );
+            expect(linearHelixExteriorScore(
+                exteriorLabel,
+                linearHelixNode(nodes, 3),
+                linearHelixNode(nodes, 7)
+            )).toBeCloseTo(exteriorScoreBefore, 10);
+
+            nodeElements.forEach(element => {
+                expect(element.attributes.transform)
+                    .toBe(`translate(${element.__data__.x},${element.__data__.y})`);
+            });
+            linkElements.forEach(element => {
+                expect(element.attributes).toEqual({
+                    x1: String(element.__data__.source.x),
+                    y1: String(element.__data__.source.y),
+                    x2: String(element.__data__.target.x),
+                    y2: String(element.__data__.target.y),
+                });
+            });
+            expect(linearHelixListenerActions(force)).toEqual([
+                ['tick.varriLinearHelix', 'set'],
+                ['end.varriLinearHelix', 'set'],
+            ]);
+            expect(force.start).toHaveBeenCalledTimes(1);
+
+            const horizontalSnapshot = linearHelixCoordinateSnapshot(nodes);
+            handlers['tick.varriLinearHelix']();
+            expectLinearHelixCoordinatesClose(horizontalSnapshot);
+            expect(container.varriLinearHelixTemplates[0].lastHorizontalRotation)
+                .toBeCloseTo(0, 10);
+            handlers['end.varriLinearHelix']();
+            handlers['end.varriLinearHelix']();
+            expectLinearHelixCoordinatesClose(horizontalSnapshot);
+            expect(container.centerView).toHaveBeenCalledTimes(1);
+        } finally {
+            if (hadDocument) global.document = previousDocument;
+            else delete global.document;
+        }
+    });
+
+    test('repeated application replaces old listeners and metadata, then clears them', () => {
+        const v = validateLinearHelixFixture('AAAAA&UUUUU', '((..(&)..))');
+        const nodes = [
+            createLinearHelixTestNode(1, -4, -3, 0),
+            createLinearHelixTestNode(13, -2, 2, 0),
+            createLinearHelixTestNode(2, 0, 0, 0),
+            createLinearHelixTestNode(12, 10, 0, 0),
+            createLinearHelixTestNode(5, 3, 4, 0),
+            createLinearHelixTestNode(9, 10, 12, 0),
+        ];
+        const links = [{ linkType: 'backbone' }];
+        const { container, force, handlers } = createLinearHelixTestContainer(
+            nodes,
+            links,
+            4
+        );
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(2);
+        const firstConstraints = container.varriLinearHelixConstraints;
+        const firstTemplates = container.varriLinearHelixTemplates;
+        const firstLabelBiases = container.varriLinearHelixLabelBiases;
+        const firstTick = handlers['tick.varriLinearHelix'];
+        const firstEnd = handlers['end.varriLinearHelix'];
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(2);
+        expect(container.varriLinearHelixConstraints).not.toBe(firstConstraints);
+        expect(container.varriLinearHelixTemplates).not.toBe(firstTemplates);
+        expect(container.varriLinearHelixLabelBiases).not.toBe(firstLabelBiases);
+        expect(handlers['tick.varriLinearHelix']).not.toBe(firstTick);
+        expect(handlers['end.varriLinearHelix']).not.toBe(firstEnd);
+        expect(linearHelixListenerActions(force)).toEqual([
+            ['tick.varriLinearHelix', 'set'],
+            ['end.varriLinearHelix', 'set'],
+            ['tick.varriLinearHelix', 'clear'],
+            ['end.varriLinearHelix', 'clear'],
+            ['tick.varriLinearHelix', 'set'],
+            ['end.varriLinearHelix', 'set'],
+        ]);
+        expect(force.start).toHaveBeenCalledTimes(2);
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, {})).toBe(0);
+        expect(container.varriLinearHelixConstraints).toBeUndefined();
+        expect(container.varriLinearHelixTemplates).toBeUndefined();
+        expect(container.varriLinearHelixLabelBiases).toBeUndefined();
+        expect(handlers).toEqual({});
+        expect(linearHelixListenerActions(force).slice(-2)).toEqual([
+            ['tick.varriLinearHelix', 'clear'],
+            ['end.varriLinearHelix', 'clear'],
+        ]);
+        expect(force.start).toHaveBeenCalledTimes(2);
+        expect(container.graph.links).toBe(links);
+    });
+
+    test('orients current and previous clouds independently without distortion', () => {
+        const v = validateLinearHelixFixture('AAAAA&UUUUU', '((..(&)..))');
+        const nodes = [
+            createLinearHelixTestNode(1, 0, -2, 0),
+            createLinearHelixTestNode(13, 0, 2, 0),
+            createLinearHelixTestNode(2, 4, -2, 0),
+            createLinearHelixTestNode(12, 4, 2, 0),
+            createLinearHelixTestNode(5, 16, -2, 0),
+            createLinearHelixTestNode(9, 16, 2, 0),
+        ];
+        nodes.forEach(node => {
+            const currentX = node.x;
+            const currentY = node.y;
+            node.px = 30 - currentY;
+            node.py = currentX - 7;
+        });
+        const currentDistances = linearHelixPairwiseDistanceSnapshot(nodes);
+        const previousDistances = linearHelixPairwiseDistanceSnapshot(nodes, 'px', 'py');
+        const { container } = createLinearHelixTestContainer(nodes, [], 4);
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { rri: true }))
+            .toBe(2);
+        expect(container.varriLinearHelixTemplates[0].reflection).toBe(1);
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4
+        );
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            [4, 12],
+            4,
+            'px',
+            'py'
+        );
+        expectLinearHelixHorizontalAxis(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            'x',
+            'y',
+            1
+        );
+        expectLinearHelixHorizontalAxis(
+            nodes,
+            [[1, 13], [2, 12], [5, 9]],
+            'px',
+            'py',
+            1
+        );
+        expectLinearHelixPairwiseDistancesPreserved(currentDistances, nodes);
+        expectLinearHelixPairwiseDistancesPreserved(
+            previousDistances,
+            nodes,
+            'px',
+            'py'
+        );
+    });
+
+    test('projects a clean structure stem despite an unrelated crossing pair', () => {
+        const structure = '((..(..)..))..([)]';
+        const v = validateLinearHelixFixture('A'.repeat(structure.length), structure);
+        const nodes = [
+            createLinearHelixTestNode(1, -4, -3, 0),
+            createLinearHelixTestNode(12, -2, 2, 0),
+            createLinearHelixTestNode(2, 0, 0, 0),
+            createLinearHelixTestNode(11, 10, 0, 0),
+            createLinearHelixTestNode(5, 3, 4, 0),
+            createLinearHelixTestNode(8, 10, 12, 0),
+            createLinearHelixTestNode(15, 100, 0, 0),
+            createLinearHelixTestNode(17, 100, 10, 0),
+            createLinearHelixTestNode(16, 110, 0, 0),
+            createLinearHelixTestNode(18, 110, 10, 0),
+        ];
+        const crossingNumbers = new Set([15, 16, 17, 18]);
+        const crossingSnapshot = nodes
+            .filter(node => crossingNumbers.has(node.num))
+            .map(node => ({ ...node }));
+        const links = [{ linkType: 'basepair' }];
+        const { container, force } = createLinearHelixTestContainer(
+            nodes,
+            links,
+            4
+        );
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { structure: true }))
+            .toBe(2);
+        expect(linearHelixConstraintSummary(container.varriLinearHelixConstraints))
+            .toEqual([
+                {
+                    endpoints: [2, 5],
+                    kind: 'structure',
+                    loop: 'structure:1:0',
+                    type: 'structure_linear',
+                    target: 12,
+                    value: 3,
+                },
+                {
+                    endpoints: [8, 11],
+                    kind: 'structure',
+                    loop: 'structure:1:0',
+                    type: 'structure_linear',
+                    target: 12,
+                    value: 3,
+                },
+            ]);
+        expect(container.varriLinearHelixTemplates).toHaveLength(1);
+        expect(container.varriLinearHelixTemplates[0]).toMatchObject({
+            kind: 'structure',
+            sequence: '1',
+            pairs: [[1, 12], [2, 11], [5, 8]],
+        });
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 12], [2, 11], [5, 8]],
+            [4, 12],
+            4
+        );
+        expect(nodes.filter(node => crossingNumbers.has(node.num)))
+            .toEqual(crossingSnapshot);
+        nodes.filter(node => crossingNumbers.has(node.num)).forEach(node => {
+            expect(node.varriLinearHelix).toBeUndefined();
+            expect(node.varriLinearHelixKind).toBeUndefined();
+        });
+        expect(container.graph.links).toBe(links);
+        expect(force.start).toHaveBeenCalledTimes(1);
+    });
+
+    test('does not globally orient a structure-only stem', () => {
+        const v = validateLinearHelixFixture(
+            'AAAAAAAAAAAA',
+            '((..(..)..))'
+        );
+        const nodes = [
+            createLinearHelixTestNode(1, -2, 0, 0),
+            createLinearHelixTestNode(12, 2, 0, 0),
+            createLinearHelixTestNode(2, -2, 4, 0),
+            createLinearHelixTestNode(11, 2, 4, 0),
+            createLinearHelixTestNode(5, -2, 16, 0),
+            createLinearHelixTestNode(8, 2, 16, 0),
+            createLinearHelixTestNode(99, 30, -20, 0),
+        ];
+        const coordinateSnapshot = linearHelixCoordinateSnapshot(nodes);
+        const { container, force, handlers } = createLinearHelixTestContainer(
+            nodes,
+            [],
+            4
+        );
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, { structure: true }))
+            .toBe(2);
+        expect(container.varriLinearHelixTemplates).toHaveLength(1);
+        expect(container.varriLinearHelixTemplates[0]).toMatchObject({
+            kind: 'structure',
+            sequence: '1',
+            pairs: [[1, 12], [2, 11], [5, 8]],
+        });
+        expect(container.varriLinearHelixTemplates[0].lastHorizontalRotation)
+            .toBeUndefined();
+        const centers = linearHelixPairCenters(
+            nodes,
+            [[1, 12], [2, 11], [5, 8]]
+        );
+        expect(Math.max(...centers.map(center => center.x)) -
+            Math.min(...centers.map(center => center.x))).toBeCloseTo(0, 10);
+        expect(Math.abs(centers.at(-1).y - centers[0].y)).toBeGreaterThan(1e-8);
+        expectLinearHelixCoordinatesClose(coordinateSnapshot);
+        handlers['tick.varriLinearHelix']();
+        expectLinearHelixCoordinatesClose(coordinateSnapshot);
+        expect(linearHelixListenerActions(force)).toEqual([
+            ['tick.varriLinearHelix', 'set'],
+            ['end.varriLinearHelix', 'set'],
+        ]);
+        expect(force.start).toHaveBeenCalledTimes(1);
+    });
+
+    test('combines RRI and structure rail templates without changing graph links', () => {
+        const v = validateLinearHelixFixture(
+            'AAAAAAAAAAAAAA&UU',
+            '((...()))(...(&))'
+        );
+        const nodes = [
+            createLinearHelixTestNode(1, -5, -5, 0),
+            createLinearHelixTestNode(9, -4, -1, 0),
+            createLinearHelixTestNode(2, 0, 0, 0),
+            createLinearHelixTestNode(6, 3, 4, 0),
+            createLinearHelixTestNode(7, 10, 0, 0),
+            createLinearHelixTestNode(8, 10, 12, 0),
+            createLinearHelixTestNode(10, 20, 0, 0),
+            createLinearHelixTestNode(14, 20, 6, 0),
+            createLinearHelixTestNode(18, 30, 0, 0),
+            createLinearHelixTestNode(19, 38, 0, 0),
+        ];
+        const fixedSnapshot = nodes.map(node => [node.num, node.fixed]);
+        const existing = { linkType: 'backbone' };
+        const links = [existing];
+        const { container, force, handlers } = createLinearHelixTestContainer(
+            nodes,
+            links,
+            2
+        );
+
+        expect(vaRRI.applyLinearHelixSprings(container, v, {
+            rri: true,
+            structure: true,
+        })).toBe(4);
+        expect(container.graph.links).toBe(links);
+        expect(container.graph.links[0]).toBe(existing);
+        expect(container.graph.links).toHaveLength(1);
+        expect(linearHelixConstraintSummary(container.varriLinearHelixConstraints))
+            .toEqual([
+                {
+                    endpoints: [10, 14],
+                    kind: 'rri',
+                    loop: 'rri:0',
+                    type: 'rri_linear',
+                    target: 8,
+                    value: 4,
+                },
+                {
+                    endpoints: [18, 19],
+                    kind: 'rri',
+                    loop: 'rri:0',
+                    type: 'rri_linear',
+                    target: 8,
+                    value: 4,
+                },
+                {
+                    endpoints: [2, 6],
+                    kind: 'structure',
+                    loop: 'structure:1:0',
+                    type: 'structure_linear',
+                    target: 12,
+                    value: 6,
+                },
+                {
+                    endpoints: [7, 8],
+                    kind: 'structure',
+                    loop: 'structure:1:0',
+                    type: 'structure_linear',
+                    target: 12,
+                    value: 6,
+                },
+            ]);
+        expect(container.varriLinearHelixTemplates.map(template => template.kind))
+            .toEqual(['rri', 'structure']);
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[10, 19], [14, 18]],
+            [8],
+            2
+        );
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[10, 19], [14, 18]],
+            [8],
+            2,
+            'px',
+            'py'
+        );
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 9], [2, 8], [6, 7]],
+            [2, 12],
+            2
+        );
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 9], [2, 8], [6, 7]],
+            [2, 12],
+            2,
+            'px',
+            'py'
+        );
+        expectLinearHelixHorizontalAxis(
+            nodes,
+            [[10, 19], [14, 18]]
+        );
+        expectLinearHelixHorizontalAxis(
+            nodes,
+            [[10, 19], [14, 18]],
+            'px',
+            'py'
+        );
+        handlers['tick.varriLinearHelix']();
+        expectLinearHelixHorizontalAxis(
+            nodes,
+            [[10, 19], [14, 18]]
+        );
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 9], [2, 8], [6, 7]],
+            [2, 12],
+            2
+        );
+        expectLinearHelixRailGeometry(
+            nodes,
+            [[1, 9], [2, 8], [6, 7]],
+            [2, 12],
+            2,
+            'px',
+            'py'
+        );
+        expect(nodes.map(node => [node.num, node.fixed])).toEqual(fixedSnapshot);
+        expect(container.varriLinearHelixConstraints.every(constraint =>
+            !container.graph.links.includes(constraint)
+        )).toBe(true);
+        expect(container.linkStrengths).toEqual({ backbone: 10 });
+        expect(linearHelixListenerActions(force)).toEqual([
+            ['tick.varriLinearHelix', 'set'],
+            ['end.varriLinearHelix', 'set'],
+        ]);
+        expect(typeof handlers['tick.varriLinearHelix']).toBe('function');
+        expect(typeof handlers['end.varriLinearHelix']).toBe('function');
+        expect(force.start).toHaveBeenCalledTimes(1);
+        expect(container.update).not.toHaveBeenCalled();
+    });
+});
+
+// ---------------------------------------------------------------------------
 // sequenceColoring
 // ---------------------------------------------------------------------------
 

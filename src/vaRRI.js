@@ -20,6 +20,21 @@
     /** Number of invisible gap nodes Fornac inserts between two molecules. */
     const GAP = 3;
 
+    /** Metadata type for invisible linear-RRI span constraints. */
+    const LINEAR_RRI_LINK_TYPE = 'rri_linear';
+
+    /** Metadata type for invisible intramolecular span constraints. */
+    const LINEAR_STRUCTURE_LINK_TYPE = 'structure_linear';
+
+    /** Fractional per-tick correction used to guide index labels outside a helix rail. */
+    const LINEAR_HELIX_LABEL_BIAS_GAIN = 0.2;
+
+    /** Maximum label correction per tick, relative to its ordinary link length. */
+    const LINEAR_HELIX_LABEL_BIAS_MAX_STEP = 0.05;
+
+    /** Small positive half-plane target used only while a label is on the wrong side. */
+    const LINEAR_HELIX_LABEL_BIAS_TARGET = 0.1;
+
     /** Active requestAnimationFrame ID for the background-highlight animation loop (null when idle). */
     let _animFrameId = null;
 
@@ -28,6 +43,9 @@
 
     /** Resolver for the render promise that is currently waiting for post-processing. */
     let _pendingRenderResolve = null;
+
+    /** Live Fornac container used by the current render, if any. */
+    let _activeContainer = null;
 
     /**
      * Colours used by vaRRI rendering functions initialized to defaults.
@@ -1385,25 +1403,12 @@
         });
     }
 
-    /**
-     * Set index labels on the Fornac plot using a priority system.
-     *
-     * Priority order (highest → lowest):
-     * 1. Start/end of each sequence.
-     * 2. Start/end of intermolecular basepair region.
-     * 3. Every `labelInterval`-th position.
-     *
-     * @param {Object} v  Validated parameter dictionary.
-     */
-    function setIndexLabels(v) {
+    /** Return every combined nucleotide position and its selected index label. */
+    function getIndexLabelValues(v) {
         const { structure1, structure2, sequence1, labelInterval, molecules, sequence_dict } = v;
         const length1 = sequence1.length;
         const lengthTotal = Object.keys(sequence_dict).length;
         const indexDict = getIndexDictionary(v);
-        const mutationByNodeId = {};
-        (Array.isArray(v.pointMutations) ? v.pointMutations : []).forEach(mutation => {
-            if (mutation.nodeId) mutationByNodeId[mutation.nodeId] = mutation;
-        });
         const indexLabels = {};
         for (const key of Object.keys(indexDict)) {
             indexLabels[parseInt(key, 10)] = 0;
@@ -1424,7 +1429,6 @@
                     if (!(pos in indexDict)) continue;
                     const [, number] = indexDict[pos];
                     indexLabels[pos] = validateLabelPos(pos, indexLabels, number);
-                    highlightLabel(pos);
                 }
             }
         }
@@ -1435,6 +1439,32 @@
             if (number % labelInterval === 0 || number === 1) {
                 indexLabels[pos] = validateLabelPos(pos, indexLabels, number);
             }
+        }
+
+        return indexLabels;
+    }
+
+    /**
+     * Set index labels on the Fornac plot using a priority system.
+     *
+     * Priority order (highest → lowest):
+     * 1. Start/end of each sequence.
+     * 2. Start/end of intermolecular basepair region.
+     * 3. Every `labelInterval`-th position.
+     *
+     * @param {Object} v  Validated parameter dictionary.
+     */
+    function setIndexLabels(v) {
+        const indexLabels = getIndexLabelValues(v);
+        const mutationByNodeId = {};
+        (Array.isArray(v.pointMutations) ? v.pointMutations : []).forEach(mutation => {
+            if (mutation.nodeId) mutationByNodeId[mutation.nodeId] = mutation;
+        });
+
+        if (v.molecules === '2') {
+            getIntermolBasepairRegion(v.structure1, v.structure2)
+                .flat()
+                .forEach(highlightLabel);
         }
 
         // Apply labels
@@ -2056,6 +2086,918 @@
     }
 
     /**
+     * Normalize base-pair endpoints and return a deterministic, duplicate-free
+     * list ordered by the first and then the second nucleotide.
+     *
+     * @param {Array<[number, number]>} basepairs
+     * @returns {Array<[number, number]>}
+     */
+    function normaliseBasepairList(basepairs) {
+        const seen = new Set();
+        const pairs = [];
+
+        (Array.isArray(basepairs) ? basepairs : []).forEach(pair => {
+            if (!Array.isArray(pair) || pair.length < 2) return;
+            const first = Number(pair[0]);
+            const second = Number(pair[1]);
+            if (!Number.isInteger(first) || !Number.isInteger(second) || first === second) return;
+
+            const normalized = first < second ? [first, second] : [second, first];
+            const key = normalized[0] + ':' + normalized[1];
+            if (seen.has(key)) return;
+            seen.add(key);
+            pairs.push(normalized);
+        });
+
+        return pairs.sort((left, right) =>
+            left[0] - right[0] || left[1] - right[1]
+        );
+    }
+
+    /**
+     * Find the direct nested children of every base pair.
+     *
+     * For a fixed outer pair, candidates are visited by increasing opening
+     * endpoint. A candidate is covered by an earlier candidate exactly when
+     * that earlier candidate has the larger closing endpoint. Keeping the
+     * largest earlier closing endpoint therefore computes the cover relation
+     * in O(n^2), without joining an outer pair to a deeper pair through an
+     * intervening base-pair column.
+     *
+     * @param {Array<[number, number]>} basepairs
+     * @returns {Array<{outer:[number,number],children:Array<[number,number]>}>}
+     */
+    function listDirectNestedPairChildren(basepairs) {
+        const pairs = normaliseBasepairList(basepairs);
+
+        return pairs.map((outer, outerIndex) => {
+            const children = [];
+            let largestEarlierClose = -Infinity;
+
+            for (let innerIndex = outerIndex + 1; innerIndex < pairs.length; innerIndex++) {
+                const inner = pairs[innerIndex];
+                if (inner[0] >= outer[1]) break;
+                if (inner[1] >= outer[1]) continue;
+
+                if (largestEarlierClose <= inner[1]) children.push(inner);
+                largestEarlierClose = Math.max(largestEarlierClose, inner[1]);
+            }
+
+            return { outer, children };
+        });
+    }
+
+    function pairEquals(left, right) {
+        return left[0] === right[0] && left[1] === right[1];
+    }
+
+    function pairsCross(left, right) {
+        return (
+            left[0] < right[0] && right[0] < left[1] && left[1] < right[1]
+        ) || (
+            right[0] < left[0] && left[0] < right[1] && right[1] < left[1]
+        );
+    }
+
+    function createLoopBoundary(outer, inner, extra = {}) {
+        const firstGap = inner[0] - outer[0] - 1;
+        const secondGap = outer[1] - inner[1] - 1;
+        return {
+            outer: outer.slice(),
+            inner: inner.slice(),
+            gaps: [firstGap, secondGap],
+            loopType: firstGap > 0 && secondGap > 0 ? 'interior' : 'bulge',
+            ...extra,
+        };
+    }
+
+    /**
+     * Identify intermolecular base-pair columns that directly bound RRI
+     * bulges or interior loops.
+     *
+     * A result obeys the exact antiparallel cover relation from issue #59.
+     * Fully stacked columns are excluded. A candidate touched by a crossing
+     * RRI pair is also excluded because bulge/interior-loop decomposition is
+     * not defined for that pseudoknotted region.
+     *
+     * @param {Object} v  Validated parameter dictionary.
+     * @returns {Array<{outer:[number,number],inner:[number,number],gaps:[number,number],loopType:string}>}
+     */
+    function listRriLoopBoundaryPairs(v) {
+        const pairs = normaliseBasepairList(listIntermolPairs(v));
+        const boundaries = [];
+
+        listDirectNestedPairChildren(pairs).forEach(({ outer, children }) => {
+            children.forEach(inner => {
+                const firstGap = inner[0] - outer[0] - 1;
+                const secondGap = outer[1] - inner[1] - 1;
+                if (firstGap === 0 && secondGap === 0) return;
+
+                const crossesBoundary = pairs.some(pair => {
+                    if (pairEquals(pair, outer) || pairEquals(pair, inner)) return false;
+                    if (pairsCross(pair, outer) || pairsCross(pair, inner)) return true;
+                    const firstInside = outer[0] < pair[0] && pair[0] < inner[0];
+                    const secondInside = inner[1] < pair[1] && pair[1] < outer[1];
+                    return firstInside !== secondInside;
+                });
+                if (!crossesBoundary) boundaries.push(createLoopBoundary(outer, inner));
+            });
+        });
+
+        return boundaries;
+    }
+
+    /**
+     * Group intramolecular base pairs by strand using Fornac node numbers.
+     * Synthetic inter-molecule gap nodes are deliberately excluded.
+     *
+     * @param {Object} v  Validated parameter dictionary.
+     * @returns {{"1":Array<[number,number]>,"2":Array<[number,number]>}}
+     */
+    function listIntramolPairsBySequence(v) {
+        const sequence1End = v.sequence1.length;
+        const sequence2Start = sequence1End + GAP + 1;
+        const sequence2End = sequence1End + GAP + v.sequence2.length;
+        const grouped = { '1': [], '2': [] };
+
+        listBasepairs(v.structure_dict).forEach(pair => {
+            if (pair[0] >= 1 && pair[1] <= sequence1End) {
+                grouped['1'].push(pair);
+            } else if (pair[0] >= sequence2Start && pair[1] <= sequence2End) {
+                grouped['2'].push(pair);
+            }
+        });
+
+        return grouped;
+    }
+
+    /**
+     * Identify intramolecular bulges/interior loops independently per strand.
+     * A true bulge/interior loop has one direct child stem; hairpins (zero),
+     * multiloops (multiple), ordinary stacks, and crossing pairs are excluded.
+     *
+     * @param {Object} v  Validated parameter dictionary.
+     * @returns {Array<{sequence:"1"|"2",outer:[number,number],inner:[number,number],gaps:[number,number],loopType:string}>}
+     */
+    function listStructureLoopBoundaryPairs(v) {
+        const boundaries = [];
+        const grouped = listIntramolPairsBySequence(v);
+
+        for (const sequence of ['1', '2']) {
+            const pairs = normaliseBasepairList(grouped[sequence]);
+            listDirectNestedPairChildren(pairs).forEach(({ outer, children }) => {
+                if (children.length !== 1) return;
+                const inner = children[0];
+                const firstGap = inner[0] - outer[0] - 1;
+                const secondGap = outer[1] - inner[1] - 1;
+                if (firstGap === 0 && secondGap === 0) return;
+
+                const touchesCrossing = pairs.some(pair =>
+                    !pairEquals(pair, outer) && !pairEquals(pair, inner) &&
+                    (pairsCross(pair, outer) || pairsCross(pair, inner))
+                );
+                if (!touchesCrossing) {
+                    boundaries.push(createLoopBoundary(outer, inner, { sequence }));
+                }
+            });
+        }
+
+        return boundaries;
+    }
+
+    function loopBoundariesToConstraintSpecs(boundaries, kind) {
+        const constraints = [];
+
+        boundaries.forEach((boundary, index) => {
+            const loopId = boundary.sequence
+                ? kind + ':' + boundary.sequence + ':' + index
+                : kind + ':' + index;
+            const common = {
+                kind,
+                loopId,
+                loopType: boundary.loopType,
+            };
+
+            constraints.push({
+                ...common,
+                source: boundary.outer[0],
+                target: boundary.inner[0],
+                sequence: boundary.sequence || '1',
+            });
+            constraints.push({
+                ...common,
+                source: boundary.inner[1],
+                target: boundary.outer[1],
+                sequence: boundary.sequence || '2',
+            });
+        });
+
+        return constraints;
+    }
+
+    /**
+     * Build the two same-strand spring specifications for every RRI loop.
+     * Rest lengths are intentionally absent here: they are measured from the
+     * live Fornac coordinates when the springs are installed.
+     *
+     * @param {Object} v  Validated parameter dictionary.
+     * @returns {Array<{source:number,target:number,sequence:"1"|"2",kind:string,loopId:string,loopType:string}>}
+     */
+    function getLinearRriConstraintSpecs(v) {
+        return loopBoundariesToConstraintSpecs(listRriLoopBoundaryPairs(v), 'rri');
+    }
+
+    /**
+     * Build the two same-strand spring specifications for every intramolecular
+     * bulge/interior loop on either sequence.
+     *
+     * @param {Object} v  Validated parameter dictionary.
+     * @returns {Array<{source:number,target:number,sequence:"1"|"2",kind:string,loopId:string,loopType:string}>}
+     */
+    function getLinearStructureConstraintSpecs(v) {
+        return loopBoundariesToConstraintSpecs(
+            listStructureLoopBoundaryPairs(v),
+            'structure'
+        );
+    }
+
+    /** Resolve a nucleotide node by its 1-based Fornac node number. */
+    function getGraphNucleotideByNumber(graph, nodeNumber) {
+        if (!graph || !Array.isArray(graph.nodes)) return null;
+        return graph.nodes.find(node =>
+            node && node.nodeType === 'nucleotide' && node.num === nodeNumber
+        ) || null;
+    }
+
+    function getNodeDistance(first, second) {
+        const coordinates = [first?.x, first?.y, second?.x, second?.y];
+        if (!coordinates.every(value =>
+            typeof value === 'number' && Number.isFinite(value)
+        )) return null;
+        const [firstX, firstY, secondX, secondY] = coordinates;
+        return Math.hypot(secondX - firstX, secondY - firstY);
+    }
+
+    function pairKey(pair) {
+        return pair[0] + ':' + pair[1];
+    }
+
+    /**
+     * Return the one antiparallel RRI chain that can be represented by two
+     * ordered rails. Crossing RRI pairs are deliberately left to the ordinary
+     * force layout because a single two-rail ordering does not exist for them.
+     */
+    function listRriHelixPairGroups(v) {
+        const pairs = normaliseBasepairList(listIntermolPairs(v));
+        if (pairs.length < 2) return [];
+
+        for (let first = 0; first < pairs.length; first++) {
+            for (let second = first + 1; second < pairs.length; second++) {
+                if (pairsCross(pairs[first], pairs[second])) return [];
+            }
+        }
+        for (let index = 1; index < pairs.length; index++) {
+            if (pairs[index - 1][1] <= pairs[index][1]) return [];
+        }
+        return [{ kind: 'rri', sequence: null, pairs }];
+    }
+
+    /**
+     * Split intramolecular base pairs into maximal single-child stem paths.
+     * Paths stop at multiloops and only paths containing a bulge/interior loop
+     * need an additional linear constraint; uninterrupted stacks are already
+     * linear in Fornac's native layout.
+     */
+    function listStructureHelixPairGroups(v) {
+        const groups = [];
+        const grouped = listIntramolPairsBySequence(v);
+
+        for (const sequence of ['1', '2']) {
+            const pairs = normaliseBasepairList(grouped[sequence]);
+            const crossingPairKeys = new Set();
+            pairs.forEach((pair, index) => {
+                pairs.slice(index + 1).forEach(other => {
+                    if (!pairsCross(pair, other)) return;
+                    crossingPairKeys.add(pairKey(pair));
+                    crossingPairKeys.add(pairKey(other));
+                });
+            });
+
+            const nextPair = new Map();
+            const hasIncoming = new Set();
+            listDirectNestedPairChildren(pairs).forEach(({ outer, children }) => {
+                if (children.length !== 1) return;
+                const inner = children[0];
+                if (crossingPairKeys.has(pairKey(outer)) ||
+                    crossingPairKeys.has(pairKey(inner))) return;
+                nextPair.set(pairKey(outer), inner);
+                hasIncoming.add(pairKey(inner));
+            });
+
+            pairs.filter(pair =>
+                !crossingPairKeys.has(pairKey(pair)) &&
+                !hasIncoming.has(pairKey(pair))
+            ).forEach(root => {
+                const path = [];
+                const visited = new Set();
+                let pair = root;
+                while (pair && !visited.has(pairKey(pair))) {
+                    path.push(pair);
+                    visited.add(pairKey(pair));
+                    pair = nextPair.get(pairKey(pair));
+                }
+                const containsLoop = path.slice(1).some((inner, index) => {
+                    const outer = path[index];
+                    return inner[0] - outer[0] > 1 || outer[1] - inner[1] > 1;
+                });
+                if (path.length >= 2 && containsLoop) {
+                    groups.push({ kind: 'structure', sequence, pairs: path });
+                }
+            });
+        }
+        return groups;
+    }
+
+    /**
+     * Measure the two issue-59 loop spans without adding them to Fornac's
+     * render graph. Keeping constraint metadata outside graph.links makes the
+     * constraints unconditionally invisible, including after container.update().
+     */
+    function collectLinearHelixSpanConstraints(container, specs, linkType) {
+        const graph = container && container.graph;
+        if (!graph || !Array.isArray(graph.nodes)) return [];
+
+        const rawMultiplier = Number(container.options?.linkDistanceMultiplier);
+        const multiplier = Number.isFinite(rawMultiplier) && rawMultiplier > 0
+            ? rawMultiplier
+            : 15;
+        const byLoop = new Map();
+        specs.forEach(spec => {
+            if (!byLoop.has(spec.loopId)) byLoop.set(spec.loopId, []);
+            byLoop.get(spec.loopId).push(spec);
+        });
+
+        const constraints = [];
+        byLoop.forEach(loopSpecs => {
+            if (loopSpecs.length !== 2) return;
+            const resolved = loopSpecs.map(spec => ({
+                spec,
+                source: getGraphNucleotideByNumber(graph, spec.source),
+                target: getGraphNucleotideByNumber(graph, spec.target),
+            }));
+            if (resolved.some(link => !link.source || !link.target)) return;
+
+            const distances = resolved.map(link => getNodeDistance(link.source, link.target));
+            if (distances.some(distance => distance === null)) return;
+            const loopSpan = Math.max(...distances);
+            if (!Number.isFinite(loopSpan) || loopSpan <= 0) return;
+
+            resolved.forEach(({ spec, source, target }) => {
+                constraints.push({
+                    source,
+                    target,
+                    value: loopSpan / multiplier,
+                    linkType,
+                    extraLinkType: 'constraint',
+                    varriLinearHelix: true,
+                    varriLinearHelixKind: spec.kind,
+                    varriLinearHelixLoop: spec.loopId,
+                    varriTargetDistance: loopSpan,
+                });
+            });
+        });
+        return constraints;
+    }
+
+    /**
+     * Build a straight two-rail template from the current live geometry.
+     * Loop-to-loop increments use max(d1,d2), exactly as requested in issue
+     * #59; uninterrupted stack increments use Fornac's backbone rest length.
+     * The template itself is centered at the origin so it can subsequently be
+     * fitted to the freely translating and rotating force-layout component.
+     */
+    function createLinearHelixRailTemplate(container, group) {
+        const graph = container && container.graph;
+        if (!graph || !Array.isArray(graph.nodes) || !group?.pairs?.length) return null;
+
+        const rawMultiplier = Number(container.options?.linkDistanceMultiplier);
+        const multiplier = Number.isFinite(rawMultiplier) && rawMultiplier > 0
+            ? rawMultiplier
+            : 15;
+        const pairNodes = group.pairs.map(pair => ({
+            pair,
+            first: getGraphNucleotideByNumber(graph, pair[0]),
+            second: getGraphNucleotideByNumber(graph, pair[1]),
+        }));
+        if (pairNodes.some(column =>
+            !column.first || !column.second ||
+            column.first.fixed || column.second.fixed ||
+            getNodeDistance(column.first, column.second) === null
+        )) return null;
+
+        const offsets = [0];
+        const intervals = [];
+        for (let index = 1; index < pairNodes.length; index++) {
+            const previous = pairNodes[index - 1];
+            const current = pairNodes[index];
+            const firstGap = current.pair[0] - previous.pair[0] - 1;
+            const secondGap = previous.pair[1] - current.pair[1] - 1;
+            const isLoop = firstGap > 0 || secondGap > 0;
+            const measured = Math.max(
+                getNodeDistance(previous.first, current.first),
+                getNodeDistance(previous.second, current.second)
+            );
+            const span = isLoop && Number.isFinite(measured) && measured > 0
+                ? measured
+                : multiplier;
+            intervals.push({ span, isLoop, gaps: [firstGap, secondGap] });
+            offsets.push(offsets[offsets.length - 1] + span);
+        }
+
+        const meanOffset = offsets.reduce((sum, value) => sum + value, 0) /
+            offsets.length;
+        const points = [];
+        pairNodes.forEach((column, index) => {
+            const along = offsets[index] - meanOffset;
+            points.push({ node: column.first, x: along, y: -multiplier / 2 });
+            points.push({ node: column.second, x: along, y: multiplier / 2 });
+        });
+
+        const template = {
+            kind: group.kind,
+            sequence: group.sequence,
+            pairs: group.pairs.map(pair => pair.slice()),
+            points,
+            intervals,
+            railGap: multiplier,
+        };
+        const ordinaryFit = fitLinearHelixRailTemplate(template, 'x', 'y', 1);
+        const reflectedFit = fitLinearHelixRailTemplate(template, 'x', 'y', -1);
+        template.reflection = reflectedFit &&
+            (!ordinaryFit || reflectedFit.error < ordinaryFit.error)
+            ? -1
+            : 1;
+        return template;
+    }
+
+    /**
+     * Fit a translated/rotated copy of one possibly reflected rail template
+     * to a requested pair of live node-coordinate fields.
+     */
+    function fitLinearHelixRailTemplate(template, xField, yField, reflection) {
+        if (!template || !Array.isArray(template.points) || template.points.length < 4) {
+            return null;
+        }
+        const live = template.points.map(point => point.node);
+        if (live.some(node =>
+            !node || ![node[xField], node[yField]].every(Number.isFinite)
+        )) {
+            return null;
+        }
+
+        const center = live.reduce((sum, node) => ({
+            x: sum.x + node[xField],
+            y: sum.y + node[yField],
+        }), { x: 0, y: 0 });
+        center.x /= live.length;
+        center.y /= live.length;
+
+        let dot = 0;
+        let cross = 0;
+        template.points.forEach(point => {
+            const templateY = reflection * point.y;
+            const liveX = point.node[xField] - center.x;
+            const liveY = point.node[yField] - center.y;
+            dot += point.x * liveX + templateY * liveY;
+            cross += point.x * liveY - templateY * liveX;
+        });
+        const angle = Math.atan2(cross, dot);
+        const cosine = Math.cos(angle);
+        const sine = Math.sin(angle);
+        let error = 0;
+        const targets = template.points.map(point => {
+            const templateY = reflection * point.y;
+            const target = {
+                x: center.x + cosine * point.x - sine * templateY,
+                y: center.y + sine * point.x + cosine * templateY,
+            };
+            const deltaX = point.node[xField] - target.x;
+            const deltaY = point.node[yField] - target.y;
+            error += deltaX * deltaX + deltaY * deltaY;
+            return target;
+        });
+        return { angle, center, error, targets };
+    }
+
+    /**
+     * Project one live helix onto the closest translated/rotated copy of its
+     * straight template (2-D orthogonal Procrustes fit). Current and previous
+     * coordinate clouds are projected separately, preserving the rigid body's
+     * translational and rotational velocity instead of zeroing it each tick.
+     */
+    function projectLinearHelixRailTemplate(template) {
+        if (!template || !Array.isArray(template.points)) return false;
+        const live = template.points.map(point => point.node);
+        if (live.some(node => !node || node.fixed)) return false;
+
+        const reflection = template.reflection === -1 ? -1 : 1;
+        const currentFit = fitLinearHelixRailTemplate(template, 'x', 'y', reflection);
+        if (!currentFit) return false;
+        const previousFit = fitLinearHelixRailTemplate(template, 'px', 'py', reflection) ||
+            currentFit;
+
+        template.points.forEach((point, index) => {
+            point.node.x = currentFit.targets[index].x;
+            point.node.y = currentFit.targets[index].y;
+            point.node.px = previousFit.targets[index].x;
+            point.node.py = previousFit.targets[index].y;
+            point.node.varriLinearHelix = true;
+            point.node.varriLinearHelixKind = template.kind;
+        });
+        template.angle = currentFit.angle;
+        template.center = currentFit.center;
+        template.previousAngle = previousFit.angle;
+        template.previousCenter = previousFit.center;
+        return true;
+    }
+
+    function normaliseRotationRadians(radians) {
+        return Math.atan2(Math.sin(radians), Math.cos(radians));
+    }
+
+    function rotateCoordinateCloud(nodes, xField, yField, center, radians) {
+        if (!center || ![center.x, center.y, radians].every(Number.isFinite)) return false;
+        const cosine = Math.cos(radians);
+        const sine = Math.sin(radians);
+        nodes.forEach(node => {
+            const offsetX = node[xField] - center.x;
+            const offsetY = node[yField] - center.y;
+            node[xField] = center.x + cosine * offsetX - sine * offsetY;
+            node[yField] = center.y + sine * offsetX + cosine * offsetY;
+        });
+        return true;
+    }
+
+    function rotateTemplateFitState(template, centerField, angleField, pivot, radians) {
+        const center = template?.[centerField];
+        const angle = template?.[angleField];
+        if (!center || ![center.x, center.y, angle].every(Number.isFinite)) return;
+        const cosine = Math.cos(radians);
+        const sine = Math.sin(radians);
+        const offsetX = center.x - pivot.x;
+        const offsetY = center.y - pivot.y;
+        template[centerField] = {
+            x: pivot.x + cosine * offsetX - sine * offsetY,
+            y: pivot.y + sine * offsetX + cosine * offsetY,
+        };
+        template[angleField] = normaliseRotationRadians(angle + radians);
+    }
+
+    /**
+     * Remove the global angular degree of freedom from an RRI layout by
+     * rotating the complete graph until the paired-column centreline is
+     * horizontal. Current and previous coordinate clouds are rotated
+     * independently so translation is preserved without angular drift.
+     */
+    function orientLinearRriInteractionHorizontally(graph, rriTemplate, templates) {
+        if (!graph || !Array.isArray(graph.nodes) || !rriTemplate) return false;
+        const nodes = graph.nodes.filter(Boolean);
+        if (nodes.length === 0 || nodes.some(node =>
+            node.fixed || ![node.x, node.y, node.px, node.py].every(Number.isFinite)
+        )) return false;
+        if (![rriTemplate.angle, rriTemplate.previousAngle].every(Number.isFinite) ||
+            !rriTemplate.center || !rriTemplate.previousCenter) return false;
+
+        if (rriTemplate.horizontalDirection !== 1 &&
+            rriTemplate.horizontalDirection !== -1) {
+            rriTemplate.horizontalDirection = Math.cos(rriTemplate.angle) >= 0 ? 1 : -1;
+        }
+        const targetAngle = rriTemplate.horizontalDirection === 1 ? 0 : Math.PI;
+        const currentRotation = normaliseRotationRadians(
+            targetAngle - rriTemplate.angle
+        );
+        const previousRotation = normaliseRotationRadians(
+            targetAngle - rriTemplate.previousAngle
+        );
+        const currentPivot = { ...rriTemplate.center };
+        const previousPivot = { ...rriTemplate.previousCenter };
+
+        rotateCoordinateCloud(nodes, 'x', 'y', currentPivot, currentRotation);
+        rotateCoordinateCloud(nodes, 'px', 'py', previousPivot, previousRotation);
+        templates.forEach(template => {
+            rotateTemplateFitState(
+                template,
+                'center',
+                'angle',
+                currentPivot,
+                currentRotation
+            );
+            rotateTemplateFitState(
+                template,
+                'previousCenter',
+                'previousAngle',
+                previousPivot,
+                previousRotation
+            );
+        });
+        rriTemplate.lastHorizontalRotation = currentRotation;
+        return true;
+    }
+
+    function listVisibleIndexLabelPositions(v) {
+        const positions = new Set(
+            Object.entries(getIndexLabelValues(v))
+                .filter(([, value]) => value !== 0)
+                .map(([position]) => Number(position))
+        );
+        (Array.isArray(v.pointMutations) ? v.pointMutations : []).forEach(mutation => {
+            const nodeId = Number(mutation.nodeId);
+            if (Number.isInteger(nodeId)) positions.add(nodeId);
+        });
+        return positions;
+    }
+
+    function resolveGraphLinkNode(graph, endpoint) {
+        if (endpoint && typeof endpoint === 'object') return endpoint;
+        const index = Number(endpoint);
+        return Number.isInteger(index) ? graph.nodes[index] || null : null;
+    }
+
+    /**
+     * Match retained number labels to paired rail nodes and their mates.
+     * Fornac's label link fixes distance but not which side of the rail wins,
+     * so these records provide a transient, direction-only settling hint.
+     */
+    function collectLinearHelixIndexLabelBiases(container, v, templates) {
+        const graph = container && container.graph;
+        if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.links)) return [];
+
+        const visiblePositions = listVisibleIndexLabelPositions(v);
+        const partnerByNode = new Map();
+        templates.forEach(template => {
+            for (let index = 0; index + 1 < template.points.length; index += 2) {
+                const first = template.points[index].node;
+                const second = template.points[index + 1].node;
+                partnerByNode.set(first, second);
+                partnerByNode.set(second, first);
+            }
+        });
+
+        const rawMultiplier = Number(container.options?.linkDistanceMultiplier);
+        const multiplier = Number.isFinite(rawMultiplier) && rawMultiplier > 0
+            ? rawMultiplier
+            : 15;
+        const seenLabels = new Set();
+        const biases = [];
+
+        graph.links.forEach(link => {
+            if (link?.linkType !== 'label_link') return;
+            const source = resolveGraphLinkNode(graph, link.source);
+            const target = resolveGraphLinkNode(graph, link.target);
+            const label = source?.nodeType === 'label'
+                ? source
+                : target?.nodeType === 'label' ? target : null;
+            const anchor = source?.nodeType === 'nucleotide'
+                ? source
+                : target?.nodeType === 'nucleotide' ? target : null;
+            const partner = partnerByNode.get(anchor);
+            if (!label || !anchor || !partner || seenLabels.has(label) ||
+                !visiblePositions.has(Number(anchor.num))) return;
+
+            const rawValue = Number(link.value);
+            const linkDistance = multiplier * (
+                Number.isFinite(rawValue) && rawValue > 0 ? rawValue : 1
+            );
+            seenLabels.add(label);
+            biases.push({ label, anchor, partner, linkDistance });
+        });
+        return biases;
+    }
+
+    /**
+     * Gently move wrong-side number labels across the rail centreline.
+     * Once a label reaches its exterior half-plane this becomes a no-op and
+     * Fornac's native label link completes the ordinary spacing.
+     */
+    function nudgeLinearHelixIndexLabels(biases) {
+        let moved = 0;
+        biases.forEach(bias => {
+            const { label, anchor, partner, linkDistance } = bias;
+            if (!label || !anchor || !partner ||
+                label.fixed || anchor.fixed || partner.fixed) return;
+            if (![label.x, label.y, label.px, label.py,
+                anchor.x, anchor.y, partner.x, partner.y,
+                linkDistance].every(Number.isFinite)) return;
+
+            const outwardX = anchor.x - partner.x;
+            const outwardY = anchor.y - partner.y;
+            const outwardLength = Math.hypot(outwardX, outwardY);
+            if (!(outwardLength > 0)) return;
+            const unitX = outwardX / outwardLength;
+            const unitY = outwardY / outwardLength;
+            const side = (label.x - anchor.x) * unitX +
+                (label.y - anchor.y) * unitY;
+            const target = LINEAR_HELIX_LABEL_BIAS_TARGET * linkDistance;
+            if (!(side < target)) return;
+
+            // Use the same bounded correction on every lifecycle event. The
+            // end handler must never turn this settling hint into a late snap.
+            const distance = Math.min(
+                (target - side) * LINEAR_HELIX_LABEL_BIAS_GAIN,
+                LINEAR_HELIX_LABEL_BIAS_MAX_STEP * linkDistance
+            );
+            const deltaX = distance * unitX;
+            const deltaY = distance * unitY;
+            label.x += deltaX;
+            label.y += deltaY;
+            label.px += deltaX;
+            label.py += deltaY;
+            moved += 1;
+        });
+        return moved;
+    }
+
+    /** Cache projected nodes, gently biased labels, and their visible links. */
+    function createLinearHelixDomCache(
+        graph,
+        templates,
+        labelBiases = [],
+        syncWholeGraph = false
+    ) {
+        if (typeof document === 'undefined') return { nodes: [], links: [] };
+        const projectedNodes = syncWholeGraph
+            ? new Set(graph.nodes)
+            : new Set([
+                ...templates.flatMap(template => template.points.map(point => point.node)),
+                ...labelBiases.map(bias => bias.label),
+            ]);
+        const graphLinks = Array.isArray(graph.links) ? graph.links : [];
+        const incidentLinks = syncWholeGraph
+            ? new Set(graphLinks)
+            : new Set(graphLinks.filter(link =>
+                projectedNodes.has(link?.source) || projectedNodes.has(link?.target)
+            ));
+        return {
+            nodes: Array.from(document.querySelectorAll('g.gnode'))
+                .filter(element => projectedNodes.has(element.__data__)),
+            links: Array.from(document.querySelectorAll('line.link'))
+                .filter(element => incidentLinks.has(element.__data__)),
+        };
+    }
+
+    function syncFornacDirectionArrow(element, node) {
+        const arrow = element.querySelector?.('path.fornac-directionArrow');
+        const previous = node?.prevNode;
+        if (!arrow || !previous || !node.linked ||
+            ![node.x, node.y, previous.x, previous.y, node.radius].every(Number.isFinite)) {
+            return;
+        }
+        let directionX = previous.x - node.x;
+        let directionY = previous.y - node.y;
+        const length = Math.hypot(directionX, directionY);
+        if (!(length > 0)) return;
+        directionX /= length;
+        directionY /= length;
+        const normalX = -directionY;
+        const normalY = directionX;
+        const tipX = (node.radius + 0.4) * directionX;
+        const tipY = (node.radius + 0.4) * directionY;
+        const size = 6;
+        const width = 0.7;
+        arrow.setAttribute('d',
+            `M${tipX + size * (directionX / 2 + normalX * width / 2)},` +
+            `${tipY + size * (directionY / 2 + normalY * width / 2)}` +
+            `L${tipX},${tipY}` +
+            `L${tipX + size * (directionX / 2 - normalX * width / 2)},` +
+            `${tipY + size * (directionY / 2 - normalY * width / 2)}`
+        );
+    }
+
+    /** Keep Fornac's already-created SVG in sync with post-tick projection. */
+    function syncLinearHelixDom(cache) {
+        cache.nodes.forEach(element => {
+            const node = element.__data__;
+            if (!node || ![node.x, node.y].every(Number.isFinite)) return;
+            element.setAttribute('transform', `translate(${node.x},${node.y})`);
+            syncFornacDirectionArrow(element, node);
+        });
+        cache.links.forEach(element => {
+            const link = element.__data__;
+            if (!link?.source || !link?.target) return;
+            element.setAttribute('x1', String(link.source.x));
+            element.setAttribute('y1', String(link.source.y));
+            element.setAttribute('x2', String(link.target.x));
+            element.setAttribute('y2', String(link.target.y));
+        });
+    }
+
+    function clearLinearHelixConstraintState(container) {
+        const hadConstraintState = !!container && (
+            Object.prototype.hasOwnProperty.call(container, 'varriLinearHelixConstraints') ||
+            Object.prototype.hasOwnProperty.call(container, 'varriLinearHelixTemplates') ||
+            Object.prototype.hasOwnProperty.call(container, 'varriLinearHelixLabelBiases')
+        );
+        if (hadConstraintState && container.force && typeof container.force.on === 'function') {
+            container.force.on('tick.varriLinearHelix', null);
+            container.force.on('end.varriLinearHelix', null);
+        }
+        delete container?.varriLinearHelixConstraints;
+        delete container?.varriLinearHelixTemplates;
+        delete container?.varriLinearHelixLabelBiases;
+    }
+
+    /**
+     * Apply rigid, invisible two-rail constraints for the requested RRI and/or
+     * intramolecular helices, then restart the live D3 force once.
+     *
+     * @param {Object} container  Live Fornac container.
+     * @param {Object} v  Validated parameter dictionary.
+     * @param {{rri?:boolean,structure?:boolean}} [options]
+     * @returns {number} Number of measured same-strand loop-span constraints.
+     */
+    function applyLinearHelixSprings(container, v, options = {}) {
+        clearLinearHelixConstraintState(container);
+        const graph = container && container.graph;
+        if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.links)) return 0;
+
+        const constraints = [];
+        const groups = [];
+        if (options.rri && v.molecules === '2') {
+            constraints.push(...collectLinearHelixSpanConstraints(
+                container,
+                getLinearRriConstraintSpecs(v),
+                LINEAR_RRI_LINK_TYPE
+            ));
+            groups.push(...listRriHelixPairGroups(v));
+        }
+        if (options.structure) {
+            constraints.push(...collectLinearHelixSpanConstraints(
+                container,
+                getLinearStructureConstraintSpecs(v),
+                LINEAR_STRUCTURE_LINK_TYPE
+            ));
+            groups.push(...listStructureHelixPairGroups(v));
+        }
+
+        const templates = groups
+            .map(group => createLinearHelixRailTemplate(container, group))
+            .filter(Boolean);
+        if (templates.length === 0) return 0;
+
+        const constrainedNodes = new Set(
+            templates.flatMap(template => template.points.map(point => point.node))
+        );
+        const activeConstraints = constraints.filter(constraint =>
+            constrainedNodes.has(constraint.source) &&
+            constrainedNodes.has(constraint.target)
+        );
+        container.varriLinearHelixConstraints = activeConstraints;
+        container.varriLinearHelixTemplates = templates;
+        const labelBiases = collectLinearHelixIndexLabelBiases(container, v, templates);
+        container.varriLinearHelixLabelBiases = labelBiases;
+        const rriTemplate = options.rri
+            ? templates.find(template => template.kind === 'rri') || null
+            : null;
+        const domCache = createLinearHelixDomCache(
+            graph,
+            templates,
+            labelBiases,
+            !!rriTemplate
+        );
+        const enforceAndSync = () => {
+            templates.forEach(projectLinearHelixRailTemplate);
+            if (rriTemplate) {
+                orientLinearRriInteractionHorizontally(graph, rriTemplate, templates);
+            }
+            nudgeLinearHelixIndexLabels(labelBiases);
+            syncLinearHelixDom(domCache);
+        };
+        let hasRefittedAtRest = false;
+        const enforceSyncAndRefit = () => {
+            enforceAndSync();
+            if (!hasRefittedAtRest && typeof container.centerView === 'function') {
+                hasRefittedAtRest = true;
+                container.centerView();
+            }
+        };
+        enforceAndSync();
+
+        if (container.force) {
+            if (typeof container.force.on === 'function') {
+                container.force.on('tick.varriLinearHelix', () => enforceAndSync());
+                // The final projection can extend beyond the bounds measured by
+                // applyModifications while the force is still moving. Refit once
+                // at rest so asymmetric bulges are not clipped at the viewport.
+                container.force.on('end.varriLinearHelix', enforceSyncAndRefit);
+            }
+            if (typeof container.force.start === 'function') {
+                container.force.start();
+            }
+        }
+        return activeConstraints.length;
+    }
+
+    /**
      * Add background highlighting for intermolecular basepair stacks.
      *
      * @param {Object} v  Validated parameter dictionary.
@@ -2368,24 +3310,10 @@
     // -----------------------------------------------------------------------
 
     /**
-     * Build the Fornac RNA visualisation inside `containerId` and apply all
-     * vaRRI modifications.
-     *
-     * This is the main entry point.  Call `validate()` first to produce `v`.
-     *
-     * @param {string} containerId  CSS selector or element ID of the Fornac container.
-     * @param {Object} v  Validated parameter dictionary (from `validate()`).
-     * @param {Object} [options]
-     * @param {boolean} [options.forceLayout=false]  Enable Fornac force-layout animation.
-     * @param {boolean} [options.freeTrailingEnds=false]  Remove Fornac's external-loop circularisation constraint (the "closure" scaffold linking the sequence ends) from the force graph, leaving all other loop constraints intact.
-     * @param {boolean} [options.pullPseudoknotBasepairs=false]  Set Fornac's pseudoknot link force strength to 10 (default 0), pulling pseudoknot basepairs together in the force layout.
-     * @param {Object.<number,number>|null} [options.accessData=null]  Accessibility data map.
-     * @param {{sequence1?: string, sequence2?: string}|null} [options.accessColors=null]  Optional accessibility-overlay colors.
-     * @param {{sequence1RepresentsOne?: boolean, sequence2RepresentsOne?: boolean}|null} [options.accessColorMode=null]
-     *     Optional per-sequence mapping flags; true means probability 1 maps to full color.
+     * Stop the active Fornac force and cancel delayed/animation-frame work.
+     * Pending render promises resolve as cancelled.
      */
-    function render(containerId, v, options = {}) {
-        // Cancel any background-highlight loop from a previous render.
+    function cancelActiveRender() {
         if (_animFrameId !== null) {
             cancelAnimationFrame(_animFrameId);
             _animFrameId = null;
@@ -2401,8 +3329,44 @@
             }
         }
 
+        // D3 v3 dispatches `end` synchronously from force.stop(). Remove the
+        // helix lifecycle listeners first so a cancelled render cannot refit
+        // a detached/cleared SVG container.
+        if (_activeContainer) {
+            clearLinearHelixConstraintState(_activeContainer);
+        }
+        if (_activeContainer?.force && typeof _activeContainer.force.stop === 'function') {
+            _activeContainer.force.stop();
+        }
+        _activeContainer = null;
+    }
+
+    /**
+     * Build the Fornac RNA visualisation inside `containerId` and apply all
+     * vaRRI modifications.
+     *
+     * This is the main entry point.  Call `validate()` first to produce `v`.
+     *
+     * @param {string} containerId  CSS selector or element ID of the Fornac container.
+     * @param {Object} v  Validated parameter dictionary (from `validate()`).
+     * @param {Object} [options]
+     * @param {boolean} [options.forceLayout=false]  Enable Fornac force-layout animation.
+     * @param {boolean} [options.forceLayoutLinearRRI=false]  Enforce a rigid two-rail RRI layout and orient the complete interaction horizontally.
+     * @param {boolean} [options.forceLayoutLinearStructure=false]  Enforce the same two-rail geometry within intramolecular helices.
+     * @param {boolean} [options.freeTrailingEnds=false]  Remove Fornac's external-loop circularisation constraint (the "closure" scaffold linking the sequence ends) from the force graph, leaving all other loop constraints intact.
+     * @param {boolean} [options.pullPseudoknotBasepairs=false]  Set Fornac's pseudoknot link force strength to 10 (default 0), pulling pseudoknot basepairs together in the force layout.
+     * @param {Object.<number,number>|null} [options.accessData=null]  Accessibility data map.
+     * @param {{sequence1?: string, sequence2?: string}|null} [options.accessColors=null]  Optional accessibility-overlay colors.
+     * @param {{sequence1RepresentsOne?: boolean, sequence2RepresentsOne?: boolean}|null} [options.accessColorMode=null]
+     *     Optional per-sequence mapping flags; true means probability 1 maps to full color.
+     */
+    function render(containerId, v, options = {}) {
+        cancelActiveRender();
+
         const {
             forceLayout = false,
+            forceLayoutLinearRRI = false,
+            forceLayoutLinearStructure = false,
             freeTrailingEnds = false,
             pullPseudoknotBasepairs = false,
             accessData = null,
@@ -2418,6 +3382,7 @@
                 labelInterval: 1
             }
         );
+        _activeContainer = container;
         container.addRNA(v.structure, { structure: v.structure, sequence: v.sequence });
 
         if (forceLayout && freeTrailingEnds) {
@@ -2426,6 +3391,13 @@
 
         if (forceLayout && pullPseudoknotBasepairs) {
             applyPseudoknotLinkStrength(container, true);
+        }
+
+        if (forceLayout && (forceLayoutLinearRRI || forceLayoutLinearStructure)) {
+            applyLinearHelixSprings(container, v, {
+                rri: forceLayoutLinearRRI,
+                structure: forceLayoutLinearStructure,
+            });
         }
 
         function applyModifications() {
@@ -2474,6 +3446,13 @@
             // Accessibility overlay
             if (accessData) {
                 visualiseAccessibility(accessData, v.sequence1.length, accessColors, accessColorMode);
+            }
+
+            // Linear-helix constraints may extend the initial bounds. Refit
+            // after the first force ticks and all hidden nodes are removed.
+            if (forceLayout && (forceLayoutLinearRRI || forceLayoutLinearStructure) &&
+                typeof container.centerView === 'function') {
+                container.centerView();
             }
 
             // When animation is on, keep the background-highlight polygon in sync
@@ -2862,6 +3841,7 @@
 
     const vaRRI = {
         // Core
+        cancelActiveRender,
         normaliseRotationDegrees,
         render,
         rotateVisualization,
@@ -2913,14 +3893,19 @@
 
         // Base-pair utilities
         getIntermolBasepairRegion,
+        getLinearRriConstraintSpecs,
+        getLinearStructureConstraintSpecs,
         listBasepairs,
         listIntermolNodes,
         listIntermolPairs,
+        listRriLoopBoundaryPairs,
+        listStructureLoopBoundaryPairs,
         sequenceColoring,
 
         // DOM modifications (advanced use)
         addElement,
         addStyleToNodes,
+        applyLinearHelixSprings,
         applyPointMutations,
         applyRegionHighlights,
         applySubsequenceHighlights,
