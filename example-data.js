@@ -208,7 +208,7 @@
       descriptionShort: 'Crossing RNA–RNA interaction resolved via relaxed force-field layout.',
       description: 'Crossing RNA–RNA interactions (w.r.t. the underlying joint-structure layout algorithm of fornac) are typically problematic since their base pairing forms a crossing pseudoknot structure. Some can be layouted when relaxing the force field (see Visualization Settings).',
       vaRRIParams: {
-        sequence: 'nnnnnnnnnnnnnnnnn&nnnnnnnnnnnnn',
+        sequence: 'NNNNNNNNNNNNNNNNN&NNNNNNNNNNNNN',
         structure:'((..((...<<<..<<<&))))...>>>>>>',
         distinctBpTypes: 0,
         forceLayout: 1,
