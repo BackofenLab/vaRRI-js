@@ -124,7 +124,7 @@
         highlighting: 'region',
         backgroundhighlighting: 'basepairs',
         forceLayoutLinearRRI: 1,
-        guBasepairs: 1,
+        distinctBpTypes: 1,
         cropping: 2,
         forceLayout: 0,
         regionHighlights: '21-25&113-114:0d00ff:0.2',
@@ -196,11 +196,26 @@
         coloring:'strand',
         highlighting:'region',
         colorRriNodes:'#ff0000',
-        guBasepairs:1,
+        forceLayoutLinearRRI: 1,
+        distinctBpTypes:1,
         regionHighlights:'35-41&67-73:0D00FF:0.4,-9--3&108-114:0D00FF:0.4',
         forceLayout: 'off',
       },
     },
+    'crossing-rri': {
+      name: 'Crossing RRI showcase',
+      nameShort: 'Crossing RRI via force field',
+      descriptionShort: 'Crossing RNA–RNA interaction resolved via relaxed force-field layout.',
+      description: 'Crossing RNA–RNA interactions (w.r.t. the underlying joint-structure layout algorithm of fornac) are typically problematic since their base pairing forms a crossing pseudoknot structure. Some can be layouted when relaxing the force field (see Visualization Settings).',
+      vaRRIParams: {
+        sequence: 'nnnnnnnnnnnnnnnnn&nnnnnnnnnnnnn',
+        structure:'((..((...<<<..<<<&))))...>>>>>>',
+        distinctBpTypes: 0,
+        forceLayout: 1,
+        forceLayoutFreeTails: 1,
+        forceLayoutPullCrossing: 1,
+      },  
+    },    
   };
 
   root.VARRI_EXAMPLES = examples;

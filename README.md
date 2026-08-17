@@ -377,7 +377,7 @@ See descriptions above and the [Input Format Reference](#input-format-reference)
 | **`coloring`** | Nucleotide color scheme (`strand` or `loop`). |
 | **`highlighting` / `backgroundhighlighting`** | RRI highlight targets (`region`, `basepairs`, or `nothing`). |
 | **`colorRriNodes` / `colorRriRegion` / `colorBasepair`** | Hex color codes for nucleotide highlights, background highlights, and base pairs. |
-| **`guBasepairs`** | Toggle display of G-U Wobble base pairs as dashed lines (`true` / `false`). |
+| **`distinctBpTypes`** | Toggle display of G-U Wobble base pairs as dashed lines (`true` / `false`). |
 | **`forceLayout`** | Enable or disable Fornac force-layout physics simulation (`true` / `false`). |
 | **`forceLayoutLinearRRI`** | Enforce a linear horizontal layout of all noncrossing RRI helices. Enabling it also enables `forceLayout`. |
 | **`forceLayoutLinearStructure`** | Enforce a linear layout of intramolecular stems containing bulges or interior loops. Enabling it also enables `forceLayout`. |
@@ -409,7 +409,7 @@ For embedding without header and footer, you can also use the `hideFooterAndHead
 
 ```html
 <iframe 
-  src="https://backofenlab.github.io/vaRRI-js/?sequence=ACGAUCAUGGAUUAGAGCAUUCGACAGCAG%26ACGAAAAAAAGAGCAUACGACAGUAG&colorSeq1=%23add8e6&startIndex1=-6&colorSeq2=%23f4bb44&startIndex2=100&structure=..%3C%3C%3C%3C...%3E%3E%3E%3E...%28%28..%28%28%28...%28%28..%26............%29%29...%29%29%29..%29%29..&coloring=strand&highlighting=region&colorRriNodes=%23ff0000&backgroundhighlighting=basepairs&colorRriRegion=%23ff0000&colorBasepair=%23ff0000&guBasepairs=on&forceLayout=on&profileColor1=%23800080&profileColorRepresentsOne1=on&profileColor2=%23ff0000&profileData1=%23+unpaired+probabilities%0A1+0.9%0A2+0.7%0A3+0.3%0A4+0.1%0A7+0.3%0A8+0.7%0A9+0.6&profileIdxRef1=1&profileIdxRef2=1&cropping=2&mutations=1%3A16G%3A338a29%2C2%3A118C%3A338a29&highlights=1%3A18-20%3A338a29%2C2%3A114-116%3A338a29&showRenderingOnly=true" 
+  src="https://backofenlab.github.io/vaRRI-js/?sequence=ACGAUCAUGGAUUAGAGCAUUCGACAGCAG%26ACGAAAAAAAGAGCAUACGACAGUAG&colorSeq1=%23add8e6&startIndex1=-6&colorSeq2=%23f4bb44&startIndex2=100&structure=..%3C%3C%3C%3C...%3E%3E%3E%3E...%28%28..%28%28%28...%28%28..%26............%29%29...%29%29%29..%29%29..&coloring=strand&highlighting=region&colorRriNodes=%23ff0000&backgroundhighlighting=basepairs&colorRriRegion=%23ff0000&colorBasepair=%23ff0000&distinctBpTypes=on&forceLayout=on&profileColor1=%23800080&profileColorRepresentsOne1=on&profileColor2=%23ff0000&profileData1=%23+unpaired+probabilities%0A1+0.9%0A2+0.7%0A3+0.3%0A4+0.1%0A7+0.3%0A8+0.7%0A9+0.6&profileIdxRef1=1&profileIdxRef2=1&cropping=2&mutations=1%3A16G%3A338a29%2C2%3A118C%3A338a29&highlights=1%3A18-20%3A338a29%2C2%3A114-116%3A338a29&showRenderingOnly=true" 
   width="100%" 
   height="600" 
   style="border: none;"
@@ -425,7 +425,7 @@ Valid embedding links can be generated using the "🔗 Share Link" button in the
 ----
 
 <iframe 
-  src="https://backofenlab.github.io/vaRRI-js/?showRenderingOnly=true&sequence=ACGAUCAUGGAUUAGAGCAUUCGACAGCAG%26ACGAAAAAAAGAGCAUACGACAGUAG&colorSeq1=%23add8e6&startIndex1=-6&colorSeq2=%23f4bb44&startIndex2=100&structure=..%3C%3C%3C%3C...%3E%3E%3E%3E...%28%28..%28%28%28...%28%28..%26............%29%29...%29%29%29..%29%29..&coloring=strand&highlighting=region&colorRriNodes=%23ff0000&backgroundhighlighting=basepairs&colorRriRegion=%23ff0000&colorBasepair=%23ff0000&guBasepairs=on&forceLayout=on&profileColor1=%23800080&profileColorRepresentsOne1=on&profileColor2=%23ff0000&profileData1=%23+unpaired+probabilities%0A1+0.9%0A2+0.7%0A3+0.3%0A4+0.1%0A7+0.3%0A8+0.7%0A9+0.6&profileIdxRef1=1&profileIdxRef2=1&cropping=2&mutations=1%3A16G%3A338a29%2C2%3A118C%3A338a29&highlights=1%3A18-20%3A338a29%2C2%3A114-116%3A338a29" 
+  src="https://backofenlab.github.io/vaRRI-js/?showRenderingOnly=true&sequence=ACGAUCAUGGAUUAGAGCAUUCGACAGCAG%26ACGAAAAAAAGAGCAUACGACAGUAG&colorSeq1=%23add8e6&startIndex1=-6&colorSeq2=%23f4bb44&startIndex2=100&structure=..%3C%3C%3C%3C...%3E%3E%3E%3E...%28%28..%28%28%28...%28%28..%26............%29%29...%29%29%29..%29%29..&coloring=strand&highlighting=region&colorRriNodes=%23ff0000&backgroundhighlighting=basepairs&colorRriRegion=%23ff0000&colorBasepair=%23ff0000&distinctBpTypes=on&forceLayout=on&profileColor1=%23800080&profileColorRepresentsOne1=on&profileColor2=%23ff0000&profileData1=%23+unpaired+probabilities%0A1+0.9%0A2+0.7%0A3+0.3%0A4+0.1%0A7+0.3%0A8+0.7%0A9+0.6&profileIdxRef1=1&profileIdxRef2=1&cropping=2&mutations=1%3A16G%3A338a29%2C2%3A118C%3A338a29&highlights=1%3A18-20%3A338a29%2C2%3A114-116%3A338a29" 
   width="100%" 
   height="600" 
   style="border: 2px solid #333333; border-radius: 6px;"

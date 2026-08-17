@@ -17,7 +17,7 @@ const DEFAULT_VALUES = {
   coloring: 'strand',
   highlighting: 'region',
   backgroundhighlighting: 'basepairs',
-  guBasepairs: true,
+  distinctBpTypes: true,
   // profile data
   profileData1: '',
   profileIdxRef1: '1',
@@ -484,7 +484,7 @@ function getBaseVisualizationArgs() {
     coloring: document.getElementById('coloring').value,
     highlighting: document.getElementById('highlighting').value,
     backgroundhighlighting: document.getElementById('backgroundhighlighting').value,
-    guBasepairs: document.getElementById('guBasepairs').checked,
+    distinctBpTypes: document.getElementById('distinctBpTypes').checked,
     // clone lists
     subsequenceHighlights: vaRRI.getSubsequenceHighlights(),
     regionHighlights: vaRRI.getRegionHighlights(),
@@ -1855,7 +1855,7 @@ function attachAutoVisualizationListeners() {
     coloring: { eventName: 'change' },
     highlighting: { eventName: 'change' },
     backgroundhighlighting: { eventName: 'change' },
-    guBasepairs: { eventName: 'change' },
+    distinctBpTypes: { eventName: 'change' },
     forceLayout: { eventName: 'change' },
     forceLayoutFreeTails: { eventName: 'change' },
     forceLayoutPullCrossing: { eventName: 'change' },

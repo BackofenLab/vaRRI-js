@@ -60,7 +60,7 @@ test('boots through bound UI actions without inline handlers', async () => {
   const options = document.getElementById('exampleDropdownOptions');
   const exampleButtons = [...options.querySelectorAll('[data-example]')];
 
-  expect(exampleButtons).toHaveLength(4);
+  expect(exampleButtons).toHaveLength(5);
   exampleButtons.forEach(button => {
     expect(button.querySelector('.example-option-name').textContent.trim()).not.toBe('');
     expect(button.querySelector('.example-option-description').textContent.trim()).not.toBe('');
@@ -130,7 +130,7 @@ test('boots through bound UI actions without inline handlers', async () => {
   expect(document.getElementById('coloring').value).toBe('strand');
   expect(document.getElementById('highlighting').value).toBe('region');
   expect(document.getElementById('backgroundhighlighting').value).toBe('basepairs');
-  expect(document.getElementById('guBasepairs').checked).toBe(true);
+  expect(document.getElementById('distinctBpTypes').checked).toBe(true);
   expect(document.getElementById('colorSeq1').value).toBe('#add8e6');
   expect(document.getElementById('profileData1').value).toBe('');
   expect(document.getElementById('profileData2').value).toBe('');
