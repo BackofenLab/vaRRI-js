@@ -196,6 +196,7 @@
         coloring:'strand',
         highlighting:'region',
         colorRriNodes:'#ff0000',
+        forceLayoutLinearRRI: 1,
         guBasepairs:1,
         regionHighlights:'35-41&67-73:0D00FF:0.4,-9--3&108-114:0D00FF:0.4',
         forceLayout: 'off',
