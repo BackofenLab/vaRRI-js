@@ -204,12 +204,16 @@
     },
     'crossing-rri': {
       name: 'Crossing RRI showcase',
-      nameShort: 'Crossing RRI',
-      description: 'Showcases a crossing RNA–RNA interaction with a linear layout of the intramolecular helices.',
-      descriptionShort: 'Crossing RNA–RNA interaction with linear intramolecular helices.',
+      nameShort: 'Crossing RRI via force field',
+      descriptionShort: 'Crossing RNA–RNA interaction resolved via relaxed force-field layout.',
+      description: 'Crossing RNA–RNA interactions (w.r.t. the underlying joint-structure layout algorithm of fornac) are typically problematic since their base pairing forms a crossing pseudoknot structure. Some can be layouted when relaxing the force field (see Visualization Settings).',
       vaRRIParams: {
-        sequence: 'gnnnnnnnnnnnnnnng&unnnnnnunnnnn',
+        sequence: 'nnnnnnnnnnnnnnnnn&nnnnnnnnnnnnn',
         structure:'((..((...<<<..<<<&))))...>>>>>>',
+        distinctBpTypes: 0,
+        forceLayout: 1,
+        forceLayoutFreeTails: 1,
+        forceLayoutPullCrossing: 1,
       },  
     },    
   };

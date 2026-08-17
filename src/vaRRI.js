@@ -2021,7 +2021,6 @@
                 const l1 = seqDict[link.getAttribute('start')];
                 const l2 = seqDict[link.getAttribute('end')];
                 const bp = [l1, l2].sort().join('-').toLowerCase();
-                console.log(`Basepair ${l1}-${l2} (${bp})`);
                 if (bp === 'g-u') {
                     link.style.strokeLinecap = 'butt';
                     link.style.strokeDasharray = '1 1';

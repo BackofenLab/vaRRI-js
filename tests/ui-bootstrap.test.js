@@ -60,7 +60,7 @@ test('boots through bound UI actions without inline handlers', async () => {
   const options = document.getElementById('exampleDropdownOptions');
   const exampleButtons = [...options.querySelectorAll('[data-example]')];
 
-  expect(exampleButtons).toHaveLength(4);
+  expect(exampleButtons).toHaveLength(5);
   exampleButtons.forEach(button => {
     expect(button.querySelector('.example-option-name').textContent.trim()).not.toBe('');
     expect(button.querySelector('.example-option-description').textContent.trim()).not.toBe('');

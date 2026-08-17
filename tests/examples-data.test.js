@@ -9,7 +9,8 @@ describe('shared example catalog', () => {
       '2mol',
       'coronel-tellez-2022',
       'wu-2024',
-      'IntaRNA-seeds'
+      'IntaRNA-seeds',
+      'crossing-rri'
     ]);
 
     const literatureIds = Object.entries(examples)
