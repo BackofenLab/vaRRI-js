@@ -3351,7 +3351,7 @@
      * @param {Object} v  Validated parameter dictionary (from `validate()`).
      * @param {Object} [options]
      * @param {boolean} [options.forceLayout=false]  Enable Fornac force-layout animation.
-     * @param {boolean} [options.forceLayoutLinear=false]  Enforce a rigid two-rail RRI layout and orient the complete interaction horizontally.
+     * @param {boolean} [options.forceLayoutLinearRRI=false]  Enforce a rigid two-rail RRI layout and orient the complete interaction horizontally.
      * @param {boolean} [options.forceLayoutLinearStructure=false]  Enforce the same two-rail geometry within intramolecular helices.
      * @param {boolean} [options.freeTrailingEnds=false]  Remove Fornac's external-loop circularisation constraint (the "closure" scaffold linking the sequence ends) from the force graph, leaving all other loop constraints intact.
      * @param {boolean} [options.pullPseudoknotBasepairs=false]  Set Fornac's pseudoknot link force strength to 10 (default 0), pulling pseudoknot basepairs together in the force layout.
@@ -3365,7 +3365,7 @@
 
         const {
             forceLayout = false,
-            forceLayoutLinear = false,
+            forceLayoutLinearRRI = false,
             forceLayoutLinearStructure = false,
             freeTrailingEnds = false,
             pullPseudoknotBasepairs = false,
@@ -3393,9 +3393,9 @@
             applyPseudoknotLinkStrength(container, true);
         }
 
-        if (forceLayout && (forceLayoutLinear || forceLayoutLinearStructure)) {
+        if (forceLayout && (forceLayoutLinearRRI || forceLayoutLinearStructure)) {
             applyLinearHelixSprings(container, v, {
-                rri: forceLayoutLinear,
+                rri: forceLayoutLinearRRI,
                 structure: forceLayoutLinearStructure,
             });
         }
@@ -3450,7 +3450,7 @@
 
             // Linear-helix constraints may extend the initial bounds. Refit
             // after the first force ticks and all hidden nodes are removed.
-            if (forceLayout && (forceLayoutLinear || forceLayoutLinearStructure) &&
+            if (forceLayout && (forceLayoutLinearRRI || forceLayoutLinearStructure) &&
                 typeof container.centerView === 'function') {
                 container.centerView();
             }

@@ -180,7 +180,7 @@ test('linear layout controls enable force, survive example loading, share, and f
     vaRRIParams: {
       ...featureOverview.vaRRIParams,
       forceLayout: '0',
-      forceLayoutLinear: '1',
+      forceLayoutLinearRRI: '1',
     },
   };
 
@@ -193,7 +193,7 @@ test('linear layout controls enable force, survive example loading, share, and f
 
   const forceLayout = document.getElementById('forceLayout');
   const linearStructure = document.getElementById('forceLayoutLinearStructure');
-  const linearRri = document.getElementById('forceLayoutLinear');
+  const linearRri = document.getElementById('forceLayoutLinearRRI');
   const options = document.getElementById('exampleDropdownOptions');
 
   expect(linearStructure.checked).toBe(false);
@@ -213,7 +213,7 @@ test('linear layout controls enable force, survive example loading, share, and f
     expect.objectContaining({
       forceLayout: true,
       forceLayoutLinearStructure: false,
-      forceLayoutLinear: true,
+      forceLayoutLinearRRI: true,
     })
   );
 
@@ -231,7 +231,7 @@ test('linear layout controls enable force, survive example loading, share, and f
     expect.objectContaining({
       forceLayout: true,
       forceLayoutLinearStructure: true,
-      forceLayoutLinear: false,
+      forceLayoutLinearRRI: false,
     })
   );
 
@@ -244,14 +244,14 @@ test('linear layout controls enable force, survive example loading, share, and f
     expect.objectContaining({
       forceLayout: true,
       forceLayoutLinearStructure: true,
-      forceLayoutLinear: true,
+      forceLayoutLinearRRI: true,
     })
   );
 
   document.getElementById('openVarriBtn').click();
   const sharedUrl = new URL(openSpy.mock.calls.at(-1)[0]);
   expect(sharedUrl.searchParams.get('forceLayoutLinearStructure')).toBe('1');
-  expect(sharedUrl.searchParams.get('forceLayoutLinear')).toBe('1');
+  expect(sharedUrl.searchParams.get('forceLayoutLinearRRI')).toBe('1');
 
   forceLayout.checked = false;
   forceLayout.dispatchEvent(new window.Event('change'));
@@ -266,7 +266,7 @@ test('linear layout controls enable force, survive example loading, share, and f
     expect.objectContaining({
       forceLayout: false,
       forceLayoutLinearStructure: false,
-      forceLayoutLinear: false,
+      forceLayoutLinearRRI: false,
     })
   );
 
@@ -275,7 +275,7 @@ test('linear layout controls enable force, survive example loading, share, and f
 
 test.each([
   'forceLayoutLinearStructure',
-  'forceLayoutLinear',
+  'forceLayoutLinearRRI',
 ])('URL-loaded %s enables force layout before the initial render', async optionId => {
   jest.resetModules();
   const vaRRI = require('../src/vaRRI.js');

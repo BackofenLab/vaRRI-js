@@ -60,7 +60,7 @@ linear-layout listeners, and resolves any pending render as cancelled.
 |---|---|---|---|
 | `forceLayout` | `boolean` | `false` | Enable Fornac force-layout animation. |
 | `forceLayoutLinearStructure` | `boolean` | `false` | Apply a rigid two-rail constraint independently to intramolecular stems containing bulges or interior loops. Requires `forceLayout`. |
-| `forceLayoutLinear` | `boolean` | `false` | Keep a noncrossing RRI helix on two parallel rails and rotate the complete two-molecule interaction so its axis is horizontal. Requires `forceLayout`. |
+| `forceLayoutLinearRRI` | `boolean` | `false` | Keep a noncrossing RRI helix on two parallel rails and rotate the complete two-molecule interaction so its axis is horizontal. Requires `forceLayout`. |
 | `freeTrailingEnds` | `boolean` | `false` | Relax the external-loop closure scaffold when force layout is active. |
 | `pullPseudoknotBasepairs` | `boolean` | `false` | Increase pseudoknot link strength when force layout is active. |
 | `accessData` | `Object<number, number>\|null` | `null` | Node-ID to probability map. |
@@ -71,7 +71,7 @@ linear-layout listeners, and resolves any pending render as cancelled.
 const state = await vaRRI.render('rendering-canvas', validated, {
   forceLayout: true,
   forceLayoutLinearStructure: true,
-  forceLayoutLinear: true,
+  forceLayoutLinearRRI: true,
   accessData: { 1: 0.8, 2: 0.3 },
 });
 ```

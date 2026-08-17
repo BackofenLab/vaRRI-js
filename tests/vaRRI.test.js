@@ -2145,7 +2145,7 @@ describe('applyLinearHelixSprings', () => {
         try {
             const renderPromise = vaRRI.render('linear-cancel-test', v, {
                 forceLayout: true,
-                forceLayoutLinear: true,
+                forceLayoutLinearRRI: true,
             });
             expect(typeof listeners['end.varriLinearHelix']).toBe('function');
             expect(container.varriLinearHelixTemplates).toHaveLength(1);

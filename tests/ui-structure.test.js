@@ -74,10 +74,10 @@ describe('UI document structure', () => {
       /id="forceLayoutLinearStructure"[\s\S]*?<label for="forceLayoutLinearStructure">Linear structure helix layout<\/label>/
     );
     expect(html).toMatch(
-      /id="forceLayoutLinear"[\s\S]*?<label for="forceLayoutLinear">Make RRI horizontal<\/label>/
+      /id="forceLayoutLinearRRI"[\s\S]*?<label for="forceLayoutLinearRRI">Make RRI horizontal<\/label>/
     );
     expect(html.indexOf('id="forceLayoutLinearStructure"'))
-      .toBeLessThan(html.indexOf('id="forceLayoutLinear"'));
+      .toBeLessThan(html.indexOf('id="forceLayoutLinearRRI"'));
   });
 
   test('documents every public API function', () => {

@@ -32,7 +32,7 @@ const DEFAULT_VALUES = {
   forceLayoutFreeTails: false,
   forceLayoutPullCrossing: false,
   forceLayoutLinearStructure: false,
-  forceLayoutLinear: false,
+  forceLayoutLinearRRI: false,
   hideFooterAndHeader: false,
   colorRriNodes: cssColorToHex(INITIAL_COLORS.intermolecularHighlight),
   colorRriRegion: cssColorToHex(INITIAL_COLORS.backgroundHighlight),
@@ -318,7 +318,7 @@ function resetForceLayoutControl() {
     'forceLayoutFreeTails',
     'forceLayoutPullCrossing',
     'forceLayoutLinearStructure',
-    'forceLayoutLinear'
+    'forceLayoutLinearRRI'
   ]);
 }
 
@@ -1615,8 +1615,8 @@ async function runVisualization() {
   const forceLayout = document.getElementById('forceLayout').checked;
   const forceLayoutLinearStructure = forceLayout &&
     !!document.getElementById('forceLayoutLinearStructure')?.checked;
-  const forceLayoutLinear = forceLayout &&
-    !!document.getElementById('forceLayoutLinear')?.checked;
+  const forceLayoutLinearRRI = forceLayout &&
+    !!document.getElementById('forceLayoutLinearRRI')?.checked;
   const freeTrailingEnds = forceLayout && !!document.getElementById('forceLayoutFreeTails')?.checked;
   const pullPseudoknotBasepairs = forceLayout && !!document.getElementById('forceLayoutPullCrossing')?.checked;
   const accessColors = getProfileAccessibilityColors();
@@ -1626,7 +1626,7 @@ async function runVisualization() {
     const renderState = await vaRRI.render(currentContainerId, v, {
       forceLayout,
       forceLayoutLinearStructure,
-      forceLayoutLinear,
+      forceLayoutLinearRRI,
       freeTrailingEnds,
       pullPseudoknotBasepairs,
       accessData,
@@ -1671,7 +1671,7 @@ function syncAnimationDependentControls() {
 
   const linearCheckboxes = [
     document.getElementById('forceLayoutLinearStructure'),
-    document.getElementById('forceLayoutLinear'),
+    document.getElementById('forceLayoutLinearRRI'),
   ];
 
   // Linear layouts can turn force layout on themselves. Turning force layout
@@ -1697,7 +1697,7 @@ function enableForceLayoutForSelectedLinearOptions() {
   if (!forceLayout) return;
 
   if (document.getElementById('forceLayoutLinearStructure')?.checked ||
-      document.getElementById('forceLayoutLinear')?.checked) {
+      document.getElementById('forceLayoutLinearRRI')?.checked) {
     forceLayout.checked = true;
   }
 }
@@ -1812,7 +1812,7 @@ function attachAutoVisualizationListeners() {
     forceLayoutFreeTails: { eventName: 'change' },
     forceLayoutPullCrossing: { eventName: 'change' },
     forceLayoutLinearStructure: { eventName: 'change' },
-    forceLayoutLinear: { eventName: 'change' },
+    forceLayoutLinearRRI: { eventName: 'change' },
     profileColor1: { eventName: 'change' },
     profileColor2: { eventName: 'change' },
     profileColorRepresentsOne1: { eventName: 'change' },
@@ -1854,7 +1854,7 @@ function attachAutoVisualizationListeners() {
     if (!el) return;
 
     el.addEventListener(config.eventName, () => {
-      if ((id === 'forceLayoutLinearStructure' || id === 'forceLayoutLinear') && el.checked) {
+      if ((id === 'forceLayoutLinearStructure' || id === 'forceLayoutLinearRRI') && el.checked) {
         enableForceLayoutForSelectedLinearOptions();
         syncAnimationDependentControls();
       }
