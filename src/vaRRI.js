@@ -3060,11 +3060,9 @@
     function backgroundhighlightRegion(v) {
         const ranges = computeBackgroundRegionRanges(v);
         if (!ranges) {
-            clearGeneratedRegionHighlights();
             return;
         }
 
-        clearGeneratedRegionHighlights();
         registerGeneratedRegionHighlight(v, {
             sequence1Range: ranges.sequence1Range,
             sequence2Range: ranges.sequence2Range,
@@ -3437,6 +3435,7 @@
             setIndexLabels(v);
 
             // Highlighting (only for 2-molecule input)
+            clearGeneratedRegionHighlights();
             if (v.molecules === '2') {
                 if (v.highlighting === 'region') highlightRegion(v);
                 if (v.highlighting === 'basepairs') highlightBasepairs(v);

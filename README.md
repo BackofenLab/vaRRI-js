@@ -162,15 +162,18 @@ npm test
 
 | Field | Description |
 |---|---|
-| **Sequence** | RNA sequence (IUPAC characters). Separate two molecules with `&` or FASTA format (see below). |
+| **Sequence** | RNA sequence (IUPAC characters). Separate two molecules with `&`. |
 | **Start index mol. 1/2** | The number assigned to the first nucleotide of each molecule. Defaults to 1. 0 is not valid; negative indices are supported. |
 | **Color Choice** | Use the color pickers to customize the colors for each sequence. |
 | **Structure** | Dot-bracket structure string. Separate two molecules with `&`. |
 
-The **Sequence** field supports **FASTA input**, which is automatically parsed and split into the sequence and structure fields.
-**Fasta files can also be dragged and dropped** into the sequence field to load them directly.
+### FASTA Sequence (and Structure) Input
 
-Multiline FASTA sequence input is supported, and the trimmed subsequences are concatenated into a single sequence string. The **FASTA header line is ignored**, and the structure field is left unchanged unless the FASTA input contains a **second line with a dot-bracket structure string**.
+The **Sequence** field content can be automatically generated from **FASTA input**.
+The `FASTA` button opens a dialog, in which the provided FASTA encoding is automatically parsed and split into the sequence and structure fields.
+**Fasta files can also be dragged and dropped** into the dialog's FASTA input field to load.
+
+Multiline FASTA sequence input is supported, and the trimmed subsequences are concatenated into a single sequence string. The **FASTA header line is ignored**, and the structure field is left unchanged unless the FASTA input contains a **second line with a dot-bracket structure string**. Note, if structure information is provided, each FASTA record must contain a single sequence line and a single structure line; no multi-line support in this case!
 
 > ![IMPORTANT]
 > Only if *all* FASTA records contain a structure line, the structure field is updated with the concatenated structures. Otherwise, the structure field remains unchanged.
@@ -201,7 +204,7 @@ Open the **Example** dropdown to choose another RNA-RNA interaction. Each open m
 
 | Field | Description |
 |---|---|
-| - **Full screen UI** | When checked, the header and footer sections are hidden, and the visualisation canvas is maximized. |
+| **Full screen UI** | When checked, the header and footer sections are hidden, and the visualisation canvas is maximized. |
 | **Nucleotide color** | `by sequence` — use the defined colors. `by loop type` — Fornac default loop-type coloring. |
 | **Highlighting ..** |  |
 | **.. RRI Nucleotides** | `region` — highlight all nodes in the entire intermolecular region. `basepairs` — highlight only RRI-basepair nucleotides. `nothing` — no nucleotide highlighting. |
@@ -216,7 +219,8 @@ Open the **Example** dropdown to choose another RNA-RNA interaction. Each open m
 
 ### Region Highlights
 
-Add colored highlightings to paired regions of the two input sequences via the following fields and use the "Add" button to register them.
+Add colored highlightings to paired regions of the two input sequences via the following fields and using "Add" button.
+This will open a respective input dialog, which registers the highlighting on confirmation.
 All registered region highlightings are shown in a list above the input fields.
 User-created entries can be removed by clicking the "🗑️" icon, and selecting a listed entry will populate the input fields with its values for editing.
 
