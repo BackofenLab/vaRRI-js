@@ -216,6 +216,39 @@
         forceLayoutPullCrossing: 1,
       },  
     },    
+/*
+Fig 2 hairpin interaction from ptmg-leader and CJnc190, see:
+https://doi.org/10.7554/eLife.69064
+>ptmg-leader
+AUUUUUAUUAAAUUGAAGGGGUGGGGAAUGAUUUAUUGUGAUCACUGCGUGAUGCCAAAUACUAGACCUGGUAUUAAUUUUACAAAAGAUAAAGAAGGUAAAAAUAUCUGUUCAGCUUGCAUCAAUCAUAAAAAUAAAGAAAAUAUUGAUUAUAAAGCAAGGUUUAAAGAGCUUGAAGUCUUAUGCGAUAAAUACCGCAGAAUG
+..............<<<<<<<.<<<<<<................................................................................................................................................................................
+>CJnc190
+AGAGAUCUUUUAAGAUCUCGUUUGGGUUAGGCUAUUUCCCUCCCCCUUUUUAUUCGUAGCCUAACUCUCUU
+.((((((......))))))....((((((((((((>>>>>>.>>>>>>>......))))))))))))....
+*/
+      // 'ptmg-leader-cjnc190': {
+      //   name: 'ptmg-leader and CJnc190 hairpin interaction',
+      //   nameShort: 'Hairpin interaction',
+      //   authors: 'Svenson & Sharma, 2021',
+      //   doi: 'https://doi.org/10.7554/eLife.69064',
+      //   descriptionShort: 'Hairpin interaction between ptmg-leader and CJnc190.',
+      //   description: 'Reproduction of *Figure 2A* [(Svenson & Sharma, 2021)](https://doi.org/10.7554/eLife.69064) showing a hairpin interaction between ptmg-leader and CJnc190.',
+      //   vaRRIParams: {
+      //     sequence: 'AUUUUUAUUAAAUUGAAGGGGUGGGGAAUGAUUUAUUGUGAUCACUGCGUGAUGCCAAAUACUAGACCUGGUAUUAAUUUUACAAAAGAUAAAGAAGGUAAAAAUAUCUGUUCAGCUUGCAUCAAUCAUAAAAAUAAAGAAAAUAUUGAUUAUAAAGCAAGGUUUAAAGAGCUUGAAGUCUUAUGCGAUAAAUACCGCAGAAUG&AGAGAUCUUUUAAGAUCUCGUUUGGGUUAGGCUAUUUCCCUCCCCCUUUUUAUUCGUAGCCUAACUCUCUU',
+      //     structure: '..............<<<<<<<.<<<<<<................................................................................................................................................................................&.((((((......))))))....((((((((((((>>>>>>.>>>>>>>......))))))))))))....',
+      //     startIndex1: 1,
+      //     startIndex2: 1,
+      //     forceLayout: 1,
+      //     forceLayoutFreeTails: 1,
+      //     forceLayoutPullCrossing: 1,
+      //     mutations: '1:26C:fb0bcb,2:38G:fb0bcb',
+      //     subseqHighlights: '1:28-30:0dec3f:0.5,1:16-19:0dec3f:0.5,2:9-13:4287f5:0.3,2:20-23:4287f5:0.3,2:35-55:4287f5:0.3',
+      //     regionHighlights: '16-27&37-48:ff0000:0.5',
+      //     cropping: 3,
+      //   },
+      // },
+
+
   };
 
   root.VARRI_EXAMPLES = examples;
