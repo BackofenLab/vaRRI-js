@@ -125,10 +125,18 @@
         <div class="control-group-body">
 
           <div class="row-2">
-            <label for="colorBasepair" title="Select base pair colour">Base pair color</label>
-            <input type="color" id="colorBasepair" class="legend-color-rect js-render-color"
+          </div>
+          
+          <div class="label-dropdown-col-row">
+            <label for="colorBasepairdistinctBpTypes" title="Select base pair styling">Base pair style</label>
+            <select id="distinctBpTypes">
+              <option value="true" selected>distinct</option>
+              <option value="false">all lines</option>
+            </select>
+              <input type="color" id="colorBasepair" class="legend-color-rect js-render-color"
                    title="Select base pair colour">
           </div>
+
 
           <div class="row-2">
               <label for="coloring">Nucleotide color</label>
@@ -149,11 +157,6 @@
 
             <input type="color" id="colorRriNodes" class="legend-color js-render-color"
                    title="Select nucleotide highlight colour">
-          </div>
-
-          <div class="checkbox-row">
-            <input type="checkbox" id="distinctBpTypes" checked>
-            <label for="distinctBpTypes">Basepair styling <small>(AU,GC=line, GU=dashed, *=dotted)</small></label>
           </div>
 
           <div class="checkbox-row">

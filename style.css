@@ -253,6 +253,11 @@ textarea, input[type="text"], input[type="number"], select {
   word-break: break-all;
   letter-spacing: normal;
 }
+/* override monospace for select elements to inherit the surrounding font */
+input[type="text"], input[type="number"], select {
+  font-family: inherit;
+  font-size: smaller;
+}
 textarea:focus, input:focus, select:focus {
   outline: none;
   border-color: var(--brand-blue);

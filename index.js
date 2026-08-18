@@ -2543,8 +2543,8 @@ function loadUrlArgumentToInputField(argName, value, inputFieldId = argName) {
     return false;
   }
 
-  // Boolean controls.
-  if (el.type === 'checkbox') {
+  // Boolean controls for checkbox and fake-checkbox (distinctBpTypes) inputs. Accepts "on", "true", or "1" as true.
+  if (el.type === 'checkbox' || el.id === 'distinctBpTypes') {
     el.checked = (value === 'on' || value === 'true' || value === '1');
   }
   // Color inputs always receive a valid hexadecimal value.
@@ -2736,6 +2736,20 @@ function attachUiActionListeners() {
   checkbox.addEventListener('change', (event) => {
     document.body.classList.toggle('hide-footer-and-header', event.target.checked);
   });
+
+  // enable fake-checkbox behavior for the distinctBpTypes select element to allow URL parameter encoding
+  const selectEl = document.getElementById('distinctBpTypes');
+  if (selectEl) {
+    Object.defineProperty(selectEl, 'checked', {
+      get() {
+        return this.value === 'true' || this.value === '1';
+      },
+      set(val) {
+        const isTrue = val === true || val === 1 || val === 'true' || val === '1';
+        this.value = isTrue ? 'true' : 'false';
+      }
+    });
+  }
 }
 
 function registerSequenceBackdropSync(textareaId) {
