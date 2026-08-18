@@ -361,6 +361,7 @@ textarea.drag-over {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: .5rem;
+  align-items: center;
 }
 
 .profile-label-with-color {
