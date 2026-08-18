@@ -61,6 +61,10 @@ const DEFAULT_VALUES = {
 // UI-only fields (not to be exported via URL parameters)
 // -----------------------------------------------------------------------
 const UI_ONLY_FIELDS = [
+    // fasta input form fields
+    'fastaInput',
+    'fastaSequence',
+    'fastaStructure',
     // region highlight input/update form fields
     'regionEditId',
     'region1',
@@ -179,10 +183,11 @@ function loadExample(key) {
   enableForceLayoutForSelectedLinearOptions();
   syncAnimationDependentControls();
 
-  renderHighlightList();
+  renderSubseqHighlightList();
   renderRegionList();
   renderMutationList();
-  resetHighlightForm();
+  resetFastaForm();
+  resetSubseqForm();
   resetRegionForm();
   resetMutationForm();
 
@@ -292,11 +297,11 @@ function clearAll() {
   vaRRI.clearPointMutations();
   document.getElementById('sequence').dispatchEvent(new Event('input', { bubbles: true }));
   document.getElementById('structure').dispatchEvent(new Event('input', { bubbles: true }));
-  resetHighlightForm();
+  resetSubseqForm();
   resetRegionForm();
   resetProfileForm();
   resetMutationForm();
-  renderHighlightList();
+  renderSubseqHighlightList();
   renderRegionList();
   renderMutationList();
   const container = document.getElementById(currentContainerId);
@@ -492,12 +497,12 @@ function getBaseVisualizationArgs() {
   };
 }
 
-function getHighlightSequenceContext() {
+function getSequenceContext() {
   const baseArgs = getBaseVisualizationArgs();
   const v = vaRRI.validate(baseArgs);
   return {
-    '1': { offset: v.offset1, length: (v.sequence1 == null ? 0 : v.sequence1.length), sequence: v.sequence1 },
-    '2': { offset: v.offset2, length: (v.sequence2 == null ? 0 : v.sequence2.length), sequence: v.sequence2 },
+    '1': { id: 'Sequence 1', offset: v.offset1, length: (v.sequence1 == null ? 0 : v.sequence1.length), sequence: v.sequence1 },
+    '2': { id: 'Sequence 2', offset: v.offset2, length: (v.sequence2 == null ? 0 : v.sequence2.length), sequence: v.sequence2 },
   };
 }
 
@@ -861,6 +866,98 @@ function syncScroll(textareaId) {
   backdrop.scrollLeft = textarea.scrollLeft;
 }
 
+
+function resetFastaForm() {
+  resetFormDefaultValue( ['fastaInput', 'fastaSequence', 'fastaStructure'] );
+  updateHighlights('fastaSequence');
+  updateHighlights('fastaStructure');
+  clearFieldErrors(['fastaInput', 'fastaSequence', 'fastaStructure']);
+}
+
+function validateFastaForm() {
+  clearFieldErrors(['fastaInput', 'fastaSequence', 'fastaStructure']);
+
+  const fastaInput = document.getElementById('fastaInput');
+  if (!fastaInput) return false;
+
+  const fastaText = fastaInput.value.trim();
+  if (fastaText === '') {
+    setFieldError('fastaInput', 'FASTA input cannot be empty.');
+    return false;
+  }
+
+  // Basic validation: check for FASTA header and sequence lines
+  const lines = fastaText.split(/\r?\n/);
+  if (!lines[0].startsWith('>')) {
+    setFieldError('fastaInput', 'FASTA input must start with a header line beginning with ">".');
+    return false;
+  }
+
+  if (lines.length < 2 || lines.slice(1).every(line => line.trim() === '')) {
+    setFieldError('fastaInput', 'FASTA input must contain at least one sequence line after the header.');
+    return false;
+  }
+
+  // copy data to input fields
+  try { 
+    if (!processFastaTextarea('fastaInput', 'fastaSequence', 'fastaStructure')) {
+      return false;
+    }
+    // update highlights and sync dimensions/scroll for both sequence and structure textareas
+    for ( const fieldId of ['fastaSequence', 'fastaStructure']) {
+      updateHighlights(fieldId);
+      syncDimensions(fieldId);
+      syncScroll(fieldId);
+    }
+  }
+  catch (e) { setFieldError('fastaInput', e.message); return false;}
+
+  const sequenceInput = document.getElementById('fastaSequence').value;
+  if(sequenceInput && sequenceInput.trim() !== '') {
+    try {
+      vaRRI.validateSequenceInput(sequenceInput.trim());
+    } catch (e) {
+      setFieldError('fastaSequence', e.message);
+      return false;
+    }
+  }
+
+  const structureInput = document.getElementById('fastaStructure').value;
+  if(structureInput && structureInput.trim() !== '') {
+    try {
+      vaRRI.validateStructureInput(structureInput.trim(), sequenceInput.trim());
+    } catch (e) {
+      setFieldError('fastaStructure', e.message);
+      return false;
+    }
+  }
+
+
+  // all fine
+  return true;
+}
+
+function submitFastaForm() {
+  if (!validateFastaForm()) {
+    return false;
+  }
+  // update input field values from the parsed textareas
+  const sequence = document.getElementById('sequence');
+  sequence.value = document.getElementById('fastaSequence').value;
+  // copy structure input if present
+  const structureInput = document.getElementById('fastaStructure').value;
+  if (structureInput.trim() !== '') {
+    const structure = document.getElementById('structure');
+    structure.value = structureInput;
+    structure.dispatchEvent(new Event('input', {bubbles:true}))
+  }
+  sequence.dispatchEvent(new Event('input', {bubbles:true}))
+  resetFastaForm();
+  runVisualization();
+  return true;
+}
+
+
 // Funktion zum Verarbeiten und Hervorheben des Textes
 function updateHighlights(textareaId) {
   const textarea = document.getElementById(textareaId);
@@ -902,6 +999,7 @@ function updateHighlights(textareaId) {
   highlights.innerHTML = html;
 }
 
+
 function normalizeRegionInput(value) {
   if (value === null || value === undefined) return '';
   const normalized = String(value).replace(/\s+/g, '');
@@ -919,6 +1017,7 @@ function resetAnnotationForm(fieldIds, submitButtonId, activeItemSelector) {
   document.querySelectorAll(activeItemSelector).forEach(item => item.classList.remove('active'));
 }
 
+
 function resetRegionForm() {
   resetAnnotationForm(
     ['regionEditId', 'region1', 'region2', 'regionColor', 'regionAlpha'],
@@ -927,7 +1026,7 @@ function resetRegionForm() {
   );
 }
 
-function resetHighlightForm() {
+function resetSubseqForm() {
   resetAnnotationForm(
     ['subseqEditId', 'subseqSequence', 'subseqRange', 'subseqColor', 'subseqAlpha'],
     null,
@@ -935,7 +1034,7 @@ function resetHighlightForm() {
   );
 }
 
-function renderHighlightList() {
+function renderSubseqHighlightList() {
   const listEl = document.getElementById('highlight-list');
   const highlights = vaRRI.getSubsequenceHighlights();
 
@@ -976,18 +1075,17 @@ function renderHighlightList() {
       clearFieldErrors(['subseqSequence', 'subseqRange', 'subseqColor']);
       // open dialog and store if needed
       openDialog('subseqHighlightDialog', 'Changing Subsequence Highlighting ...', highlight.rangeText, e, function(label, value) {
-        submitHighlightForm();
-        resetHighlightForm();
-      });
+        return submitSubseqForm();      
+      }, resetSubseqForm);
     });
 
     removeBtn.addEventListener('click', () => {
       const removed = vaRRI.removeSubsequenceHighlight(highlight.id);
       if (!removed) return;
       if (document.getElementById('subseqEditId').value === String(highlight.id)) {
-        resetHighlightForm();
+        resetSubseqForm();
       }
-      renderHighlightList();
+      renderSubseqHighlightList();
       runVisualization();
     });
 
@@ -998,12 +1096,8 @@ function renderHighlightList() {
   updateListCounter('subseqCounterUI', highlights.length);
 }
 
-function submitHighlightForm(event) {
-  if (event) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
-
+function validateSubseqForm() {
+  
   clearFieldErrors(['subseqSequence', 'subseqRange', 'subseqColor', 'subseqAlpha']);
 
   const sequence = document.getElementById('subseqSequence').value;
@@ -1014,41 +1108,77 @@ function submitHighlightForm(event) {
 
   if (!range) {
     setFieldError('subseqRange', 'Highlight range must not be empty.');
-    return;
+    return false;
   }
 
   let sequenceContext;
   try {
-    sequenceContext = getHighlightSequenceContext();
+    sequenceContext = getSequenceContext();
   } catch (err) {
     showMsg('Please fix sequence/structure inputs first: ' + err.message, 'error');
-    return;
+    return false;
   }
 
-  try {
-    if (editIdRaw) {
-      vaRRI.updateSubsequenceHighlight(Number(editIdRaw), { sequence, range, color, alpha }, sequenceContext);
-    } else {
-      vaRRI.registerSubsequenceHighlight({ sequence, range, color, alpha }, sequenceContext);
+      // store or update data
+    try {
+      vaRRI.createSubsequenceHighlight({ sequence, range, color, alpha }, sequenceContext);
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+
+      // Route parsing/validation failures for the range text box to the
+      // range field, even when the message mentions "sequence indices".
+      const isSequenceSelectorError = /must be "1" or "2"/i.test(message);
+      const isColorError = /color/i.test(message);
+
+      if (isSequenceSelectorError) setFieldError('subseqSequence', message);
+      else if (isColorError) setFieldError('subseqColor', message);
+      else setFieldError('subseqRange', message);
+      return false;
     }
-  } catch (err) {
-    const message = err && err.message ? err.message : String(err);
 
-    // Route parsing/validation failures for the range text box to the
-    // range field, even when the message mentions "sequence indices".
-    const isSequenceSelectorError = /must be "1" or "2"/i.test(message);
-    const isColorError = /color/i.test(message);
+  return true;
+}
 
-    if (isSequenceSelectorError) setFieldError('subseqSequence', message);
-    else if (isColorError) setFieldError('subseqColor', message);
-    else setFieldError('subseqRange', message);
-    return;
+function submitSubseqForm() {
+  if (validateSubseqForm()) {
+    // store or update data
+    try {
+      const sequence = document.getElementById('subseqSequence').value;
+      const range = document.getElementById('subseqRange').value.trim();
+      const color = document.getElementById('subseqColor').value;
+      const alpha = document.getElementById('subseqAlpha').value.trim();
+      const editIdRaw = document.getElementById('subseqEditId').value;
+      let sequenceContext;
+      try {
+        sequenceContext = getSequenceContext();
+      } catch (err) {
+        showMsg('Please fix sequence/structure inputs first: ' + err.message, 'error');
+        return false;
+      }
+      if (editIdRaw) {
+        vaRRI.updateSubsequenceHighlight(Number(editIdRaw), { sequence, range, color, alpha }, sequenceContext);
+      } else {
+        vaRRI.registerSubsequenceHighlight({ sequence, range, color, alpha }, sequenceContext);
+      }
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+
+      // Route parsing/validation failures for the range text box to the
+      // range field, even when the message mentions "sequence indices".
+      const isSequenceSelectorError = /must be "1" or "2"/i.test(message);
+      const isColorError = /color/i.test(message);
+
+      if (isSequenceSelectorError) setFieldError('subseqSequence', message);
+      else if (isColorError) setFieldError('subseqColor', message);
+      else setFieldError('subseqRange', message);
+      return false;
+    }
+    resetSubseqForm();
+    renderSubseqHighlightList();
+    runVisualization();
+    return true; // Erfolgreich -> Dialog darf schließen
   }
-
-  // Reset first so the form is cleared even if later UI updates fail.
-  resetHighlightForm();
-  renderHighlightList();
-  runVisualization();
+  return false; // Fehlerhaft -> Dialog bleibt offen
 }
 
 function renderRegionList() {
@@ -1099,9 +1229,8 @@ function renderRegionList() {
         clearFieldErrors(['region1', 'region2', 'regionColor']);
         // open dialog and store if needed
         openDialog('regionHighlightDialog', 'Changing RRI Region Highlighting ...', `${region.sequence1Range[0]}-${region.sequence1Range[1]}`, e, function(label, value) {
-          submitRegionForm();
-          resetRegionForm();
-        });
+          return submitRegionForm();
+        }, resetRegionForm);
       });
 
       removeBtn.addEventListener('click', () => {
@@ -1126,11 +1255,7 @@ function renderRegionList() {
   updateListCounter('regionCounterUI', regions.length);
 }
 
-function submitRegionForm(event) {
-  if (event) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
+function validateRegionForm() {
 
   clearFieldErrors(['region1', 'region2', 'regionColor', 'regionAlpha']);
 
@@ -1155,24 +1280,62 @@ function submitRegionForm(event) {
       if (!region1Value && region1Input.trim() === '') setFieldError('region1', 'Region 1 is required.');
       if (!region2Value && region2Input.trim() === '') setFieldError('region2', 'Region 2 is required.');
     }
-    return;
+    return false;
   }
 
   if (!region1Value || !region2Value) {
     if (!region1Value) setFieldError('region1', 'Region 1 is required.');
     if (!region2Value) setFieldError('region2', 'Region 2 is required.');
-    return;
+    return false;
   }
 
   let sequenceContext;
   try {
-    sequenceContext = getHighlightSequenceContext();
+    sequenceContext = getSequenceContext();
   } catch (err) {
     showMsg('Please fix sequence/structure inputs first: ' + err.message, 'error');
-    return;
+    return false;
   }
 
   try {
+    vaRRI.createRegionHighlight({
+      sequence1Range: region1Value,
+      sequence2Range: region2Value,
+      color,
+      alpha,
+    }, sequenceContext);
+  } catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    if (/color/i.test(message)) setFieldError('regionColor', message);
+    else if (/region 1|sequence 1/i.test(message)) setFieldError('region1', message);
+    else if (/region 2|sequence 2/i.test(message)) setFieldError('region2', message);
+    else setFieldError('region1', message);
+    return false;
+  }
+
+  return true;
+}
+
+function submitRegionForm() {
+
+  if(!validateRegionForm()) {
+    return false;
+  }
+
+  let sequenceContext;
+  try {
+    sequenceContext = getSequenceContext();
+  } catch (err) {
+    showMsg('Please fix sequence/structure inputs first: ' + err.message, 'error');
+    return false;
+  }
+
+  try {
+    const color = document.getElementById('regionColor').value;
+    const alpha = Number.parseFloat(document.getElementById('regionAlpha').value.trim());
+    const editIdRaw = document.getElementById('regionEditId').value;
+    const region1Value = normalizeRegionInput(document.getElementById('region1').value);
+    const region2Value = normalizeRegionInput(document.getElementById('region2').value);
     if (editIdRaw) {
       vaRRI.updateRegionHighlight(Number(editIdRaw), {
         sequence1Range: region1Value,
@@ -1194,12 +1357,13 @@ function submitRegionForm(event) {
     else if (/region 1|sequence 1/i.test(message)) setFieldError('region1', message);
     else if (/region 2|sequence 2/i.test(message)) setFieldError('region2', message);
     else setFieldError('region1', message);
-    return;
+    return false;
   }
 
   resetRegionForm();
   renderRegionList();
   runVisualization();
+  return true; // Successfully submitted
 }
 
 function resetMutationForm() {
@@ -1233,13 +1397,6 @@ function renderMutationList() {
     info.style.borderLeft = `10px solid ${mutation.color}`;
     info.title = 'Click to edit point mutation.';
 
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.className = 'highlight-delete';
-    removeBtn.setAttribute('aria-label', `Remove mutation ${mutation.id}`);
-    removeBtn.textContent = '🗑️';
-    removeBtn.title = 'Remove mutation';
-
     info.addEventListener('click', (e) => {
       document.querySelectorAll('.mutation-item.active').forEach(el => el.classList.remove('active'));
       item.classList.add('active');
@@ -1251,10 +1408,16 @@ function renderMutationList() {
       clearFieldErrors(['mutationSequence', 'mutationPosition', 'mutationBase', 'mutationColor']);
       // open dialog and store if needed
       openDialog('mutationDialog', 'Changing Point Mutation ...', mutation.position, e, function(label, value) {
-        submitMutationForm();
-        resetMutationForm();
-      });
+        return submitMutationForm();
+      }, resetMutationForm);
     });
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'highlight-delete';
+    removeBtn.setAttribute('aria-label', `Remove mutation ${mutation.id}`);
+    removeBtn.textContent = '🗑️';
+    removeBtn.title = 'Remove mutation';
 
     removeBtn.addEventListener('click', () => {
       const removed = vaRRI.removePointMutation(mutation.id);
@@ -1273,12 +1436,8 @@ function renderMutationList() {
   updateListCounter('mutationCounterUI', mutations.length);
 }
 
-function submitMutationForm(event) {
-  if (event) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
 
+function validateMutationForm() {
   clearFieldErrors(['mutationSequence', 'mutationPosition', 'mutationBase', 'mutationColor']);
 
   const sequence = document.getElementById('mutationSequence').value;
@@ -1287,25 +1446,76 @@ function submitMutationForm(event) {
   const color = document.getElementById('mutationColor').value;
   const editIdRaw = document.getElementById('mutationEditId').value;
 
+  
+  let sequenceContext;
+  try {
+    sequenceContext = getSequenceContext();
+  } catch (err) {
+    showMsg('Please fix sequence/structure inputs first: ' + err.message, 'error');
+    return false;
+  }
+  let validInput = true;
+
+  let position = '';
   if (!positionInput) {
     setFieldError('mutationPosition', 'Mutation position must not be empty.');
-    return;
+    validInput = false;
+  } else {
+    // check if position input is within sequence range
+    try {
+      position = vaRRI.validateOffset(positionInput);
+    } catch (err) {
+      setFieldError('mutationPosition', err && err.message ? err.message : String(err));
+      validInput = false;
+    }
   }
 
-  let position;
-  try {
-    position = vaRRI.validateOffset(positionInput);
-  } catch (err) {
-    setFieldError('mutationPosition', err && err.message ? err.message : String(err));
-    return;
+  if (!replacement) {
+    setFieldError('mutationBase', 'Replacement base must not be empty.');
+    validInput =false;
   }
+
+  if (!validInput) {
+    return false;
+  }
+
+
+  try {
+    vaRRI.createPointMutation({ sequence, position, replacement, color }, sequenceContext);
+  } catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    const isSequenceError = false;///sequence/i.test(message);
+    const isPositionError = /position|index/i.test(message);
+    const isBaseError = /replacement|reference|nucleotide|single letter/i.test(message);
+
+    if (isSequenceError) setFieldError('mutationSequence', message);
+    else if (isPositionError) setFieldError('mutationPosition', message);
+    else if (isBaseError) setFieldError('mutationBase', message);
+    else setFieldError('mutationColor', message);
+    return false;
+  }
+
+  return true;
+}
+
+function submitMutationForm() {
+
+  if (!validateMutationForm()) {
+    return false;
+  }
+
+  const sequence = document.getElementById('mutationSequence').value;
+  const replacement = document.getElementById('mutationBase').value.trim();
+  const color = document.getElementById('mutationColor').value;
+  const editIdRaw = document.getElementById('mutationEditId').value;
+  const position = vaRRI.validateOffset(document.getElementById('mutationPosition').value.trim());
 
   let sequenceContext;
   try {
-    sequenceContext = getHighlightSequenceContext();
+    sequenceContext = getSequenceContext();
   } catch (err) {
     showMsg('Please fix sequence/structure inputs first: ' + err.message, 'error');
-    return;
+    return false;
   }
 
   try {
@@ -1324,12 +1534,13 @@ function submitMutationForm(event) {
     else if (isPositionError) setFieldError('mutationPosition', message);
     else if (isBaseError) setFieldError('mutationBase', message);
     else setFieldError('mutationColor', message);
-    return;
+    return false;
   }
 
   resetMutationForm();
   renderMutationList();
   runVisualization();
+  return true;
 }
 
 /**
@@ -1500,11 +1711,11 @@ function validateFields(args) {
     valid = false;
   } else {
     try { 
-      if (processFastaTextarea('sequence', 'sequence', 'structure')) {
-        // update args with the processed values from the textareas
-        args.sequence = document.getElementById('sequence').value;
-        args.structure = document.getElementById('structure').value;
-      }
+//      if (processFastaTextarea('sequence', 'sequence', 'structure')) {
+//        // update args with the processed values from the textareas
+//        args.sequence = document.getElementById('sequence').value;
+//        args.structure = document.getElementById('structure').value;
+//      }
 
       vaRRI.validateSequenceInput(args.sequence); 
       updateHighlights('sequence');
@@ -1704,6 +1915,31 @@ function enableForceLayoutForSelectedLinearOptions() {
 
 /* ##################### DIALOGS ##################### */
 
+
+
+/**
+ * Initialisiert Live-Validierung auf einer Liste von Eingabefeldern.
+ * 
+ * @param {Array<string|HTMLElement>} fields - Array von Feld-IDs oder DOM-Elementen
+ * @param {Function} validationFn - Validierungsfunktion, die bei Änderung aufgerufen wird
+ */
+function initDialogLiveValidation(fields, validationFn, defaultEventType) {
+  if (!fields || typeof validationFn !== 'function') return;
+
+  for (var i = 0; i < fields.length; i++) {
+    var field = fields[i];
+    var el = typeof field === 'string' ? document.getElementById(field) : field;
+    if (!el) continue;
+
+    // 'change' für Select-Boxen & Farbwähler, 'input' für Text-/Zahlen-Eingaben
+    var eventType = (el.tagName === 'SELECT' || el.type === 'color' || el.type === 'checkbox') ? 'change' : (defaultEventType ? defaultEventType : 'input');
+
+    el.addEventListener(eventType, function() {
+      validationFn();
+    });
+  }
+}
+
 /**
  * Öffnet einen Dialog an der Klick-Position.
  * 
@@ -1712,33 +1948,61 @@ function enableForceLayoutForSelectedLinearOptions() {
  * @param {string|number} initialValue - Startwert für das Input-Feld
  * @param {MouseEvent} clickEvent - Das Klick-Event für die Positionsbestimmung
  * @param {Function} callback - Wird bei Klick auf "OK" ausgeführt
+ * @param {Function} onCancel - Wird bei Klick auf "Cancel" ausgeführt
  */
-function openDialog(dialogId, dialogHeader, initialValue, clickEvent, callback) {
+function openDialog(dialogId, title, initialValue, clickEvent, onConfirm, onCancel) {
   var dialog = document.getElementById(dialogId);
+  if (!dialog) return;
   makeDialogDraggable(dialog);
+
+  var form = dialog.querySelector('form');
+  var firstInput = dialog.querySelector('input, select');
   
-  var input = dialog.querySelector('input');
   var header = dialog.querySelector('.dialog-header');
-
-  if (header) header.textContent = dialogHeader;
-
+  if (header && title) {
+    header.textContent = title;
+  }
+  
+  //if (firstInput && initialValue !== null && initialValue !== undefined) {
+    //  firstInput.value = initialValue;
+    //}
+  var input = dialog.querySelector('input');
   if (input) input.value = initialValue !== undefined ? initialValue : '';
 
-  // Positionierung an der Mausposition (mit Bildschirmrand-Schutz)
   if (clickEvent) {
-    dialog.style.left = Math.min(clickEvent.clientX, window.innerWidth - 200) + 'px';
-    dialog.style.top = Math.min(clickEvent.clientY, window.innerHeight - 100) + 'px';
+    dialog.style.left = Math.min(clickEvent.clientX, window.innerWidth - 250) + 'px';
+    dialog.style.top = Math.min(clickEvent.clientY, window.innerHeight - 150) + 'px';
   }
 
-  // Wichtig: Das native 'onclose' Event fängt OK, Cancel, ENTER und ESC ab
+  // Interzeptiert den Form-Submit VOR dem Schließen
+  if (form) {
+    form.onsubmit = function(e) {
+      var submitter = e.submitter || document.activeElement;
+      var isCancel = submitter && submitter.value === 'cancel';
+
+      // Nur validieren, wenn nicht "Cancel" geklickt wurde
+      if (!isCancel && onConfirm) {
+        var isValid = onConfirm(input ? input.value : '');
+        if (!isValid) {
+          e.preventDefault(); // Stoppt das Schließen des Dialogs!
+          return false;
+        }
+      }
+    };
+  }
+
+  // 2. Schließen auswerten (Cancel-Button ODER ESC-Taste)
   dialog.onclose = function() {
-    if (dialog.returnValue === 'ok' && callback) {
-      callback(input ? input.value : '');
+    if (dialog.returnValue !== 'ok') {
+      if (typeof onCancel === 'function') {
+        onCancel();
+      }
     }
   };
 
   dialog.showModal();
   if (input) { input.focus(); input.select(); }
+
 }
 
 /**
@@ -1790,7 +2054,7 @@ function makeDialogDraggable(dialogRef) {
 /**
  * Attaches a respective dialog directly to an ID or DOM element.
  */
-function bindDialog(dialogType, targetId, dialogHeader, onUpdate) {
+function bindDialog(dialogType, targetId, dialogHeader, onUpdate, onCancel) {
   var element = typeof targetId === 'string' ? document.getElementById(targetId) : targetId;
   if (!element) return;
 
@@ -1800,13 +2064,15 @@ function bindDialog(dialogType, targetId, dialogHeader, onUpdate) {
     openDialog(dialogType, dialogHeader, currentValue, e, function(newValue) {
       if (onUpdate) {
         // Custom update behavior if provided
-        onUpdate(element, newValue);
+        return onUpdate(element, newValue);
       } else if (element.value !== undefined) {
         element.value = newValue;
+        return true;
       } else {
         element.textContent = newValue;
+        return true;
       }
-    });
+    }, onCancel);
   });
 }
 
@@ -1816,24 +2082,35 @@ function attachDialogListeners() {
   //bindDialog('numberDialog', 'numInput');
 
   // add highlight dialog to the highlight range input
+  initDialogLiveValidation( ['subseqSequence', 'subseqRange', 'subseqColor', 'subseqAlpha'], validateSubseqForm );
   bindDialog('subseqHighlightDialog', 'highlightSubmitBtn', 'Highlight Subsequence ...', function(label, newValue) {
-    submitHighlightForm();
-  });
+    return submitSubseqForm();
+  }, resetSubseqForm);
+  initDialogLiveValidation( ['region1', 'region2', 'regionColor', 'regionAlpha'], validateRegionForm );
   bindDialog('regionHighlightDialog', 'regionSubmitBtn', 'Highlight RRI Region ...', function(label, newValue) {
-    submitRegionForm();
-  });
+    return submitRegionForm();
+  }, resetRegionForm);
+  initDialogLiveValidation( ['mutationSequence', 'mutationPosition', 'mutationBase', 'mutationColor'], validateMutationForm );
   bindDialog('mutationDialog', 'mutationSubmitBtn', 'Define Point Mutation ...', function(label, newValue) {
-    submitMutationForm();
-  });
+    return submitMutationForm();
+  }, resetMutationForm);
+
+  initDialogLiveValidation( ['fastaInput'], validateFastaForm, 'input' );
+  initDialogLiveValidation( ['fastaInput'], validateFastaForm, 'change' );
+  bindDialog('fastaDialog', 'fastaInputBtn', null, function(label, newValue) {
+    return submitFastaForm();
+  }, resetFastaForm);
   
   // Slider label with custom handler:
   bindDialog('numberDialog', 'rotation', 'Rotate ...°', function(label, newValue) {
     committedRotationDeg = Number(newValue);
     document.getElementById('rotationSlider').dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
   });
   bindDialog('numberDialog', 'cropping-value', 'Crop to ... free nt', function(label, newValue) {
     document.getElementById('cropping').value = newValue;
     document.getElementById('cropping').dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
   });
 
 }
@@ -2180,7 +2457,7 @@ function loadUrlMutationsToVaRRI(argName = 'mutations', urlParams = new URLSearc
         try {
           vaRRI.registerPointMutation(
             { sequence, position, replacement, color },
-            getHighlightSequenceContext()
+            getSequenceContext()
           );
         } catch (err) {
           console.warn(`Failed to register mutation from URL parameter: ${mutation}. Error: ${err.message}`);
@@ -2212,7 +2489,7 @@ function loadUrlSubsequenceHighlightsToVaRRI(argName = 'subseqHighlights', urlPa
         try {
           vaRRI.registerSubsequenceHighlight(
             { sequence, range: `${start}-${end}`, color, alpha },
-            getHighlightSequenceContext()
+            getSequenceContext()
           );
         } catch (err) {
           console.warn(`Failed to register subsequence highlight from URL parameter: ${highlight}. Error: ${err.message}`);
@@ -2243,7 +2520,7 @@ function loadUrlRegionHighlightsToVaRRI(argName = 'regionHighlights', urlParams 
         try {
           vaRRI.registerRegionHighlight(
             { sequence1Range, sequence2Range, color, alpha },
-            getHighlightSequenceContext()
+            getSequenceContext()
           );
         } catch (err) {
           console.warn(`Failed to register region highlight from URL parameter: ${region}. Error: ${err.message}`);
@@ -2299,7 +2576,7 @@ function syncGeneratedRegionHighlight() {
 
   let sequenceContext;
   try {
-    sequenceContext = getHighlightSequenceContext();
+    sequenceContext = getSequenceContext();
   } catch (err) {
     return;
   }
@@ -2505,6 +2782,10 @@ window.addEventListener('load', () => {
 
   registerSequenceBackdropSync('sequence');
   registerSequenceBackdropSync('structure');
+  // also within FASTA dialog
+  setupFileDragAndDrop('fastaInput');
+  registerSequenceBackdropSync('fastaSequence');
+  registerSequenceBackdropSync('fastaStructure');
  
   // Set up drag-and-drop
   setupFileDragAndDrop('sequence');
@@ -2536,10 +2817,11 @@ window.addEventListener('load', () => {
     document.getElementById('hideFooterAndHeader').dispatchEvent(new Event('change', { bubbles: true }));
 
     // Refresh annotation lists and counters.
-    renderHighlightList();
+    renderSubseqHighlightList();
     renderRegionList();
     renderMutationList();
-    resetHighlightForm();
+    resetFastaForm();
+    resetSubseqForm();
     resetRegionForm();
     resetMutationForm();
     updateInputCounter(profileInputIds, 'profileCounterUI');

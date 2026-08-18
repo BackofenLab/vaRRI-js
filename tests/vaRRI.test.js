@@ -150,7 +150,7 @@ const formElements = options.formElements || [];
     vm.runInContext(vaRRISource, sandbox);
     vm.runInContext(indexScriptSource, sandbox);
 
-    sandbox.getHighlightSequenceContext = () => ({
+    sandbox.getSequenceContext = () => ({
         '1': { offset: 1, length: 4 },
         '2': { offset: 1, length: 4 },
     });
@@ -373,7 +373,7 @@ describe('validateSequenceInput', () => {
     });
 
     test('throws on invalid characters', () => {
-        expect(() => vaRRI.validateSequenceInput('ACGUZ')).toThrow(/invalid characters/);
+        expect(() => vaRRI.validateSequenceInput('ACGUZ')).toThrow(/invalid none-IUPAC characters/);
     });
 });
 

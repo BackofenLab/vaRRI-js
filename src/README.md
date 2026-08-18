@@ -135,6 +135,7 @@ can be excluded from persisted user state.
 
 A definition has `{ sequence, position, replacement, color? }`.
 
+- `vaRRI.normaliseMutationPosition(position, sequenceContext?)`
 - `vaRRI.createPointMutation(input, sequenceContext?)`
 - `vaRRI.registerPointMutation(input, sequenceContext?)`
 - `vaRRI.updatePointMutation(id, patch, sequenceContext?)`
@@ -146,8 +147,8 @@ A `sequenceContext` uses molecule keys and visible sequence metadata:
 
 ```javascript
 const sequenceContext = {
-  '1': { offset: -2, length: 4, sequence: 'ACGU' },
-  '2': { offset: 10, length: 4, sequence: 'UGCA' },
+  '1': { id: 'Sequence 1', offset: -2, length: 4, sequence: 'ACGU' },
+  '2': { id: 'Sequence 2', offset: 10, length: 4, sequence: 'UGCA' },
 };
 ```
 

@@ -148,7 +148,7 @@
      * Normalize and validate a highlight range input.
      *
      * @param {string|Array<[number, number]>} rangeInput
-     * @param {{offset:number, length:number}=} context
+     * @param {{id:string, offset:number, length:number}=} context
      * @returns {{range:Array<[number, number]>, rangeText:string}}
      */
     function normaliseHighlightRanges(rangeInput, context) {
@@ -156,7 +156,8 @@
             const range = parseSubsequences(
                 rangeInput,
                 context ? context.offset : undefined,
-                context ? context.length : undefined
+                context ? context.length : undefined,
+                context ? context.id : undefined
             );
             if (!range || range.length === 0) {
                 throw new Error('Highlight range must not be empty.');
@@ -170,18 +171,18 @@
 
         const range = rangeInput.map((pair, idx) => {
             if (!Array.isArray(pair) || pair.length !== 2) {
-                throw new Error(`Invalid subsequence range ${pair} at index ${idx}. Expected [start, end].`);
+                throw new Error(`${context.id ? context.id+": ": ""} Invalid subsequence range ${pair} at index ${idx}. Expected [start, end].`);
             }
             const start = Number(pair[0]);
             const end = Number(pair[1]);
             if (!Number.isInteger(start) || !Number.isInteger(end)) {
-                throw new Error(`Invalid subsequence range at index ${idx}. Range bounds must be integers.`);
+                throw new Error(`${context.id ? context.id+": ": ""}Invalid subsequence range at index ${idx}. Range bounds must be integers.`);
             }
             if (start === 0 || end === 0) {
-                throw new Error(`Invalid subsequence range at index ${idx}. Index 0 is not valid.`);
+                throw new Error(`${context.id ? context.id+": ": ""}Invalid subsequence range at index ${idx}. Index 0 is not valid.`);
             }
             if (start > end) {
-                throw new Error(`Invalid subsequence range at index ${idx}. Start index must be <= end index.`);
+                throw new Error(`${context.id ? context.id+": ": ""}Invalid subsequence range at index ${idx}. Start index must be <= end index.`);
             }
             return [start, end];
         });
@@ -190,7 +191,8 @@
             parseSubsequences(
                 range.map(([start, end]) => `${start}-${end}`).join(','),
                 context.offset,
-                context.length
+                context.length,
+                context.id
             );
         }
 
@@ -208,6 +210,7 @@
      * @returns {{id:number, sequence:'1'|'2', range:Array<[number, number]>, color:string, rangeText:string}}
      */
     function createSubsequenceHighlight(input, sequenceContext = {}) {
+
         const sequence = normaliseHighlightSequence(input.sequence);
         const context = sequenceContext[sequence];
         const normalizedRange = normaliseHighlightRanges(input.range, context);
@@ -311,12 +314,12 @@
      * Normalize a range input for region highlighting.
      *
      * @param {string|Array<number|[number, number]>} rangeInput
-     * @param {{offset:number, length:number}=} context
+     * @param {{id: string, offset:number, length:number}=} context
      * @returns {{range:[number, number], rangeText:string}}
      */
     function normaliseRegionRange(rangeInput, context = {}) {
         if (typeof rangeInput === 'string') {
-            const ranges = parseSubsequences(rangeInput, context.offset, context.length);
+            const ranges = parseSubsequences(rangeInput, context.offset, context.length, context.id);
             if (!ranges || ranges.length === 0) {
                 throw new Error('Region range must not be empty.');
             }
@@ -349,7 +352,7 @@
         }
 
         if (context) {
-            parseSubsequences(`${start}-${end}`, context.offset, context.length);
+            parseSubsequences(`${start}-${end}`, context.offset, context.length, context.id);
         }
 
         return {
@@ -815,7 +818,9 @@
         if (/^([aAcCgGtTuUrRyYsSwWkKmMbBdDhHvVnN]+&)?[aAcCgGtTuUrRyYsSwWkKmMbBdDhHvVnN]+$/.test(sequence)) {
             return sequence;
         }
-        throw new Error(`The given sequence input has invalid characters: ${sequence}`);
+        // find first invalid character for better error message
+        const invalidChars = sequence.replace(/[aAcCgGtTuUrRyYsSwWkKmMbBdDhHvVnN&]/g, '');
+        throw new Error(`The given sequence input has invalid none-IUPAC characters: ${invalidChars}`);
     }
 
     /**
@@ -1198,9 +1203,10 @@
      * @param {string|null|undefined} input
      * @param {number} [startIndex]
      * @param {number} [sequenceLength]
+     * @param {string|null|undefined} [sequenceId]
      * @returns {Array<[number,number]>|null}
      */
-    function parseSubsequences(input, startIndex, sequenceLength) {
+    function parseSubsequences(input, startIndex, sequenceLength, sequenceId) {
         if (!input || input.trim() === '') return null;
         let validIndices = null;
         if (Number.isInteger(startIndex) && Number.isInteger(sequenceLength) && sequenceLength >= 0) {
@@ -1212,20 +1218,20 @@
         return ranges.map(r => {
             const match = r.match(/^(-?\d+)-(-?\d+)$/);
             if (!match) {
-                throw new Error(`Invalid subsequence range: "${r}". Expected "start-end".`);
+                throw new Error(`${sequenceId ? sequenceId+": " : ""}Invalid subsequence range: "${r}". Expected "start-end".`);
             }
             const start = parseInt(match[1], 10);
             const end = parseInt(match[2], 10);
 
             if (start === 0 || end === 0) {
-                throw new Error(`Invalid subsequence range: "${r}". Index 0 is not valid.`);
+                throw new Error(`${sequenceId ? sequenceId+": " : ""}Invalid subsequence range: "${r}". Index 0 is not valid.`);
             }
             if (start > end) {
-                throw new Error(`Invalid subsequence range: "${r}". Start index must be <= end index.`);
+                throw new Error(`${sequenceId ? sequenceId+": " : ""}Invalid subsequence range: "${r}". Start index must be <= end index.`);
             }
             if (validIndices && (!validIndices.has(start) || !validIndices.has(end))) {
                 throw new Error(
-                    `Invalid subsequence range: "${r}". Range endpoints must be valid sequence indices.`
+                    `${sequenceId ? sequenceId+": " : ""}Invalid subsequence range: "${r}". Range endpoints must be valid sequence indices.`
                 );
             }
 
@@ -3895,6 +3901,7 @@
         validateCroppingInput,
         validateHighlighting,
         validateOffset,
+        normaliseMutationPosition,
         validateSequenceInput,
         validateStructureInput,
 

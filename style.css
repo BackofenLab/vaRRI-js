@@ -286,7 +286,6 @@ textarea { resize: vertical; }
 
 /* 4. Backdrop Positioning */
 div.backdropable {
-/*#backdrop-sequence, #backdrop-structure {*/
   position: absolute;
   top: 0;
   left: 0;
@@ -1077,9 +1076,6 @@ body.rendering-only {
 /* Input Dialogs                                                             */
 /* ------------------------------------------------------------------ */
 
-/* ==========================================================================
-   App-Dialog (vaRRI-js Theme)
-   ========================================================================== */
 
 /* 1. Haupt-Dialog Container */
 dialog.app-dialog {
@@ -1180,4 +1176,8 @@ dialog.app-dialog::backdrop {
 .app-dialog .btn-secondary:hover {
   background-color: #cbd5e1;
   color: #0f172a;
+}
+
+#fastaInput {
+  min-width: 600px;
 }

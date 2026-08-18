@@ -64,7 +64,8 @@
 
         <!-- Sequence -->
         <label for="sequence">
-          Sequences <small>(IUPAC; separate molecules with &amp; or use FASTA)</small>
+          Sequences <small>(IUPAC; separate molecules with &amp;)</small>
+          <button id="fastaInputBtn" class="btn btn-secondary btn-sm" type="button" title="Provide sequences in FASTA format">FASTA</button>
         </label>
         <div class="input-wrap">
           <div id="backdrop-sequence" class="backdropable"><div class="highlights" id="highlights-sequence"></div></div>
@@ -572,6 +573,36 @@
           </div>
         </div>
       </div>
+    </div>
+    <div class="dialog-actions">
+      <!-- OK an 1. Stelle im DOM -> ENTER wählt automatisch diesen Button -->
+      <button value="ok" class="btn btn-primary">OK</button>
+      <button value="cancel" class="btn btn-secondary">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="fastaDialog" class="app-dialog">
+  <form method="dialog">
+    <div class="dialog-header">FASTA Data ... <small>(Structure input is optional, Sequence IDs are ignored)</small></div>
+    <div class="dialog-body">  
+        <div class="input-wrap">
+          <textarea id="fastaInput"  rows="10" placeholder=">seq1&#10;ACGAUCAUGGAUUAGAGCAUUCGACAGCAG&#10;..<<<<...>>>>...((..(((...((..&#10;>seq2&#10;ACGAAAAAAAGAGCAUACGACAGccc&#10;............))...)))..)).."></textarea>
+          <span class="field-tooltip"></span>
+        </div>
+        <label>Parsed Sequences:</label>
+        <div class="input-wrap">
+          <div id="backdrop-fastaSequence" class="backdropable"><div class="highlights" id="highlights-fastaSequence"></div></div>
+          <textarea id="fastaSequence" class="backdropable" rows="3" disabled></textarea>
+          <span class="field-tooltip"></span>
+        </div>
+        <label>Parsed Structures:</label>
+        <div class="input-wrap">
+          <div id="backdrop-fastaStructure" class="backdropable"><div class="highlights" id="highlights-fastaStructure"></div></div>
+          <textarea id="fastaStructure" class="backdropable" rows="3" disabled></textarea>
+          <span class="field-tooltip"></span>
+        </div>
+
     </div>
     <div class="dialog-actions">
       <!-- OK an 1. Stelle im DOM -> ENTER wählt automatisch diesen Button -->
