@@ -10,12 +10,14 @@ Visualise and annotate RNA–RNA interactions directly in the browser — no ser
 2. [Examples from Literature](#examples-from-literature-reproduced-with-varri-js)
 3. [Project Structure](#project-structure)
 4. [Quick Start](#quick-start)
-5. [Input Website](#input-website)
-6. [URL Parameters & Sharing](#url-parameters--sharing)
-7. [Embedding / Web Integration](#-embedding--web-integration)
-8. [Input Format Reference](#input-format-reference)
-9. [JavaScript Library API](#javascript-library-api)
-10. [License](#license)
+5. [npm Package](#npm-package)
+6. [Input Website](#input-website)
+7. [URL Parameters & Sharing](#url-parameters--sharing)
+8. [Embedding / Web Integration](#-embedding--web-integration)
+9. [Input Format Reference](#input-format-reference)
+10. [JavaScript Library API](#javascript-library-api)
+11. [Release Process](#release-process)
+12. [License](#license)
 
 ---
 
@@ -121,6 +123,34 @@ To use the library in your own HTML page, include the dependencies in the follow
 <script src="fornac/fornac.js"></script>
 <script src="src/vaRRI.js"></script>  <!-- or use a minified version for deployment -->
 ```
+
+## npm Package
+
+Install vaRRI-js in an application (including a Galaxy visualization package) with:
+
+```bash
+npm install varri-js
+```
+
+The package exports the CommonJS-compatible API as `varri-js` and ships the browser assets under
+`varri-js/fornac/` and `varri-js/dist/`. For a static page served from an npm-based application,
+load the browser files in this order:
+
+```html
+<link rel="stylesheet" href="node_modules/varri-js/fornac/fornac.css" />
+<script src="node_modules/varri-js/fornac/d3.js"></script>
+<script src="node_modules/varri-js/fornac/fornac.js"></script>
+<script src="node_modules/varri-js/dist/vaRRI.min.js"></script>
+```
+
+Applications with a bundler can also consume the API entry point:
+
+```javascript
+const vaRRI = require('varri-js');
+```
+
+Fornac and its D3 runtime must be available globally before calling DOM-rendering functions. Copy
+or serve the package's `fornac` browser assets as part of the application's normal asset pipeline.
 
 
 > [!NOTE]
@@ -537,6 +567,26 @@ Include `src/vaRRI.js` after the Fornac dependencies.
 The library exposes a single global object `vaRRI` with the a set of respective functions.
 
 The `src` directory provides a [detailed vaRRI-js Library API documentation](src/README.md)
+
+
+---
+
+## Release Process
+
+Publishing is automated by [`.github/workflows/publish-npm.yml`](.github/workflows/publish-npm.yml).
+For the first publication, repository maintainers can configure a granular npm token with package
+write access as the `NPM_TOKEN` GitHub Actions secret. Every published GitHub release runs the
+tests, builds and checks the package, derives the npm version from the release tag, and publishes
+with provenance.
+
+After the package exists on npm, the recommended long-term setup is an npm trusted publisher for
+the `BackofenLab/vaRRI-js` repository and `publish-npm.yml` workflow, with `npm publish` selected as
+an allowed action. The workflow already grants the required OIDC permission; after a successful
+trusted-publishing run, the long-lived `NPM_TOKEN` secret can be removed.
+
+Release tags must be valid semantic versions with an optional leading `v`, for example `v1.2.3`
+or `1.2.3`. The workflow changes `package.json` and `package-lock.json` only inside the temporary
+runner, so no release-generated commit is pushed back to `main`.
 
 
 ---
