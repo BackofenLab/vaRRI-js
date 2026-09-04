@@ -126,7 +126,7 @@ To use the library in your own HTML page, include the dependencies in the follow
 
 ## npm Package
 
-Install vaRRI-js in an application (including a Galaxy visualization package) with:
+Install vaRRI-js in an application with:
 
 ```bash
 npm install varri-js
