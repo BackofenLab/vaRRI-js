@@ -116,7 +116,7 @@
       description: 'Demonstrates cropping, probability profiles, region and subsequence highlights, and point mutations in one interaction.',
       descriptionShort: 'Showcases all features of vaRRI-js.',
       vaRRIParams: {
-        sequence: 'ACGAUCCCAUGGAUUAGAGCAUUUUCGACAGCAG&ACGAAAAAAAGAGCAGACAGUAG',
+        sequence:  'ACGAUCAUGUGGUUUAGAGCAUUUUCGACAGCAG&ACGAAAAAAAGAGCAGACAGUAG',
         structure: '..<<..<<...>>>>...((....(((...((..&............)))))..))..',
         startIndex1: -6,
         startIndex2: 100,
