@@ -37,15 +37,14 @@ jobs:
       - name: Set package version from release tag
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          package_version="${RELEASE_TAG#v}"
-          npm version "$package_version" --no-git-tag-version --allow-same-version
+          IS_PRERELEASE: ${{ github.event.release.prerelease }}
+        id: release
+        run: node scripts/release-metadata.cjs
 
       - name: Verify package contents
-        run: npm pack --dry-run
+        run: npm run test:package
 
       - name: Publish package
-        run: npm publish --provenance --access public
+        run: npm publish --provenance --access public --tag "$NPM_TAG"
         env:
-          # Bootstraps the first publish; npm OIDC takes over once trusted publishing is configured.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TAG: ${{ steps.release.outputs.npm_tag }}

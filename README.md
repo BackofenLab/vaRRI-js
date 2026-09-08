@@ -132,6 +132,36 @@ Install vaRRI-js in an application with:
 npm install varri-js
 ```
 
+Starting with version 1.0.1, the package includes the complete viewer as well as the library.
+To serve the installed viewer locally (requires Python 3):
+
+```bash
+python3 -m http.server 8080 --bind 127.0.0.1 --directory node_modules/varri-js
+```
+
+Open `http://localhost:8080/index.html`. Applications can serve or copy the whole package
+directory using their own static-file server, retaining the relative directory layout.
+The viewer includes example inputs, SVG/PNG export controls, help, citation data and local logos.
+Use HTTP rather than `file://` so the help and citation pages can load their packaged data.
+
+The JavaScript `main` and root export intentionally remain `src/vaRRI.js`: `require('varri-js')`
+and ESM default imports return the library API. The viewer has a separate public entry:
+
+```javascript
+const viewerPath = require.resolve('varri-js/index.html');
+```
+
+Resolving this path does not start a server; serve its containing directory to make the viewer
+and its assets available. HTML is a browser document, not a JavaScript module.
+
+**Network requirements:** the existing viewer uses jsDelivr for `marked` and external
+university logos from `www.bioinf.uni-freiburg.de`. The help page also uses cdnjs for its
+Markdown stylesheet, and the citation page loads Citation.js from jsDelivr. These URLs
+are retained, so this is not a fully offline distribution. Deployments with restricted
+network access must provide those assets locally and update the HTML references/CSP.
+Opening the help or citation page through `file://` can additionally fetch fallback content
+from `raw.githubusercontent.com`; serving the package over HTTP uses the local files.
+
 The package exports the CommonJS-compatible API as `varri-js` and ships the browser assets under
 `varri-js/fornac/` and `varri-js/dist/`. For a static page served from an npm-based application,
 load the browser files in this order:
@@ -573,16 +603,26 @@ The `src` directory provides a [detailed vaRRI-js Library API documentation](src
 
 ## Release Process
 
-Publishing is automated by [`.github/workflows/publish-npm.yml`](.github/workflows/publish-npm.yml).
-For the first publication, repository maintainers can configure a granular npm token with package
-write access as the `NPM_TOKEN` GitHub Actions secret. Every published GitHub release runs the
-tests, builds and checks the package, derives the npm version from the release tag, and publishes
-with provenance.
+Publishing is automated by [`.github/workflows/publish-npm.yml`](https://github.com/BackofenLab/vaRRI-js/blob/main/.github/workflows/publish-npm.yml).
+The initial `varri-js@1.0.0` publication was manual. Before automated releases, an npm package
+owner must configure a **GitHub Actions trusted publisher** in the package's npm settings:
+organization `BackofenLab`, repository `vaRRI-js`, workflow filename `publish-npm.yml`, no
+environment name, with direct `npm publish` allowed. This one-time account action may request
+2FA. The workflow uses OIDC and does not require an `NPM_TOKEN` secret or interactive 2FA for
+each release. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
 
-After the package exists on npm, the recommended long-term setup is an npm trusted publisher for
-the `BackofenLab/vaRRI-js` repository and `publish-npm.yml` workflow, with `npm publish` selected as
-an allowed action. The workflow already grants the required OIDC permission; after a successful
-trusted-publishing run, the long-lived `NPM_TOKEN` secret can be removed.
+Merge the workflow changes before creating a release tag on a commit containing them.
+Every published GitHub release runs the tests, derives the npm version from the release tag,
+builds and installs a temporary package to verify its contents, and publishes with provenance.
+Stable releases use the `latest` npm tag; semantic prerelease versions or GitHub releases
+marked as prereleases use `next`. Use `npm install varri-js@next` to try a prerelease.
+Use a new, increasing stable version for each stable release: npm versions are immutable,
+and re-running an already successful publish cannot overwrite that version. Publishing a
+GitHub release is the trigger; pushing a Git tag alone does not publish the npm package.
+
+Run `npm run test:ci` and `npm run test:package` locally before proposing a release. The
+package check installs the actual tarball in a temporary consumer and checks module exports,
+viewer asset references, documentation images, and citation data. It also runs in PR CI.
 
 Release tags must be valid semantic versions with an optional leading `v`, for example `v1.2.3`
 or `1.2.3`. The workflow changes `package.json` and `package-lock.json` only inside the temporary

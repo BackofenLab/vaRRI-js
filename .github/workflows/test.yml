@@ -22,3 +22,6 @@ jobs:
 
       - name: Run tests
         run: npm test -- --runInBand
+
+      - name: Verify installed package contents
+        run: npm run test:package

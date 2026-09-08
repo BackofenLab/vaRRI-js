@@ -1,7 +1,7 @@
 {
   "name": "varri-js",
-  "version": "1.0.0",
-  "description": "Browser library for visualising and annotating RNA-RNA interactions",
+  "version": "1.0.1",
+  "description": "Browser viewer and JavaScript library for visualising and annotating RNA-RNA interactions",
   "license": "MIT",
   "author": "Bioinformatics Group, University of Freiburg",
   "homepage": "https://backofenlab.github.io/vaRRI-js/",
@@ -25,6 +25,12 @@
   "jsdelivr": "dist/vaRRI.min.js",
   "exports": {
     ".": "./src/vaRRI.js",
+    "./index.html": "./index.html",
+    "./index.js": "./index.js",
+    "./style.css": "./style.css",
+    "./example-data.js": "./example-data.js",
+    "./README.html": "./README.html",
+    "./citation.html": "./citation.html",
     "./vaRRI.js": "./src/vaRRI.js",
     "./dist/vaRRI.min.js": "./dist/vaRRI.min.js",
     "./dist/vaRRI.min.js.map": "./dist/vaRRI.min.js.map",
@@ -36,6 +42,17 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "index.html",
+    "index.js",
+    "style.css",
+    "example-data.js",
+    "README.html",
+    "citation.html",
+    "CITATION.bib",
+    "CITATION.cff",
+    "logo/",
+    "doc/",
+    "docu.free-trailing-ends.md",
     "dist/",
     "fornac/",
     "src/README.md",
@@ -49,6 +66,7 @@
     "build": "esbuild src/vaRRI.js --minify --sourcemap --outfile=dist/vaRRI.min.js",
     "test": "jest",
     "test:ci": "jest --runInBand",
+    "test:package": "node scripts/check-package.cjs",
     "prepack": "npm run build"
   },
   "jest": {
