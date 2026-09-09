@@ -136,7 +136,7 @@ Starting with version 1.0.1, the package includes the complete viewer as well as
 
 ### Open `index.html` in Browser
 
-After installation via npm, you find the vaRRI-js user interface in the file in the following subfolder
+After installation via npm, you find the vaRRI-js user interface `index.html` in the following subfolder
 
 ```bash
 node_modules/varri-js/index.html
