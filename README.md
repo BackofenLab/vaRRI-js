@@ -133,7 +133,21 @@ npm install varri-js
 ```
 
 Starting with version 1.0.1, the package includes the complete viewer as well as the library.
-To serve the installed viewer locally (requires Python 3):
+
+### Open `index.html` in Browser
+
+After installation via npm, you find the vaRRI-js user interface in the file in the following subfolder
+
+```bash
+node_modules/varri-js/index.html
+```
+
+You can open it with any recent browser and start working
+
+
+### Local Webserver (optional)
+
+Alternatively, serving the installed viewer locally using a local webserver requires e.g. Python 3:
 
 ```bash
 python3 -m http.server 8080 --bind 127.0.0.1 --directory node_modules/varri-js
