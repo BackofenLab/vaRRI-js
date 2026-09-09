@@ -1,9 +1,73 @@
 {
   "name": "varri-js",
-  "version": "1.0.0",
-  "description": "vaRRI-js RNA-RNA interaction visualiser",
+  "version": "1.0.1",
+  "description": "Browser viewer and JavaScript library for visualising and annotating RNA-RNA interactions",
+  "license": "MIT",
+  "author": "Bioinformatics Group, University of Freiburg",
+  "homepage": "https://backofenlab.github.io/vaRRI-js/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BackofenLab/vaRRI-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BackofenLab/vaRRI-js/issues"
+  },
+  "keywords": [
+    "bioinformatics",
+    "rna",
+    "rna-rna-interaction",
+    "visualisation",
+    "visualization"
+  ],
+  "main": "src/vaRRI.js",
+  "browser": "src/vaRRI.js",
+  "unpkg": "dist/vaRRI.min.js",
+  "jsdelivr": "dist/vaRRI.min.js",
+  "exports": {
+    ".": "./src/vaRRI.js",
+    "./index.html": "./index.html",
+    "./index.js": "./index.js",
+    "./style.css": "./style.css",
+    "./example-data.js": "./example-data.js",
+    "./README.html": "./README.html",
+    "./citation.html": "./citation.html",
+    "./vaRRI.js": "./src/vaRRI.js",
+    "./dist/vaRRI.min.js": "./dist/vaRRI.min.js",
+    "./dist/vaRRI.min.js.map": "./dist/vaRRI.min.js.map",
+    "./fornac/d3.js": "./fornac/d3.js",
+    "./fornac/fornac.js": "./fornac/fornac.js",
+    "./fornac/fornac.js.map": "./fornac/fornac.js.map",
+    "./fornac/fornac.css": "./fornac/fornac.css",
+    "./fornac/fornac.css.map": "./fornac/fornac.css.map",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.html",
+    "index.js",
+    "style.css",
+    "example-data.js",
+    "README.html",
+    "citation.html",
+    "CITATION.bib",
+    "CITATION.cff",
+    "logo/",
+    "doc/",
+    "docu.free-trailing-ends.md",
+    "dist/",
+    "fornac/",
+    "src/README.md",
+    "src/vaRRI.js"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
-    "test": "jest"
+    "build": "esbuild src/vaRRI.js --minify --sourcemap --outfile=dist/vaRRI.min.js",
+    "test": "jest",
+    "test:ci": "jest --runInBand",
+    "test:package": "node scripts/check-package.cjs",
+    "prepack": "npm run build"
   },
   "jest": {
     "globalSetup": "<rootDir>/tests/jest-global-setup.js",
@@ -14,6 +78,7 @@
   },
   "devDependencies": {
     "canvas": "^3.2.3",
+    "esbuild": "^0.25.9",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "marked": "^18.0.9"

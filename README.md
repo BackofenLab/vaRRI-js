@@ -10,12 +10,14 @@ Visualise and annotate RNA–RNA interactions directly in the browser — no ser
 2. [Examples from Literature](#examples-from-literature-reproduced-with-varri-js)
 3. [Project Structure](#project-structure)
 4. [Quick Start](#quick-start)
-5. [Input Website](#input-website)
-6. [URL Parameters & Sharing](#url-parameters--sharing)
-7. [Embedding / Web Integration](#-embedding--web-integration)
-8. [Input Format Reference](#input-format-reference)
-9. [JavaScript Library API](#javascript-library-api)
-10. [License](#license)
+5. [npm Package](#npm-package)
+6. [Input Website](#input-website)
+7. [URL Parameters & Sharing](#url-parameters--sharing)
+8. [Embedding / Web Integration](#-embedding--web-integration)
+9. [Input Format Reference](#input-format-reference)
+10. [JavaScript Library API](#javascript-library-api)
+11. [Release Process](#release-process)
+12. [License](#license)
 
 ---
 
@@ -121,6 +123,78 @@ To use the library in your own HTML page, include the dependencies in the follow
 <script src="fornac/fornac.js"></script>
 <script src="src/vaRRI.js"></script>  <!-- or use a minified version for deployment -->
 ```
+
+## npm Package
+
+Install vaRRI-js in an application with:
+
+```bash
+npm install varri-js
+```
+
+Starting with version 1.0.1, the package includes the complete viewer as well as the library.
+
+### Open `index.html` in Browser
+
+After installation via npm, you find the vaRRI-js user interface in the file in the following subfolder
+
+```bash
+node_modules/varri-js/index.html
+```
+
+You can open it with any recent browser and start working
+
+
+### Local Webserver (optional)
+
+Alternatively, serving the installed viewer locally using a local webserver requires e.g. Python 3:
+
+```bash
+python3 -m http.server 8080 --bind 127.0.0.1 --directory node_modules/varri-js
+```
+
+Open `http://localhost:8080/index.html`. Applications can serve or copy the whole package
+directory using their own static-file server, retaining the relative directory layout.
+The viewer includes example inputs, SVG/PNG export controls, help, citation data and local logos.
+Use HTTP rather than `file://` so the help and citation pages can load their packaged data.
+
+The JavaScript `main` and root export intentionally remain `src/vaRRI.js`: `require('varri-js')`
+and ESM default imports return the library API. The viewer has a separate public entry:
+
+```javascript
+const viewerPath = require.resolve('varri-js/index.html');
+```
+
+Resolving this path does not start a server; serve its containing directory to make the viewer
+and its assets available. HTML is a browser document, not a JavaScript module.
+
+**Network requirements:** the existing viewer uses jsDelivr for `marked` and external
+university logos from `www.bioinf.uni-freiburg.de`. The help page also uses cdnjs for its
+Markdown stylesheet, and the citation page loads Citation.js from jsDelivr. These URLs
+are retained, so this is not a fully offline distribution. Deployments with restricted
+network access must provide those assets locally and update the HTML references/CSP.
+Opening the help or citation page through `file://` can additionally fetch fallback content
+from `raw.githubusercontent.com`; serving the package over HTTP uses the local files.
+
+The package exports the CommonJS-compatible API as `varri-js` and ships the browser assets under
+`varri-js/fornac/` and `varri-js/dist/`. For a static page served from an npm-based application,
+load the browser files in this order:
+
+```html
+<link rel="stylesheet" href="node_modules/varri-js/fornac/fornac.css" />
+<script src="node_modules/varri-js/fornac/d3.js"></script>
+<script src="node_modules/varri-js/fornac/fornac.js"></script>
+<script src="node_modules/varri-js/dist/vaRRI.min.js"></script>
+```
+
+Applications with a bundler can also consume the API entry point:
+
+```javascript
+const vaRRI = require('varri-js');
+```
+
+Fornac and its D3 runtime must be available globally before calling DOM-rendering functions. Copy
+or serve the package's `fornac` browser assets as part of the application's normal asset pipeline.
 
 
 > [!NOTE]
@@ -537,6 +611,36 @@ Include `src/vaRRI.js` after the Fornac dependencies.
 The library exposes a single global object `vaRRI` with the a set of respective functions.
 
 The `src` directory provides a [detailed vaRRI-js Library API documentation](src/README.md)
+
+
+---
+
+## Release Process
+
+Publishing is automated by [`.github/workflows/publish-npm.yml`](https://github.com/BackofenLab/vaRRI-js/blob/main/.github/workflows/publish-npm.yml).
+The initial `varri-js@1.0.0` publication was manual. Before automated releases, an npm package
+owner must configure a **GitHub Actions trusted publisher** in the package's npm settings:
+organization `BackofenLab`, repository `vaRRI-js`, workflow filename `publish-npm.yml`, no
+environment name, with direct `npm publish` allowed. This one-time account action may request
+2FA. The workflow uses OIDC and does not require an `NPM_TOKEN` secret or interactive 2FA for
+each release. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
+
+Merge the workflow changes before creating a release tag on a commit containing them.
+Every published GitHub release runs the tests, derives the npm version from the release tag,
+builds and installs a temporary package to verify its contents, and publishes with provenance.
+Stable releases use the `latest` npm tag; semantic prerelease versions or GitHub releases
+marked as prereleases use `next`. Use `npm install varri-js@next` to try a prerelease.
+Use a new, increasing stable version for each stable release: npm versions are immutable,
+and re-running an already successful publish cannot overwrite that version. Publishing a
+GitHub release is the trigger; pushing a Git tag alone does not publish the npm package.
+
+Run `npm run test:ci` and `npm run test:package` locally before proposing a release. The
+package check installs the actual tarball in a temporary consumer and checks module exports,
+viewer asset references, documentation images, and citation data. It also runs in PR CI.
+
+Release tags must be valid semantic versions with an optional leading `v`, for example `v1.2.3`
+or `1.2.3`. The workflow changes `package.json` and `package-lock.json` only inside the temporary
+runner, so no release-generated commit is pushed back to `main`.
 
 
 ---
