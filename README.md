@@ -1,6 +1,6 @@
-# ![vaRRI-js](logo/vaRRI.logo.40x40.png) vaRRI-js - Visual Annotation of RNA–RNA Interactions
+# vaRRI-js - Visual Annotation of RNA–RNA Interactions
 
-Visualise and annotate RNA–RNA interactions directly in the browser — no server or no command-line tools required.
+![vaRRI-js](logo/vaRRI.logo.40x40.png) Visualise and annotate RNA–RNA interactions directly in the browser — no server or no command-line tools required.
 
 ---
 
