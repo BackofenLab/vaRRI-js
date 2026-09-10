@@ -516,6 +516,19 @@ Valid embedding links can be generated using the "🔗 Share Link" button in the
 > GitHub repository preview strips embedded `<iframe>` elements as above for security reasons. 
 > * If you are viewing [this page on **GitHub Pages**](https://backofenlab.github.io/vaRRI/README.html), the live widget will render directly below.
 
+
+### Embeddings in Existing Web Applications
+
+Currently, vaRRI is already available as an RRI visualizer in the the following web applications:
+
+- Freiburg RNA Tools: [https://rna.informatik.uni-freiburg.de/](https://rna.informatik.uni-freiburg.de/)
+  - IntaRNA - RNA-RNA interaction prediction server
+    - [Example visualization](https://rna.informatik.uni-freiburg.de/IntaRNA/Result.jsp?toolName=IntaRNA&jobID=4267751)
+  - CopomuS - Compensatory Mutation Designer for RNA-RNA interactions
+    - [Example visualization](https://rna.informatik.uni-freiburg.de/CopomuS/Result.jsp?toolName=CopomuS&jobID=1595284)
+- Galaxy Visualizer: [https://usegalaxy.eu/](https://usegalaxy.eu/)
+  - vaRRI is available as a visualization tool for RNA-RNA interactions in the Galaxy workflow system
+
 ## Input Format Reference
 
 ### Table of Contents
