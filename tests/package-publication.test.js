@@ -7,7 +7,12 @@ const { releaseMetadata } = require('../scripts/release-metadata.cjs');
 
 describe('npm package publication', () => {
     test('declares the public package metadata and supported entry points', () => {
-        expect(packageJson.name).toBe('varri');
+        expect(packageJson.name).toBe('varri-js');
+        const lock = require('../package-lock.json');
+        expect(lock.name).toBe(packageJson.name);
+        expect(lock.version).toBe(packageJson.version);
+        expect(lock.packages[''].name).toBe(packageJson.name);
+        expect(lock.packages[''].version).toBe(packageJson.version);
         expect(packageJson.license).toBe('MIT');
         expect(packageJson.repository.url).toBe('git+https://github.com/BackofenLab/vaRRI.git');
         expect(packageJson.main).toBe('src/vaRRI.js');
@@ -40,6 +45,11 @@ describe('npm package publication', () => {
         expect(workflow).toContain('node scripts/release-metadata.cjs');
         expect(workflow).toContain('npm run test:package');
         expect(workflow).toContain('npm publish');
+        expect(workflow).toContain('id-token: write');
+        expect(workflow).toContain('node-version: "24"');
+        expect(workflow).toContain('package-manager-cache: false');
+        expect(workflow).toContain('--provenance --access public --tag "$NPM_TAG"');
+        expect(workflow).not.toContain('secrets.NPM_TOKEN');
     });
 
     test.each([
