@@ -1,13 +1,13 @@
-# vaRRI-js - Visual Annotation of RNA–RNA Interactions
+# vaRRI - Visual Annotation of RNA–RNA Interactions
 
-![vaRRI-js](logo/vaRRI.logo.40x40.png) Visualise and annotate RNA–RNA interactions directly in the browser — no server or no command-line tools required.
+![vaRRI](logo/vaRRI.logo.40x40.png) Visualise and annotate RNA–RNA interactions directly in the browser — no server or no command-line tools required.
 
 ---
 
 ## Table of Contents
 
 1. [Overview](#overview-and-objective)
-2. [Examples from Literature](#examples-from-literature-reproduced-with-varri-js)
+2. [Examples from Literature](#examples-from-literature-reproduced-with-varri)
 3. [Project Structure](#project-structure)
 4. [Quick Start](#quick-start)
 5. [npm Package](#npm-package)
@@ -23,7 +23,7 @@
 
 ## Overview and Objective
 
-vaRRI-js is a pure JavaScript library to visualize the base pairing of
+vaRRI is a pure JavaScript library to visualize the base pairing of
 RNA-RNA interactions (RRIs) as 2D diagrams with additional annotation like 
 
 - coloring by sequence or loop type,
@@ -48,18 +48,18 @@ Use cases include
 > If you like it, [please cite it!](citation.html)
 
 
-Given two sequences and the RRI secondary-structure encoding in dot-bracket notation, vaRRI-js renders
+Given two sequences and the RRI secondary-structure encoding in dot-bracket notation, vaRRI renders
 them with the [Fornac](https://github.com/ViennaRNA/fornac) library, and then
 applies all of vaRRI's annotations and tweaks.
 
-[![vaRRI-js example visualization](doc/vaRRI-UI-example.png)](https://backofenlab.github.io/vaRRI-js/)
+[![vaRRI example visualization](doc/vaRRI-UI-example.png)](https://backofenlab.github.io/vaRRI/)
 
 
 ---
 
-## Examples from Literature reproduced with vaRRI-js
+## Examples from Literature reproduced with vaRRI
 
-To showcase the capabilities of vaRRI-js, we provide a collection of examples from the literature that have been reproduced using vaRRI-js.
+To showcase the capabilities of vaRRI, we provide a collection of examples from the literature that have been reproduced using vaRRI.
 The examples can be loaded directly in the input website via the **Example** dropdown.
 
 
@@ -68,7 +68,7 @@ The examples can be loaded directly in the input website via the **Example** dro
 ## Project Structure
 
 ```
-vaRRI-js/
+vaRRI/
 │
 ├── fornac/
 │   ├── fornac.js        # Fornac library (vaRRI dependency)
@@ -99,16 +99,16 @@ vaRRI-js/
 > before using it in a production environment.
 
 
-The easiest way to [**use vaRRI-js is via the GitHub pages website**](https://BackofenLab.github.io/vaRRI-js): 
+The easiest way to [**use vaRRI is via the GitHub pages website**](https://BackofenLab.github.io/vaRRI): 
 
-- [https://BackofenLab.github.io/vaRRI-js](https://BackofenLab.github.io/vaRRI-js)
+- [https://BackofenLab.github.io/vaRRI](https://BackofenLab.github.io/vaRRI)
 
-If you want to run the website locally or use the library in your own HTML page, clone the repository or download a ZIP of the project via the [Releases](https://github.com/BackofenLab/vaRRI-js/releases) section.
+If you want to run the website locally or use the library in your own HTML page, clone the repository or download a ZIP of the project via the [Releases](https://github.com/BackofenLab/vaRRI/releases) section.
 Afterwards, open `index.html` directly in a browser — no build step or server needed:
 
 ```bash
-git clone https://github.com/BackofenLab/vaRRI-js.git
-cd vaRRI-js
+git clone https://github.com/BackofenLab/vaRRI.git
+cd vaRRI
 # simply open index.html in your browser, e.g.:
 open index.html          # macOS
 xdg-open index.html      # Linux
@@ -126,20 +126,20 @@ To use the library in your own HTML page, include the dependencies in the follow
 
 ## npm Package
 
-Install vaRRI-js in an application with:
+Install vaRRI in an application with:
 
 ```bash
-npm install varri-js
+npm install varri
 ```
 
 Starting with version 1.0.1, the package includes the complete viewer as well as the library.
 
 ### Open `index.html` in Browser
 
-After installation via npm, you find the vaRRI-js user interface `index.html` in the following subfolder
+After installation via npm, you find the vaRRI user interface `index.html` in the following subfolder
 
 ```bash
-node_modules/varri-js/index.html
+node_modules/varri/index.html
 ```
 
 You can open it with any recent browser and start working
@@ -150,7 +150,7 @@ You can open it with any recent browser and start working
 Alternatively, serving the installed viewer locally using a local webserver requires e.g. Python 3:
 
 ```bash
-python3 -m http.server 8080 --bind 127.0.0.1 --directory node_modules/varri-js
+python3 -m http.server 8080 --bind 127.0.0.1 --directory node_modules/varri
 ```
 
 Open `http://localhost:8080/index.html`. Applications can serve or copy the whole package
@@ -158,11 +158,11 @@ directory using their own static-file server, retaining the relative directory l
 The viewer includes example inputs, SVG/PNG export controls, help, citation data and local logos.
 Use HTTP rather than `file://` so the help and citation pages can load their packaged data.
 
-The JavaScript `main` and root export intentionally remain `src/vaRRI.js`: `require('varri-js')`
+The JavaScript `main` and root export intentionally remain `src/vaRRI.js`: `require('varri')`
 and ESM default imports return the library API. The viewer has a separate public entry:
 
 ```javascript
-const viewerPath = require.resolve('varri-js/index.html');
+const viewerPath = require.resolve('varri/index.html');
 ```
 
 Resolving this path does not start a server; serve its containing directory to make the viewer
@@ -176,21 +176,21 @@ network access must provide those assets locally and update the HTML references/
 Opening the help or citation page through `file://` can additionally fetch fallback content
 from `raw.githubusercontent.com`; serving the package over HTTP uses the local files.
 
-The package exports the CommonJS-compatible API as `varri-js` and ships the browser assets under
-`varri-js/fornac/` and `varri-js/dist/`. For a static page served from an npm-based application,
+The package exports the CommonJS-compatible API as `varri` and ships the browser assets under
+`varri/fornac/` and `varri/dist/`. For a static page served from an npm-based application,
 load the browser files in this order:
 
 ```html
-<link rel="stylesheet" href="node_modules/varri-js/fornac/fornac.css" />
-<script src="node_modules/varri-js/fornac/d3.js"></script>
-<script src="node_modules/varri-js/fornac/fornac.js"></script>
-<script src="node_modules/varri-js/dist/vaRRI.min.js"></script>
+<link rel="stylesheet" href="node_modules/varri/fornac/fornac.css" />
+<script src="node_modules/varri/fornac/d3.js"></script>
+<script src="node_modules/varri/fornac/fornac.js"></script>
+<script src="node_modules/varri/dist/vaRRI.min.js"></script>
 ```
 
 Applications with a bundler can also consume the API entry point:
 
 ```javascript
-const vaRRI = require('varri-js');
+const vaRRI = require('varri');
 ```
 
 Fornac and its D3 runtime must be available globally before calling DOM-rendering functions. Copy
@@ -311,8 +311,8 @@ These generated entries are shown in the same list but are **not removable or ed
 Behaviour of generated list entries:
 
 - When **RRI Background** is set to `nothing`, no generated region entry is shown.
-- When set to `region`, vaRRI-js computes the overall intermolecular interaction region and displays it as a generated, non-removable region entry.
-- When set to `basepairs`, vaRRI-js computes one or more generated region entries that correspond to intermolecular basepair stacks and displays them as non-removable entries.
+- When set to `region`, vaRRI computes the overall intermolecular interaction region and displays it as a generated, non-removable region entry.
+- When set to `basepairs`, vaRRI computes one or more generated region entries that correspond to intermolecular basepair stacks and displays them as non-removable entries.
 - Generated entries are refreshed automatically from the current structure and settings; they are not exported as user-defined region highlights in share links.
 
 
@@ -361,7 +361,7 @@ As separator, either space and tab is supported, and lines starting with `#` are
 
 > [!TIP]
 > - For convenience, respective text *files can be dragged and dropped* into the input fields to load the probability profiles.
-> - vaRRI-js also supports CSV files with a header line, where the first column contains the nucleotide indices and the second column contains the probability values. Such data is automatically converted to the space-separated format above, and the header line is ignored.
+> - vaRRI also supports CSV files with a header line, where the first column contains the nucleotide indices and the second column contains the probability values. Such data is automatically converted to the space-separated format above, and the header line is ignored.
 
 Finally, the following fields are available to define the visualization of the probability profiles:
 
@@ -377,7 +377,7 @@ Finally, the following fields are available to define the visualization of the p
 ### Point Mutations
 
 RNA-RNA interaction visualizations are often used to discuss the effect of point mutations on the interaction. 
-To support this, vaRRI-js allows to define point mutations in the input sequences and visualizes them in the rendered structure.
+To support this, vaRRI allows to define point mutations in the input sequences and visualizes them in the rendered structure.
 A point mutation is defined by the sequence (1 or 2), the index of the nucleotide to mutate, and the new nucleotide (or letter) to use for the mutation.
 This information is provided in the following fields, and the "Add" button registers the mutation.
 
@@ -389,7 +389,7 @@ This information is provided in the following fields, and the "Add" button regis
 | **Color** | The color to use for highlighting the mutated nucleotide. |
 
 > [!TIP]  
-> vaRRI-js allows to define arbitrary letters as mutations, i.e. the mutated nucleotide does not need to be a valid IUPAC character.
+> vaRRI allows to define arbitrary letters as mutations, i.e. the mutated nucleotide does not need to be a valid IUPAC character.
 > That way, any kind of annotation can be added to the sequence, e.g. a letter representing a chemical modification, symbols for a certain type of mutation, or even a short word.
 
 All registered mutations are shown in a list above the input fields, and can be removed by clicking the "🗑️" icon.
@@ -439,7 +439,7 @@ Details about URL encoding are given in the following section [URL Parameters & 
 
 ## URL Parameters & Sharing
 
-**vaRRI-js** supports state persistence directly via URL parameters, allowing you to pre-fill inputs or share specific visualization configurations using the **🔗 Share Link** button in the export panel. Most parameter names map directly to their corresponding HTML element IDs.
+**vaRRI** supports state persistence directly via URL parameters, allowing you to pre-fill inputs or share specific visualization configurations using the **🔗 Share Link** button in the export panel. Most parameter names map directly to their corresponding HTML element IDs.
 
 ### Key Parameters
 
@@ -478,7 +478,7 @@ You can embed the visualization directly into external web pages (e.g., in docum
 Use the `showRenderingOnly=true` URL parameter to hide all surrounding UI elements (header, controls panel, footer) and display only the visualization result panel.
 
 ```text
-https://backofenlab.github.io/vaRRI-js/index.html?showRenderingOnly=true&<remaining_parameters...>
+https://backofenlab.github.io/vaRRI/index.html?showRenderingOnly=true&<remaining_parameters...>
 ```
 
 For embedding without header and footer, you can also use the `hideFooterAndHeader=true` parameter, which will hide the header and footer but keep the controls panel visible, i.e. this checks the "Full screen UI" checkbox in the controls panel.
@@ -487,34 +487,34 @@ For embedding without header and footer, you can also use the `hideFooterAndHead
 
 ```html
 <iframe 
-  src="https://backofenlab.github.io/vaRRI-js/?sequence=ACGAUCAUGGAUUAGAGCAUUCGACAGCAG%26ACGAAAAAAAGAGCAUACGACAGUAG&colorSeq1=%23add8e6&startIndex1=-6&colorSeq2=%23f4bb44&startIndex2=100&structure=..%3C%3C%3C%3C...%3E%3E%3E%3E...%28%28..%28%28%28...%28%28..%26............%29%29...%29%29%29..%29%29..&coloring=strand&highlighting=region&colorRriNodes=%23ff0000&backgroundhighlighting=basepairs&colorRriRegion=%23ff0000&colorBasepair=%23ff0000&distinctBpTypes=on&forceLayout=on&profileColor1=%23800080&profileColorRepresentsOne1=on&profileColor2=%23ff0000&profileData1=%23+unpaired+probabilities%0A1+0.9%0A2+0.7%0A3+0.3%0A4+0.1%0A7+0.3%0A8+0.7%0A9+0.6&profileIdxRef1=1&profileIdxRef2=1&cropping=2&mutations=1%3A16G%3A338a29%2C2%3A118C%3A338a29&highlights=1%3A18-20%3A338a29%2C2%3A114-116%3A338a29&showRenderingOnly=true" 
+  src="https://backofenlab.github.io/vaRRI/?sequence=ACGAUCAUGGAUUAGAGCAUUCGACAGCAG%26ACGAAAAAAAGAGCAUACGACAGUAG&colorSeq1=%23add8e6&startIndex1=-6&colorSeq2=%23f4bb44&startIndex2=100&structure=..%3C%3C%3C%3C...%3E%3E%3E%3E...%28%28..%28%28%28...%28%28..%26............%29%29...%29%29%29..%29%29..&coloring=strand&highlighting=region&colorRriNodes=%23ff0000&backgroundhighlighting=basepairs&colorRriRegion=%23ff0000&colorBasepair=%23ff0000&distinctBpTypes=on&forceLayout=on&profileColor1=%23800080&profileColorRepresentsOne1=on&profileColor2=%23ff0000&profileData1=%23+unpaired+probabilities%0A1+0.9%0A2+0.7%0A3+0.3%0A4+0.1%0A7+0.3%0A8+0.7%0A9+0.6&profileIdxRef1=1&profileIdxRef2=1&cropping=2&mutations=1%3A16G%3A338a29%2C2%3A118C%3A338a29&highlights=1%3A18-20%3A338a29%2C2%3A114-116%3A338a29&showRenderingOnly=true" 
   width="100%" 
   height="600" 
   style="border: none;"
-  title="vaRRI-js Visualization">
+  title="vaRRI Visualization">
 </iframe>
 ```
 
 > [!IMPORTANT] 
 > Ensure special characters in URL parameters (such as `&` separating two RNA strands) are properly URL-encoded as `%26` when constructing embedding links manually. Also `()` have to be encoded using `%28` and `%29` respectively, as they are not encoded by default by URL encoders following RFC 3986.
 
-Valid embedding links can be generated using the "🔗 Share Link" button in the vaRRI-js interface but have to extended with `&showRenderingOnly=true`.
+Valid embedding links can be generated using the "🔗 Share Link" button in the vaRRI interface but have to extended with `&showRenderingOnly=true`.
 
 ----
 
 <iframe 
-  src="https://backofenlab.github.io/vaRRI-js/?showRenderingOnly=true&sequence=ACGAUCAUGGAUUAGAGCAUUCGACAGCAG%26ACGAAAAAAAGAGCAUACGACAGUAG&colorSeq1=%23add8e6&startIndex1=-6&colorSeq2=%23f4bb44&startIndex2=100&structure=..%3C%3C%3C%3C...%3E%3E%3E%3E...%28%28..%28%28%28...%28%28..%26............%29%29...%29%29%29..%29%29..&coloring=strand&highlighting=region&colorRriNodes=%23ff0000&backgroundhighlighting=basepairs&colorRriRegion=%23ff0000&colorBasepair=%23ff0000&distinctBpTypes=on&forceLayout=on&profileColor1=%23800080&profileColorRepresentsOne1=on&profileColor2=%23ff0000&profileData1=%23+unpaired+probabilities%0A1+0.9%0A2+0.7%0A3+0.3%0A4+0.1%0A7+0.3%0A8+0.7%0A9+0.6&profileIdxRef1=1&profileIdxRef2=1&cropping=2&mutations=1%3A16G%3A338a29%2C2%3A118C%3A338a29&highlights=1%3A18-20%3A338a29%2C2%3A114-116%3A338a29" 
+  src="https://backofenlab.github.io/vaRRI/?showRenderingOnly=true&sequence=ACGAUCAUGGAUUAGAGCAUUCGACAGCAG%26ACGAAAAAAAGAGCAUACGACAGUAG&colorSeq1=%23add8e6&startIndex1=-6&colorSeq2=%23f4bb44&startIndex2=100&structure=..%3C%3C%3C%3C...%3E%3E%3E%3E...%28%28..%28%28%28...%28%28..%26............%29%29...%29%29%29..%29%29..&coloring=strand&highlighting=region&colorRriNodes=%23ff0000&backgroundhighlighting=basepairs&colorRriRegion=%23ff0000&colorBasepair=%23ff0000&distinctBpTypes=on&forceLayout=on&profileColor1=%23800080&profileColorRepresentsOne1=on&profileColor2=%23ff0000&profileData1=%23+unpaired+probabilities%0A1+0.9%0A2+0.7%0A3+0.3%0A4+0.1%0A7+0.3%0A8+0.7%0A9+0.6&profileIdxRef1=1&profileIdxRef2=1&cropping=2&mutations=1%3A16G%3A338a29%2C2%3A118C%3A338a29&highlights=1%3A18-20%3A338a29%2C2%3A114-116%3A338a29" 
   width="100%" 
   height="600" 
   style="border: 2px solid #333333; border-radius: 6px;"
-  title="vaRRI-js Visualization">
+  title="vaRRI Visualization">
 </iframe>
 
 ----
 
 > [!NOTE] 
 > GitHub repository preview strips embedded `<iframe>` elements as above for security reasons. 
-> * If you are viewing [this page on **GitHub Pages**](https://backofenlab.github.io/vaRRI-js/README.html), the live widget will render directly below.
+> * If you are viewing [this page on **GitHub Pages**](https://backofenlab.github.io/vaRRI/README.html), the live widget will render directly below.
 
 ## Input Format Reference
 
@@ -528,7 +528,7 @@ Valid embedding links can be generated using the "🔗 Share Link" button in the
 
 ### Dot-Bracket Notation
 
-vaRRI-js accepts standard dot-bracket secondary structure notation with the following characters:
+vaRRI accepts standard dot-bracket secondary structure notation with the following characters:
 
 | Character | Meaning |
 |---|---|
@@ -543,7 +543,7 @@ You can use any of the four bracket types to represent basepairs, and they can b
 The only restriction is that the brackets must be balanced, i.e. every opening bracket must have a corresponding closing bracket of the same type.
 
 > [!IMPORTANT] 
-> Since vaRRI-js is based on the fornac library, its underlying layout algorithm does not support pseudoknots, i.e. basepairs that cross each other.
+> Since vaRRI is based on the fornac library, its underlying layout algorithm does not support pseudoknots, i.e. basepairs that cross each other.
 > In that case, the primary layout will be based on a reduced set of basepairs that do not cross each other, and the remaining basepairs are added subsequently.
 > Therefore, the layout of pseudoknotted structures may not be optimal, and the visualisation may be less clear than for non-pseudoknotted structures.
 
@@ -610,17 +610,17 @@ position-based annotations, including highlightings, point mutations, and probab
 Include `src/vaRRI.js` after the Fornac dependencies.  
 The library exposes a single global object `vaRRI` with the a set of respective functions.
 
-The `src` directory provides a [detailed vaRRI-js Library API documentation](src/README.md)
+The `src` directory provides a [detailed vaRRI Library API documentation](src/README.md)
 
 
 ---
 
 ## Release Process
 
-Publishing is automated by [`.github/workflows/publish-npm.yml`](https://github.com/BackofenLab/vaRRI-js/blob/main/.github/workflows/publish-npm.yml).
-The initial `varri-js@1.0.0` publication was manual. Before automated releases, an npm package
+Publishing is automated by [`.github/workflows/publish-npm.yml`](https://github.com/BackofenLab/vaRRI/blob/main/.github/workflows/publish-npm.yml).
+The initial `varri@1.0.0` publication was manual. Before automated releases, an npm package
 owner must configure a **GitHub Actions trusted publisher** in the package's npm settings:
-organization `BackofenLab`, repository `vaRRI-js`, workflow filename `publish-npm.yml`, no
+organization `BackofenLab`, repository `vaRRI`, workflow filename `publish-npm.yml`, no
 environment name, with direct `npm publish` allowed. This one-time account action may request
 2FA. The workflow uses OIDC and does not require an `NPM_TOKEN` secret or interactive 2FA for
 each release. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
@@ -629,7 +629,7 @@ Merge the workflow changes before creating a release tag on a commit containing 
 Every published GitHub release runs the tests, derives the npm version from the release tag,
 builds and installs a temporary package to verify its contents, and publishes with provenance.
 Stable releases use the `latest` npm tag; semantic prerelease versions or GitHub releases
-marked as prereleases use `next`. Use `npm install varri-js@next` to try a prerelease.
+marked as prereleases use `next`. Use `npm install varri@next` to try a prerelease.
 Use a new, increasing stable version for each stable release: npm versions are immutable,
 and re-running an already successful publish cannot overwrite that version. Publishing a
 GitHub release is the trigger; pushing a Git tag alone does not publish the npm package.

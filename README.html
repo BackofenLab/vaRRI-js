@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>vaRRI-js README</title>
+  <title>vaRRI README</title>
   <link rel="icon" type="image/png" href="logo/vaRRI.logo.40x40.png">
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css">
@@ -107,7 +107,7 @@
       if (isLocalFile && token.type === 'html' && typeof token.text === 'string' && token.text.includes('<iframe')) {
         // Optionally extract the URL from the iframe if present
         const srcMatch = token.text.match(/src=["']([^"']+)["']/);
-        const iframeUrl = srcMatch ? srcMatch[1] : 'https://backofenlab.github.io/vaRRI-js/index.html';
+        const iframeUrl = srcMatch ? srcMatch[1] : 'https://backofenlab.github.io/vaRRI/index.html';
 
         token.text = `
           <div class="status-banner" style="margin: 16px 0;">
@@ -122,7 +122,7 @@
 
   // 3. Define URLs
   const localUrl = './README.md';
-  const remoteUrl = 'https://raw.githubusercontent.com/BackofenLab/vaRRI-js/main/README.md';
+  const remoteUrl = 'https://raw.githubusercontent.com/BackofenLab/vaRRI/main/README.md';
 
   // 4. Choose target URL
   const targetUrl = isLocalFile ? remoteUrl : localUrl;
@@ -133,7 +133,7 @@
         ⚠️ <strong>Note:</strong> 
         <blockquote style="margin: 8px;">
           README.html was opened locally and cannot access the local README.md.<br>
-          Therefore, the README was loaded from the <a href="${remoteUrl}">vaRRI-js online repository</a>.
+          Therefore, the README was loaded from the <a href="${remoteUrl}">vaRRI online repository</a>.
         </blockquote>
       </div>
     `;

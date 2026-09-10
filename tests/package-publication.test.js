@@ -7,9 +7,9 @@ const { releaseMetadata } = require('../scripts/release-metadata.cjs');
 
 describe('npm package publication', () => {
     test('declares the public package metadata and supported entry points', () => {
-        expect(packageJson.name).toBe('varri-js');
+        expect(packageJson.name).toBe('varri');
         expect(packageJson.license).toBe('MIT');
-        expect(packageJson.repository.url).toBe('git+https://github.com/BackofenLab/vaRRI-js.git');
+        expect(packageJson.repository.url).toBe('git+https://github.com/BackofenLab/vaRRI.git');
         expect(packageJson.main).toBe('src/vaRRI.js');
         expect(packageJson.exports['.']).toBe('./src/vaRRI.js');
         expect(packageJson.exports['./fornac/fornac.css']).toBe('./fornac/fornac.css');

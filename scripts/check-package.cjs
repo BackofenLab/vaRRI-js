@@ -22,15 +22,15 @@ try {
   fs.writeFileSync(path.join(consumer, 'package.json'), '{"private":true}');
   npm(['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', path.join(temp, archive)], consumer);
   const installedRequire = createRequire(path.join(consumer, 'package.json'));
-  const installed = path.dirname(installedRequire.resolve('varri-js/package.json'));
-  const manifest = installedRequire('varri-js/package.json');
+  const installed = path.dirname(installedRequire.resolve('varri/package.json'));
+  const manifest = installedRequire('varri/package.json');
   for (const key of Object.keys(manifest.exports)) {
     const specifier = key === '.' ? manifest.name : manifest.name + key.slice(1);
     assert.ok(fs.statSync(installedRequire.resolve(specifier)).isFile(), specifier);
   }
-  assert.equal(typeof installedRequire('varri-js').render, 'function');
+  assert.equal(typeof installedRequire('varri').render, 'function');
   execFileSync(process.execPath, ['--input-type=module', '-e',
-    "import v from 'varri-js'; if (typeof v.render !== 'function') throw Error('ESM API missing')"], { cwd: consumer });
+    "import v from 'varri'; if (typeof v.render !== 'function') throw Error('ESM API missing')"], { cwd: consumer });
 
   const origin = 'https://installed-package.invalid/';
   for (const name of ['index.html', 'README.html', 'citation.html']) {

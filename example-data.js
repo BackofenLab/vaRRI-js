@@ -114,7 +114,7 @@
       name: 'RNA–RNA interaction feature overview',
       nameShort: 'All feature showcase',
       description: 'Demonstrates cropping, probability profiles, region and subsequence highlights, and point mutations in one interaction.',
-      descriptionShort: 'Showcases all features of vaRRI-js.',
+      descriptionShort: 'Showcases all features of vaRRI.',
       vaRRIParams: {
         sequence:  'ACGAUCAUGUGGUUUAGAGCAUUUUCGACAGCAG&ACGAAAAAAAGAGCAGACAGUAG',
         structure: '..<<..<<...>>>>...((....(((...((..&............)))))..))..',

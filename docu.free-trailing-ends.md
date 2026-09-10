@@ -1,12 +1,12 @@
 # "Free trailing ends" feature — documentation
 
-This document describes the "Free trailing ends" feature of vaRRI-js: what it
+This document describes the "Free trailing ends" feature of vaRRI: what it
 does, the relevant parts of Fornac's internal force-layout architecture it
 depends on, and the exact steps taken to implement it.
 
 ## 1. What the feature does
 
-vaRRI-js renders RNA/RNA-RNA-interaction structures using
+vaRRI renders RNA/RNA-RNA-interaction structures using
 [Fornac](https://github.com/ViennaRNA/fornac)'s force-directed layout
 (`options.forceLayout = true`, i.e. the "Enable Fornac force-layout animation"
 checkbox). Fornac's layout algorithm pulls every *loop* of the structure
@@ -20,7 +20,7 @@ the two free/dangling ends of the sequence(s) toward each other into a closed
 ring — even though these ends have no real base-pairing there.
 
 When the **"Free trailing ends"** checkbox is enabled (only selectable while
-"Enable Fornac force-layout animation" is also enabled), vaRRI-js removes this
+"Enable Fornac force-layout animation" is also enabled), vaRRI removes this
 artificial circularisation from the force simulation:
 
 - The two sequence ends are released from being pulled together.

@@ -1,4 +1,4 @@
-# vaRRI-js JavaScript API
+# vaRRI JavaScript API
 
 `src/vaRRI.js` exposes one global object, `window.vaRRI`. In CommonJS test
 code, `require('./src/vaRRI.js')` returns the same object.
