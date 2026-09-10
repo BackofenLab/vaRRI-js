@@ -1,6 +1,6 @@
 {
   "name": "vaRRI",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Browser viewer and JavaScript library for visualising and annotating RNA-RNA interactions",
   "license": "MIT",
   "author": "Bioinformatics Group, University of Freiburg",
