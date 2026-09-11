@@ -129,17 +129,18 @@ To use the library in your own HTML page, include the dependencies in the follow
 Install vaRRI in an application with:
 
 ```bash
-npm install varri
+npm install varri-js
 ```
 
-Starting with version 1.0.1, the package includes the complete viewer as well as the library.
+The npm package remains `varri-js`; the GitHub repository and project branding are `vaRRI`.
+Version 1.0.2 includes the updated complete viewer as well as the library.
 
 ### Open `index.html` in Browser
 
 After installation via npm, you find the vaRRI user interface `index.html` in the following subfolder
 
 ```bash
-node_modules/varri/index.html
+node_modules/varri-js/index.html
 ```
 
 You can open it with any recent browser and start working
@@ -150,7 +151,7 @@ You can open it with any recent browser and start working
 Alternatively, serving the installed viewer locally using a local webserver requires e.g. Python 3:
 
 ```bash
-python3 -m http.server 8080 --bind 127.0.0.1 --directory node_modules/varri
+python3 -m http.server 8080 --bind 127.0.0.1 --directory node_modules/varri-js
 ```
 
 Open `http://localhost:8080/index.html`. Applications can serve or copy the whole package
@@ -158,11 +159,11 @@ directory using their own static-file server, retaining the relative directory l
 The viewer includes example inputs, SVG/PNG export controls, help, citation data and local logos.
 Use HTTP rather than `file://` so the help and citation pages can load their packaged data.
 
-The JavaScript `main` and root export intentionally remain `src/vaRRI.js`: `require('varri')`
+The JavaScript `main` and root export intentionally remain `src/vaRRI.js`: `require('varri-js')`
 and ESM default imports return the library API. The viewer has a separate public entry:
 
 ```javascript
-const viewerPath = require.resolve('varri/index.html');
+const viewerPath = require.resolve('varri-js/index.html');
 ```
 
 Resolving this path does not start a server; serve its containing directory to make the viewer
@@ -176,21 +177,21 @@ network access must provide those assets locally and update the HTML references/
 Opening the help or citation page through `file://` can additionally fetch fallback content
 from `raw.githubusercontent.com`; serving the package over HTTP uses the local files.
 
-The package exports the CommonJS-compatible API as `varri` and ships the browser assets under
-`varri/fornac/` and `varri/dist/`. For a static page served from an npm-based application,
+The package exports the CommonJS-compatible API as `varri-js` and ships the browser assets under
+`varri-js/fornac/` and `varri-js/dist/`. For a static page served from an npm-based application,
 load the browser files in this order:
 
 ```html
-<link rel="stylesheet" href="node_modules/varri/fornac/fornac.css" />
-<script src="node_modules/varri/fornac/d3.js"></script>
-<script src="node_modules/varri/fornac/fornac.js"></script>
-<script src="node_modules/varri/dist/vaRRI.min.js"></script>
+<link rel="stylesheet" href="node_modules/varri-js/fornac/fornac.css" />
+<script src="node_modules/varri-js/fornac/d3.js"></script>
+<script src="node_modules/varri-js/fornac/fornac.js"></script>
+<script src="node_modules/varri-js/dist/vaRRI.min.js"></script>
 ```
 
 Applications with a bundler can also consume the API entry point:
 
 ```javascript
-const vaRRI = require('varri');
+const vaRRI = require('varri-js');
 ```
 
 Fornac and its D3 runtime must be available globally before calling DOM-rendering functions. Copy
@@ -632,18 +633,21 @@ The `src` directory provides a [detailed vaRRI Library API documentation](src/RE
 ## Release Process
 
 Publishing is automated by [`.github/workflows/publish-npm.yml`](https://github.com/BackofenLab/vaRRI/blob/main/.github/workflows/publish-npm.yml).
-The initial `varri@1.0.0` publication was manual. Before automated releases, an npm package
-owner must configure a **GitHub Actions trusted publisher** in the package's npm settings:
+Releases continue to update the existing `varri-js` npm package. The npm package name is
+independent of the GitHub repository name; no source files need to be renamed.
+An owner must configure a **GitHub Actions trusted publisher** in the `varri-js` package's npm settings:
 organization `BackofenLab`, repository `vaRRI`, workflow filename `publish-npm.yml`, no
 environment name, with direct `npm publish` allowed. This one-time account action may request
 2FA. The workflow uses OIDC and does not require an `NPM_TOKEN` secret or interactive 2FA for
 each release. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
+After the GitHub repository rename, update any existing trusted publisher that still names
+the old repository to `vaRRI`. The repository name is case-sensitive.
 
 Merge the workflow changes before creating a release tag on a commit containing them.
 Every published GitHub release runs the tests, derives the npm version from the release tag,
 builds and installs a temporary package to verify its contents, and publishes with provenance.
 Stable releases use the `latest` npm tag; semantic prerelease versions or GitHub releases
-marked as prereleases use `next`. Use `npm install varri@next` to try a prerelease.
+marked as prereleases use `next`. Use `npm install varri-js@next` to try a prerelease.
 Use a new, increasing stable version for each stable release: npm versions are immutable,
 and re-running an already successful publish cannot overwrite that version. Publishing a
 GitHub release is the trigger; pushing a Git tag alone does not publish the npm package.
